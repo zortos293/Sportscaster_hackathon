@@ -1,6 +1,6 @@
 "use client";
 
-import { useConvexAuth, useAuthActions } from "@convex-dev/auth/react";
+import { useAppAuth } from "@/components/AppAuthProvider";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -15,8 +15,7 @@ function navLinkClass(isActive: boolean) {
 }
 
 export function SiteHeader() {
-  const { isAuthenticated, isLoading } = useConvexAuth();
-  const { signOut } = useAuthActions();
+  const { isAuthenticated, isLoading, signOut } = useAppAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);

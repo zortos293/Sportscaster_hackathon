@@ -10,6 +10,9 @@ class Settings(BaseSettings):
     openai_model: str = "gpt-4o-mini"
     tts_voice: str = "alloy"
     poll_interval_seconds: int = 45
+    elevenlabs_api_key: str = ""
+    elevenlabs_voice_id: str = "JBFqnCBsd6RMkjVDRZzb"
+    elevenlabs_model: str = "eleven_flash_v2_5"
 
 
 settings = Settings()

@@ -1,6 +1,8 @@
 import { ConvexAuthNextjsServerProvider } from "@convex-dev/auth/nextjs/server";
 import type { Metadata } from "next";
+import { AppAuthProvider } from "@/components/AppAuthProvider";
 import { ConvexClientProvider } from "@/components/ConvexClientProvider";
+import { isConvexEnabled } from "@/lib/env";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -14,12 +16,20 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const app = (
+    <ConvexClientProvider>
+      <AppAuthProvider>{children}</AppAuthProvider>
+    </ConvexClientProvider>
+  );
+
   return (
     <html lang="en" className="h-full antialiased">
       <body className="isolate flex min-h-dvh flex-col bg-white font-sans text-neutral-950">
-        <ConvexAuthNextjsServerProvider>
-          <ConvexClientProvider>{children}</ConvexClientProvider>
-        </ConvexAuthNextjsServerProvider>
+        {isConvexEnabled() ? (
+          <ConvexAuthNextjsServerProvider>{app}</ConvexAuthNextjsServerProvider>
+        ) : (
+          app
+        )}
       </body>
     </html>
   );

@@ -6,12 +6,21 @@ import { ReactNode } from "react";
 
 const sidebarLinks = [
   { href: "/dashboard", label: "Overview" },
+  { href: "/dashboard/watch/georgia-ole-miss", label: "College football" },
+  { href: "/dashboard/watch/chelsea-newcastle", label: "Premier League" },
 ];
 
 function navItemClass(isActive: boolean) {
   return isActive
     ? "rounded-lg bg-neutral-950/5 px-3 py-2 text-base/6 text-neutral-950 sm:text-sm/6"
     : "rounded-lg px-3 py-2 text-base/6 text-neutral-700 sm:text-sm/6";
+}
+
+function isLinkActive(pathname: string, href: string) {
+  if (href === "/dashboard") {
+    return pathname === "/dashboard";
+  }
+  return pathname.startsWith(href);
 }
 
 export function DashboardShell({ children }: { children: ReactNode }) {
@@ -28,7 +37,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
             <Link
               key={link.href}
               href={link.href}
-              className={navItemClass(pathname === link.href)}
+              className={navItemClass(isLinkActive(pathname, link.href))}
             >
               {link.label}
             </Link>
@@ -45,7 +54,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
             <Link
               key={link.href}
               href={link.href}
-              className={`shrink-0 ${navItemClass(pathname === link.href)}`}
+              className={`shrink-0 ${navItemClass(isLinkActive(pathname, link.href))}`}
             >
               {link.label}
             </Link>

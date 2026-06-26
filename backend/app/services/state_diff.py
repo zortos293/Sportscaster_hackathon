@@ -26,10 +26,7 @@ def detect_changes(previous: GameSnapshot | None, current: GameSnapshot) -> list
         changes.append(
             StateChange(
                 trigger="score_change",
-                summary=(
-                    f"Score moved to {current.score_away or '?'}–{current.score_home or '?'} "
-                    f"({current.status or 'in progress'})"
-                ),
+                summary=_score_change_summary(previous, current),
             )
         )
 
@@ -53,7 +50,10 @@ def detect_changes(previous: GameSnapshot | None, current: GameSnapshot) -> list
         changes.append(
             StateChange(
                 trigger="tick",
-                summary="Minor game update; keep energy with a short situational line.",
+                summary=(
+                    "Minor game update — keep the broadcast alive with a stat, momentum take, "
+                    "or fun fact from the context. Do not just repeat the score."
+                ),
             )
         )
 
@@ -72,4 +72,35 @@ def _opening_summary(snapshot: GameSnapshot) -> str:
     if snapshot.score_home is not None and snapshot.score_away is not None:
         score = f"Current score {snapshot.score_away}–{snapshot.score_home}. "
     status = snapshot.status or "Game underway"
-    return f"{score}{status}. Welcome listeners to AI Sportscaster."
+    return (
+        f"{score}{status}. Open the broadcast — welcome listeners and set the scene "
+        f"for this matchup."
+    )
+
+
+def _score_change_summary(previous: GameSnapshot, current: GameSnapshot) -> str:
+    away = current.score_away if current.score_away is not None else "?"
+    home = current.score_home if current.score_home is not None else "?"
+    status = current.status or "in progress"
+
+    parts = [f"Scoring play — score now {away}–{home} ({status})."]
+
+    prev_away = previous.score_away or 0
+    prev_home = previous.score_home or 0
+    cur_away = current.score_away or 0
+    cur_home = current.score_home or 0
+
+    if cur_away == cur_home and prev_away != prev_home:
+        parts.append("Level again — dead heat on the scoreboard.")
+    elif cur_away != cur_home and prev_away == prev_home:
+        parts.append("First blood — someone breaks the deadlock.")
+    elif (cur_away > cur_home) != (prev_away > prev_home):
+        parts.append("Lead change — momentum just swung.")
+
+    diff = abs(cur_away - cur_home)
+    if diff <= 1:
+        parts.append("Nail-biter — one score separates them.")
+    elif diff >= 3:
+        parts.append("One side is pulling away.")
+
+    return " ".join(parts)

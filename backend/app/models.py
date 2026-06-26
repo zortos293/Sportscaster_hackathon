@@ -27,6 +27,10 @@ class CreateSessionRequest(BaseModel):
         default="enthusiastic niche-sports broadcaster",
         description="Commentary voice/style hint for the LLM",
     )
+    sync_mode: str = Field(
+        default="poll",
+        description="poll = ESPN interval polling, video = client video timeline sync",
+    )
 
 
 class SessionResponse(BaseModel):

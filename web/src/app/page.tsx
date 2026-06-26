@@ -65,7 +65,7 @@ export default function HomePage() {
               </p>
               <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
                 <Link
-                  href="/sign-up"
+                  href="/dashboard"
                   className="rounded-lg bg-emerald-600 px-4 py-3 text-base/7 font-medium text-white ring-1 ring-emerald-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 sm:py-2 sm:text-sm/6"
                 >
                   Start listening

@@ -73,16 +73,37 @@ Start with **YouTube replay + ESPN stats**. You do not need live video rights fo
 - Scraping ESPN video streams (ToS, DRM, brittle).
 - Expecting ESPN MCP to provide video — it only provides **structured stats text**.
 
-## Quick start
+## Quick start (recommended — Next.js only)
+
+Everything runs in the **Next.js app**. No Python server needed for the demo.
 
 ```bash
-cd backend
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env   # add APIFY_TOKEN, OPENAI_API_KEY
-uvicorn app.main:app --reload --port 8000
+cd web
+npm install
+cp .env.local.example .env.local   # add ELEVENLABS_API_KEY (required for voice)
+npm run dev
 ```
+
+Videos are symlinked from `samples/` → `web/public/samples/`.
+
+Open http://localhost:3000/dashboard → pick a match → **press play**.
+
+### How sync works
+
+1. On video load, `/api/timeline` fetches ESPN scoring plays and maps them to video timestamps.
+2. As the video plays, `timeupdate` fires commentary when each score event is reached.
+3. `/api/commentary` writes the broadcaster line (LLM or template).
+4. `/api/tts` speaks it via ElevenLabs.
+
+### Env vars (`web/.env.local`)
+
+| Variable | Required | Purpose |
+|----------|----------|---------|
+| `ELEVENLABS_API_KEY` | Yes (for voice) | Text-to-speech |
+| `OPENAI_API_KEY` | No | Better commentary lines |
+| `NEXT_PUBLIC_CONVEX_URL` | No | Auth (empty = demo mode) |
+
+## Quick start (legacy Python backend)
 
 ### Create a session
 

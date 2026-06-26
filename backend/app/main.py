@@ -1,12 +1,17 @@
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
-from app.models import CreateSessionRequest, SessionResponse
+from app.demo_games import DEMO_GAMES, get_demo_game
+from app.models import CreateSessionRequest, SessionResponse, VideoSource, VideoSourceType
 from app.services.game_session import session_manager
+
+SAMPLES_DIR = Path(__file__).resolve().parents[2] / "samples"
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -26,9 +31,55 @@ app.add_middleware(
 )
 
 
+if SAMPLES_DIR.is_dir():
+    app.mount("/media", StaticFiles(directory=SAMPLES_DIR), name="media")
+
+
 @app.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/demo-games")
+async def demo_games() -> list[dict]:
+    return DEMO_GAMES
+
+
+@app.get("/demo-games/{game_id}")
+async def demo_game(game_id: str) -> dict:
+    game = get_demo_game(game_id)
+    if not game:
+        raise HTTPException(status_code=404, detail="Demo game not found")
+    return game
+
+
+@app.post("/demo-games/{game_id}/sessions", response_model=SessionResponse)
+async def create_demo_session(game_id: str) -> SessionResponse:
+    game = get_demo_game(game_id)
+    if not game:
+        raise HTTPException(status_code=404, detail="Demo game not found")
+
+    request = CreateSessionRequest(
+        sport=game["sport"],
+        league=game["league"],
+        event_id=game["event_id"],
+        poll_interval_seconds=30,
+        video_source=VideoSource(
+            type=VideoSourceType.FILE,
+            url=f"/media/{game['video_file']}",
+        ),
+        persona=game["persona"],
+    )
+    session = session_manager.create(request)
+    return SessionResponse(
+        session_id=session.session_id,
+        sport=request.sport,
+        league=request.league,
+        event_id=request.event_id,
+        poll_interval_seconds=session.poll_interval,
+        video_source=request.video_source,
+        status=session.status,
+    )
 
 
 @app.post("/sessions", response_model=SessionResponse)

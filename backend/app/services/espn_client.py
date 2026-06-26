@@ -151,18 +151,57 @@ class EspnClient:
         leaders = payload.get("leaders") or []
 
         leader_bits: list[str] = []
-        for group in leaders[:2]:
-            category = group.get("displayName", "Leader")
-            for leader in (group.get("leaders") or [])[:1]:
-                athlete = leader.get("athlete", {})
-                leader_bits.append(f"{category}: {athlete.get('displayName', 'Unknown')}")
+        for group in leaders:
+            team_name = group.get("team", {}).get("displayName", "Team")
+            for category in group.get("leaders") or []:
+                athlete = (category.get("leaders") or [{}])[0].get("athlete", {})
+                value = (category.get("leaders") or [{}])[0].get("displayValue", "")
+                label = category.get("displayName") or category.get("name") or "Stat"
+                name = athlete.get("displayName")
+                if name and value:
+                    leader_bits.append(f"{team_name} {label}: {name} ({value})")
 
-        raw_text = (
+        stat_bits: list[str] = []
+        teams = (payload.get("boxscore") or {}).get("teams") or []
+        if len(teams) >= 2:
+            for team in teams[:2]:
+                team_name = team.get("team", {}).get("displayName", "Team")
+                for stat in (team.get("statistics") or [])[:5]:
+                    if stat.get("displayValue"):
+                        stat_bits.append(f"{team_name} {stat.get('name')}: {stat['displayValue']}")
+
+        venue = (payload.get("gameInfo") or {}).get("venue", {}).get("fullName")
+        key_event_bits: list[str] = []
+        if sport == "soccer":
+            for event in (payload.get("keyEvents") or [])[-5:]:
+                text = event.get("shortText") or event.get("text")
+                if text:
+                    key_event_bits.append(str(text))
+        else:
+            for play in (payload.get("scoringPlays") or [])[-3:]:
+                if play.get("text"):
+                    key_event_bits.append(str(play["text"]))
+            for drive in (payload.get("drives") or {}).get("previous") or []:
+                result = drive.get("displayResult") or drive.get("result")
+                if result in ("Interception", "Fumble") and drive.get("description"):
+                    key_event_bits.append(f"{drive.get('team', {}).get('displayName', 'Team')} {result}: {drive['description']}")
+
+        raw_parts = [
             f"{away.get('team', {}).get('displayName', 'Away')} "
             f"{away.get('score', '?')} - {home.get('score', '?')} "
-            f"{home.get('team', {}).get('displayName', 'Home')}\n"
-            f"Status: {status.get('description', status.get('shortDetail', 'Unknown'))}"
-        )
+            f"{home.get('team', {}).get('displayName', 'Home')}",
+            f"Status: {status.get('description', status.get('shortDetail', 'Unknown'))}",
+        ]
+        if venue:
+            raw_parts.append(f"Venue: {venue}")
+        if leader_bits:
+            raw_parts.append("Stat leaders: " + " | ".join(leader_bits[:6]))
+        if stat_bits:
+            raw_parts.append("Team stats: " + " | ".join(stat_bits[:8]))
+        if key_event_bits:
+            raw_parts.append("Recent events: " + " | ".join(key_event_bits))
+
+        raw_text = "\n".join(raw_parts)
 
         return GameSnapshot(
             raw_text=raw_text,
