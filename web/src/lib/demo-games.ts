@@ -13,6 +13,7 @@ export const DEMO_GAMES: BroadcastGame[] = [
       "Energetic American college football commentator with Southern flair",
     finalScore: "Ole Miss 28, Georgia 10",
     videoMode: "highlights",
+    durationSeconds: 979,
   },
   {
     id: "chelsea-newcastle",
@@ -26,6 +27,7 @@ export const DEMO_GAMES: BroadcastGame[] = [
       "British Premier League football commentator with building excitement",
     finalScore: "Chelsea 2, Newcastle 1",
     videoMode: "highlights",
+    durationSeconds: 696,
   },
 ];
 

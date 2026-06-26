@@ -11,6 +11,8 @@ export type BroadcastGame = {
   persona: string;
   finalScore: string;
   videoMode: VideoSyncMode;
+  /** Known duration for timeline sync when ffprobe is unavailable. */
+  durationSeconds?: number;
 };
 
 export function videoUrl(videoFile: string): string {

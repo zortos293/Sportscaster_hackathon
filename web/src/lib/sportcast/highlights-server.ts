@@ -1,34 +1,18 @@
-import { ConvexHttpClient } from "convex/browser";
-import { api } from "../../../convex/_generated/api";
+import {
+  buildHighlightClips,
+  type HighlightClip,
+} from "@/lib/sportcast/highlight-clips-server";
 
-export type HighlightEvent = {
-  _id: string;
-  gameId: string;
-  kind: string;
-  description: string;
-  gameElapsed: number;
-  videoAt: number;
-  scoreHome: number;
-  scoreAway: number;
-  periodLabel: string;
-  context?: string;
-  confidence: number;
-  matchTitle: string;
-  matchSubtitle: string;
-};
+export type { HighlightClip };
 
-function getConvexClient(): ConvexHttpClient | null {
-  const url = process.env.NEXT_PUBLIC_CONVEX_URL?.trim();
-  if (!url || !/^https?:\/\//.test(url)) return null;
-  return new ConvexHttpClient(url);
+/** @deprecated Use HighlightClip from highlight-clips-server */
+export type HighlightEvent = HighlightClip;
+
+export async function fetchHighlightClips(): Promise<HighlightClip[]> {
+  return buildHighlightClips();
 }
 
-export async function fetchHighlights(): Promise<HighlightEvent[]> {
-  const client = getConvexClient();
-  if (!client) return [];
-  try {
-    return await client.query(api.matches.listHighlights, {});
-  } catch {
-    return [];
-  }
+/** @deprecated Use fetchHighlightClips */
+export async function fetchHighlights(): Promise<HighlightClip[]> {
+  return fetchHighlightClips();
 }
