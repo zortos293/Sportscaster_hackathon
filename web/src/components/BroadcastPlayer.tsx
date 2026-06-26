@@ -783,6 +783,29 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
             generatedAt: new Date().toISOString(),
           });
         }
+        try {
+          const cacheResponse = await fetch(`/api/commentary/cache?gameId=${game.id}`);
+          if (cacheResponse.ok) {
+            const cacheData = (await cacheResponse.json()) as {
+              lines?: Array<{
+                eventKey: string;
+                text: string;
+                source: string;
+                cachedAt?: number;
+              }>;
+            };
+            for (const line of cacheData.lines ?? []) {
+              if (!line.text?.trim()) continue;
+              commentaryCacheRef.current.set(line.eventKey, {
+                text: line.text.trim(),
+                source: (line.source as CommentaryDebugEntry["source"]) ?? "cursor",
+                generatedAt: new Date(line.cachedAt ?? Date.now()).toISOString(),
+              });
+            }
+          }
+        } catch {
+          // Convex cache is optional during local dev.
+        }
         for (const url of retainedTtsUrlsRef.current) {
           URL.revokeObjectURL(url);
         }

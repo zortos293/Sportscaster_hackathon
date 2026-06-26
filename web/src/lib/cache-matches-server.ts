@@ -20,7 +20,10 @@ import {
   matchSubtitle,
   matchTitle,
 } from "@/lib/livescore";
+import { getDemoGame, DEMO_GAMES } from "@/lib/demo-games";
+import { filterMajorTimelineEvents } from "@/lib/match-event-filter";
 import { eventCacheKey, type CachedCommentaryLine } from "@/lib/match-cache";
+import { buildTimeline, fetchEspnSummary } from "@/lib/timeline";
 import { getFullMatchTimeline, listFullMatchImports } from "@/lib/full-match-server";
 import { type TimelineEvent, type TimelineEventKind } from "@/lib/timeline";
 import { ConvexHttpClient } from "convex/browser";
@@ -208,7 +211,7 @@ export async function buildCacheLinesFromTimelineEvents(options: {
     }
     lines.push({
       eventKey: key,
-      eventId,
+      eventId: event.id,
       kind: event.kind,
       description: event.description,
       videoAt: event.videoAt,
@@ -353,9 +356,75 @@ export async function triggerBulkCacheWebhook(
   }
 }
 
+export async function cacheDemoGame(
+  gameId: string,
+  cursorAgentId?: string,
+): Promise<CacheMatchResult> {
+  try {
+    assertAdminCacheConfigured();
+    const game = getDemoGame(gameId);
+    if (!game) {
+      throw new Error("Demo game not found");
+    }
+    if (game.timelineSource === "static") {
+      throw new Error("Static demo games already ship bundled commentary");
+    }
+
+    const duration = game.durationSeconds;
+    if (!duration || duration <= 0) {
+      throw new Error("Demo game is missing durationSeconds for timeline sync");
+    }
+
+    const payload = await fetchEspnSummary(game.sport, game.league, game.eventId);
+    const { events } = buildTimeline(payload, game.sport, duration, game.videoMode);
+    const majorEvents = filterMajorTimelineEvents(events);
+    if (majorEvents.length === 0) {
+      throw new Error("Demo timeline has no cacheable major events");
+    }
+
+    const { lines, source } = await buildCacheLinesFromTimelineEvents({
+      gameTitle: game.title,
+      persona: game.persona,
+      eventId: game.eventId,
+      events: majorEvents,
+      cursorAgentId,
+    });
+
+    const saved = await saveGameCacheToConvex({
+      gameId: game.id,
+      title: game.title,
+      subtitle: game.subtitle,
+      lines,
+      source,
+    });
+
+    return {
+      gameId: game.id,
+      title: game.title,
+      lineCount: saved.lineCount,
+      source,
+      cachedAt: saved.cachedAt,
+    };
+  } catch (error) {
+    return {
+      gameId,
+      title: gameId,
+      lineCount: 0,
+      source: "error",
+      cachedAt: Date.now(),
+      error: error instanceof Error ? error.message : "Cache failed",
+    };
+  }
+}
+
 export async function cacheGame(gameId: string, cursorAgentId?: string): Promise<CacheMatchResult> {
   if (gameId.startsWith("fm-")) {
     return cacheFullMatchGame(gameId, cursorAgentId);
+  }
+
+  const demoGame = getDemoGame(gameId);
+  if (demoGame && demoGame.timelineSource !== "static") {
+    return cacheDemoGame(gameId, cursorAgentId);
   }
 
   return {
@@ -364,7 +433,7 @@ export async function cacheGame(gameId: string, cursorAgentId?: string): Promise
     lineCount: 0,
     source: "error",
     cachedAt: Date.now(),
-    error: "Only imported highlights can be cached from this admin panel.",
+    error: "Unknown game id — use a demo slug or imported highlight id (fm-…).",
   };
 }
 
@@ -483,6 +552,14 @@ export async function cacheAllLiveScoreMatches(): Promise<{
   const results: CacheMatchResult[] = [];
   let sharedAgentId: string | undefined;
 
+  for (const game of DEMO_GAMES.filter((entry) => entry.timelineSource !== "static")) {
+    const result = await cacheDemoGame(game.id, sharedAgentId);
+    results.push(result);
+    if (!result.error) {
+      sharedAgentId = sharedAgentId ?? undefined;
+    }
+  }
+
   const fullMatchImports = await listFullMatchImports().catch(() => []);
   for (const importJob of fullMatchImports.filter((job) => job.status === "aligned")) {
     try {
@@ -576,10 +653,35 @@ export async function listCachedMatchStatuses(): Promise<{
     }),
   );
 
+  const demoGames: MatchCacheStatus[] = DEMO_GAMES.map((game) => {
+    const cache = cacheByGameId.get(game.id);
+    const cacheable = game.timelineSource !== "static" && Boolean(game.durationSeconds);
+    return {
+      id: game.id,
+      matchId: game.eventId,
+      title: game.title,
+      subtitle: game.subtitle,
+      feedType: "demo" as const,
+      finalScore: game.finalScore,
+      videoMode: game.videoMode,
+      homeTeamName: "",
+      awayTeamName: "",
+      commentaryAvailable: false,
+      commentaryLineCount: 0,
+      eventsAvailable: cacheable,
+      eventsLineCount: cacheable ? 1 : 0,
+      cacheable,
+      cached: Boolean(cache),
+      lineCount: cache?.lineCount ?? 0,
+      cachedAt: cache?.cachedAt ?? null,
+      source: cache?.source ?? null,
+    };
+  });
+
   return {
     convexEnabled: client != null,
     commentaryConfigured: cursorCommentaryConfigured() || cursorAutomationWebhookConfigured(),
     webhookConfigured: cursorAutomationWebhookConfigured(),
-    games: fullMatchGames,
+    games: [...demoGames, ...fullMatchGames],
   };
 }

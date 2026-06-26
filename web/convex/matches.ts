@@ -62,6 +62,62 @@ export const getCommentaryLine = query({
   },
 });
 
+export const upsertCommentaryLine = mutation({
+  args: {
+    gameId: v.string(),
+    title: v.optional(v.string()),
+    subtitle: v.optional(v.string()),
+    source: v.optional(v.string()),
+    line: commentaryLineValidator,
+  },
+  handler: async (ctx, args) => {
+    const cachedAt = Date.now();
+    const existing = await ctx.db
+      .query("matchCommentaryLines")
+      .withIndex("by_gameId_eventKey", (q) =>
+        q.eq("gameId", args.gameId).eq("eventKey", args.line.eventKey),
+      )
+      .unique();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, { ...args.line, cachedAt });
+    } else {
+      await ctx.db.insert("matchCommentaryLines", {
+        gameId: args.gameId,
+        ...args.line,
+        cachedAt,
+      });
+    }
+
+    const allLines = await ctx.db
+      .query("matchCommentaryLines")
+      .withIndex("by_gameId", (q) => q.eq("gameId", args.gameId))
+      .collect();
+
+    const cacheMeta = await ctx.db
+      .query("matchCaches")
+      .withIndex("by_gameId", (q) => q.eq("gameId", args.gameId))
+      .unique();
+
+    const cacheDoc = {
+      gameId: args.gameId,
+      title: args.title ?? cacheMeta?.title ?? args.gameId,
+      subtitle: args.subtitle ?? cacheMeta?.subtitle ?? "",
+      lineCount: allLines.length,
+      cachedAt,
+      source: args.source ?? cacheMeta?.source ?? args.line.source,
+    };
+
+    if (cacheMeta) {
+      await ctx.db.patch(cacheMeta._id, cacheDoc);
+    } else if (args.title) {
+      await ctx.db.insert("matchCaches", cacheDoc);
+    }
+
+    return { gameId: args.gameId, eventKey: args.line.eventKey, cachedAt };
+  },
+});
+
 export const upsertMatchCache = mutation({
   args: {
     gameId: v.string(),

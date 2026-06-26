@@ -11,7 +11,7 @@ import {
   resolveCursorCommentaryModel,
   triggerAutomationWebhookIfAllowed,
 } from "@/lib/cursor-commentary";
-import { getCachedCommentaryLine } from "@/lib/match-cache-server";
+import { getCachedCommentaryLine, persistCommentaryLine } from "@/lib/match-cache-server";
 import type { GameBroadcastContext } from "@/lib/game-context";
 import type { TimelineEvent } from "@/lib/timeline";
 import OpenAI from "openai";
@@ -29,6 +29,51 @@ type CommentaryRequest = {
   /** prefetch = warm LLM cache only; never trigger automation webhooks */
   purpose?: "prefetch" | "playback";
 };
+
+function cacheGeneratedCommentary(
+  gameId: string | undefined,
+  gameTitle: string,
+  event: TimelineEvent,
+  text: string,
+  source: string,
+): void {
+  if (!gameId || !text.trim()) return;
+  if (source !== "cursor" && source !== "llm" && source !== "bundled") return;
+  void persistCommentaryLine({ gameId, gameTitle, event, text, source }).catch((error) => {
+    console.warn("[commentary] failed to persist cache line:", error);
+  });
+}
+
+function commentaryResponse(
+  payload: {
+    text: string;
+    source: string;
+    gameId?: string;
+    gameTitle: string;
+    event: TimelineEvent;
+    debug: Record<string, unknown>;
+    cursorAgentId?: string;
+  },
+  status = 200,
+): Response {
+  cacheGeneratedCommentary(
+    payload.gameId,
+    payload.gameTitle,
+    payload.event,
+    payload.text,
+    payload.source,
+  );
+
+  return Response.json(
+    {
+      text: payload.text,
+      source: payload.source,
+      cursorAgentId: payload.cursorAgentId,
+      debug: payload.debug,
+    },
+    { status },
+  );
+}
 
 export async function POST(request: Request) {
   const body = (await request.json()) as CommentaryRequest;
@@ -144,16 +189,22 @@ export async function POST(request: Request) {
 
       const text = result.text?.trim();
       if (!text) {
-        return Response.json({
+        return commentaryResponse({
           text: fallback,
           source: "template",
+          gameId,
+          gameTitle,
+          event,
           debug: { ...debug, cursorEmpty: true },
         });
       }
 
-      return Response.json({
+      return commentaryResponse({
         text,
         source: "cursor",
+        gameId,
+        gameTitle,
+        event,
         cursorAgentId: result.agentId,
         debug: {
           ...debug,
@@ -196,9 +247,13 @@ export async function POST(request: Request) {
       });
 
       const text = response.choices[0]?.message?.content?.trim();
-      return Response.json({
+      const source = text ? "llm" : "template";
+      return commentaryResponse({
         text: text || fallback,
-        source: text ? "llm" : "template",
+        source,
+        gameId,
+        gameTitle,
+        event,
         debug: {
           ...debug,
           model,
