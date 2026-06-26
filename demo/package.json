@@ -1,0 +1,22 @@
+{
+  "name": "elevenlabs-commentary-benchmark",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "benchmark": "tsx src/commentary-benchmark.ts",
+    "dev": "tsx src/server.ts",
+    "start": "tsx src/server.ts",
+    "voices": "tsx src/list-voices.ts"
+  },
+  "dependencies": {
+    "@elevenlabs/elevenlabs-js": "^2.0.0",
+    "apify-client": "^2.23.4",
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

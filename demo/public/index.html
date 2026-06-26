@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Commentary Benchmark</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="page">
+      <header class="header">
+        <div>
+          <p class="eyebrow">ElevenLabs streaming test</p>
+          <h1>Commentary Benchmark</h1>
+          <p class="subtitle">
+            Fetch match lines from LiveScore or queue manual lines, then click Generate audio.
+          </p>
+        </div>
+        <div class="config-card" id="config-card">
+          <div><span class="label">Voice</span><span id="voice-id">…</span></div>
+          <div><span class="label">Model</span><span id="model-id">…</span></div>
+          <div><span class="label">Source</span><span id="data-source-status">LiveScore</span></div>
+        </div>
+      </header>
+
+      <main class="layout">
+        <section class="panel input-panel">
+          <div class="panel-header">
+            <h2>Commentary lines</h2>
+            <button type="button" class="ghost" id="load-sample">Load sample</button>
+          </div>
+          <textarea
+            id="lines-input"
+            rows="8"
+            placeholder="One line per play-by-play moment…"
+          ></textarea>
+
+          <div class="match-panel" id="match-panel">
+            <div class="panel-header compact">
+              <h3>Match commentary</h3>
+              <button type="button" class="ghost" id="load-matches">Load matches</button>
+            </div>
+            <label class="field-label" for="match-source">Data source</label>
+            <select id="match-source" class="text-input">
+              <option value="livescore" selected>LiveScore (free)</option>
+              <option value="apify">Apify Bet365 (paid actor)</option>
+            </select>
+            <p class="hint" id="apify-hint"></p>
+            <label class="field-label" for="line-type" id="line-type-label">Line source</label>
+            <select id="line-type" class="text-input">
+              <option value="commentary" selected>Text commentary (major tournaments)</option>
+              <option value="events">Match events (goals, cards — all leagues)</option>
+            </select>
+            <label class="field-label" for="match-select">Select match</label>
+            <select id="match-select" disabled>
+              <option value="">Loading matches…</option>
+            </select>
+            <label class="field-label" for="game-id-input" id="game-id-label">Event ID override (optional)</label>
+            <input
+              type="text"
+              id="game-id-input"
+              class="text-input"
+              placeholder="e.g. 1417944 or paste full LiveScore URL"
+            />
+            <label class="checkbox" id="feed-only-wrap">
+              <input type="checkbox" id="commentary-only" checked />
+              <span id="feed-only-label">Only show matches with text commentary</span>
+            </label>
+            <label class="checkbox">
+              <input type="checkbox" id="poll-live" />
+              Poll for new lines every 30s (no auto-generate)
+            </label>
+            <button type="button" class="secondary" id="fetch-match-btn" disabled>
+              Fetch match lines
+            </button>
+            <button type="button" class="ghost" id="load-demo-btn">
+              Load demo match (no Apify)
+            </button>
+          </div>
+
+          <div class="generate-panel">
+            <label class="batch-label" for="batch-size">
+              Generate batch
+              <select id="batch-size">
+                <option value="1" selected>1 line</option>
+                <option value="2">2 lines</option>
+                <option value="3">3 lines</option>
+                <option value="5">5 lines</option>
+              </select>
+            </label>
+            <button type="button" class="primary" id="generate-btn" disabled>
+              Generate audio
+            </button>
+          </div>
+
+          <div class="controls">
+            <label class="checkbox">
+              <input type="checkbox" id="auto-play" checked />
+              Auto-play audio in order
+            </label>
+            <button type="button" class="ghost" id="queue-manual-btn">Queue manual lines</button>
+          </div>
+        </section>
+
+        <section class="panel results-panel">
+          <div class="panel-header">
+            <h2>Live results</h2>
+            <span class="status-pill idle" id="run-status">Idle</span>
+          </div>
+          <div id="lines-list" class="lines-list empty-state">
+            Fetch match lines or queue manual lines, then click Generate audio.
+          </div>
+          <p class="hint data-note" id="data-note" hidden></p>
+          <div class="summary" id="summary" hidden>
+            <h3>Summary</h3>
+            <div class="summary-grid">
+              <div class="metric">
+                <span class="metric-label">TTFA avg</span>
+                <span class="metric-value" id="summary-ttfa-avg">—</span>
+              </div>
+              <div class="metric">
+                <span class="metric-label">Stream avg</span>
+                <span class="metric-value" id="summary-stream-avg">—</span>
+              </div>
+              <div class="metric">
+                <span class="metric-label">Duration</span>
+                <span class="metric-value" id="summary-duration">—</span>
+              </div>
+              <div class="metric">
+                <span class="metric-label">Throughput</span>
+                <span class="metric-value" id="summary-throughput">—</span>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>

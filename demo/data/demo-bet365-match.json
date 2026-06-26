@@ -1,0 +1,124 @@
+{
+  "gameId": 4679449,
+  "homeTeam": "FC Barcelona",
+  "awayTeam": "Newcastle United",
+  "homeScore": 7,
+  "awayScore": 2,
+  "status": "finished",
+  "competition": "UEFA Champions League",
+  "webUrl": "https://www.bet365.com/demo/barcelona-newcastle",
+  "events": [
+    {
+      "type": "Goal",
+      "subType": "Open Play",
+      "minute": 6,
+      "minuteDisplay": "6'",
+      "player": "Raphinha",
+      "team": "home",
+      "assistPlayers": ["Fermín López"]
+    },
+    {
+      "type": "Goal",
+      "subType": "Open Play",
+      "minute": 15,
+      "minuteDisplay": "15'",
+      "player": "Anthony Elanga",
+      "team": "away",
+      "assistPlayers": ["Lewis Hall"]
+    },
+    {
+      "type": "Card",
+      "subType": "Yellow Card",
+      "minute": 17,
+      "minuteDisplay": "17'",
+      "player": "Joelinton",
+      "team": "away"
+    },
+    {
+      "type": "Goal",
+      "subType": "Open Play",
+      "minute": 18,
+      "minuteDisplay": "18'",
+      "player": "Marc Bernal",
+      "team": "home",
+      "assistPlayers": ["Gerard Martín"]
+    },
+    {
+      "type": "Goal",
+      "subType": "Open Play",
+      "minute": 28,
+      "minuteDisplay": "28'",
+      "player": "Anthony Elanga",
+      "team": "away",
+      "assistPlayers": ["Harvey Barnes"]
+    },
+    {
+      "type": "Card",
+      "subType": "Yellow Card",
+      "minute": 44,
+      "minuteDisplay": "44'",
+      "player": "Pau Cubarsí",
+      "team": "home"
+    },
+    {
+      "type": "Card",
+      "subType": "Yellow Card",
+      "minute": 45,
+      "minuteDisplay": "45'",
+      "addedTime": 5,
+      "player": "Kieran Trippier",
+      "team": "away"
+    },
+    {
+      "type": "Goal",
+      "subType": "Penalty",
+      "minute": 45,
+      "minuteDisplay": "45'",
+      "addedTime": 7,
+      "player": "Lamine Yamal",
+      "team": "home"
+    },
+    {
+      "type": "Goal",
+      "subType": "Open Play",
+      "minute": 52,
+      "minuteDisplay": "52'",
+      "player": "Robert Lewandowski",
+      "team": "home",
+      "assistPlayers": ["Lamine Yamal"]
+    },
+    {
+      "type": "Card",
+      "subType": "Yellow Card",
+      "minute": 61,
+      "minuteDisplay": "61'",
+      "player": "Bruno Guimarães",
+      "team": "away"
+    },
+    {
+      "type": "Substitution",
+      "subType": "Substitution",
+      "minute": 72,
+      "minuteDisplay": "72'",
+      "player": "Pedri",
+      "team": "home"
+    },
+    {
+      "type": "Goal",
+      "subType": "Open Play",
+      "minute": 78,
+      "minuteDisplay": "78'",
+      "player": "Ferran Torres",
+      "team": "home",
+      "assistPlayers": ["Raphinha"]
+    },
+    {
+      "type": "Card",
+      "subType": "Red Card",
+      "minute": 88,
+      "minuteDisplay": "88'",
+      "player": "Joelinton",
+      "team": "away"
+    }
+  ]
+}
