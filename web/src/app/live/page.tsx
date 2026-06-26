@@ -5,8 +5,7 @@ import { MaterialIcon } from "@/components/sportcast/MaterialIcon";
 import { SportCategoryChips } from "@/components/sportcast/SportCategoryChips";
 import { SportcastFooter } from "@/components/sportcast/SportcastFooter";
 import { SportcastHeader } from "@/components/sportcast/SportcastHeader";
-import { getFeaturedDemoMatch } from "@/lib/sportcast/live-matches";
-import { MATCHES } from "@/lib/sportcast/matches";
+import { getFeaturedDemoMatch, LIVE_DEMO_MATCHES } from "@/lib/sportcast/live-matches";
 
 const TRENDING = [
   {
@@ -34,7 +33,7 @@ const TRENDING = [
 
 export default function LivePage() {
   const featured = getFeaturedDemoMatch();
-  const continueWatching = MATCHES.slice(0, 3);
+  const continueWatching = LIVE_DEMO_MATCHES;
 
   return (
     <>
@@ -49,7 +48,7 @@ export default function LivePage() {
               <h2 className="font-display text-headline-lg text-on-surface">
                 Continue Watching
               </h2>
-              <Link href="/matches" className="font-label-md text-primary hover:underline">
+              <Link href="/highlight" className="font-label-md text-primary hover:underline">
                 View All
               </Link>
             </div>
