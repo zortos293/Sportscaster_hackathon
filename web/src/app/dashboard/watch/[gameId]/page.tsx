@@ -2,16 +2,61 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { DashboardShell } from "@/components/DashboardShell";
 import { BroadcastPlayer } from "@/components/BroadcastPlayer";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
-import { getDemoGame } from "@/lib/demo-games";
+import { type BroadcastGame } from "@/lib/broadcast-game";
+
+type FullMatchImport = {
+  gameId: string;
+  title: string;
+  subtitle: string;
+  videoFile?: string;
+  liveScoreMatchId: string;
+  status: string;
+};
 
 export default function WatchPage() {
   const params = useParams();
   const gameId = params.gameId as string;
-  const game = getDemoGame(gameId);
+  const [importedGame, setImportedGame] = useState<BroadcastGame | null>(null);
+  const [loadingImport, setLoadingImport] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoadingImport(true);
+      try {
+        const response = await fetch("/api/admin/full-match");
+        const data = (await response.json()) as { imports?: FullMatchImport[] };
+        if (cancelled) return;
+        const found = data.imports?.find((item) => item.gameId === gameId);
+        if (found?.videoFile && found.status === "aligned") {
+          setImportedGame({
+            id: found.gameId,
+            title: found.title,
+            subtitle: found.subtitle,
+            sport: "soccer",
+            league: "livescore",
+            eventId: found.liveScoreMatchId,
+            videoFile: found.videoFile,
+            persona: "British Premier League football commentator with building excitement",
+            finalScore: "LiveScore aligned",
+            videoMode: "full_match_aligned",
+          });
+        }
+      } finally {
+        if (!cancelled) setLoadingImport(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [gameId]);
+
+  const game = importedGame;
 
   return (
     <>
@@ -22,7 +67,7 @@ export default function WatchPage() {
             <div>
               <p className="font-mono text-sm/6 text-emerald-700">Broadcast</p>
               <h1 className="mt-1 text-3xl font-semibold tracking-tight text-neutral-950 sm:text-4xl">
-                {game?.title ?? "Game not found"}
+                {game?.title ?? (loadingImport ? "Loading match…" : "Game not found")}
               </h1>
             </div>
             <Link
@@ -35,7 +80,9 @@ export default function WatchPage() {
 
           {!game ? (
             <div className="rounded-xl p-5 ring-1 ring-red-200">
-              <p className="text-sm/6 text-red-700">Unknown game: {gameId}</p>
+              <p className="text-sm/6 text-red-700">
+                {loadingImport ? "Loading imported highlight…" : `Unknown imported highlight: ${gameId}`}
+              </p>
             </div>
           ) : (
             <BroadcastPlayer game={game} />

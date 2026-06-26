@@ -101,7 +101,24 @@ Open http://localhost:3000/dashboard → pick a match → **press play**.
 |----------|----------|---------|
 | `ELEVENLABS_API_KEY` | Yes (for voice) | Text-to-speech |
 | `CURSOR_API_KEY` | Yes (for LLM) | Commentary via Cursor Cloud Agents API |
-| `CURSOR_COMMENTARY_MODEL` | No | Default `composer-2.5` |
+| `CURSOR_COMMENTARY_MODEL` | No | Default `composer-2.5` (fast). Use a real API model ID from `GET /v1/models` — not UI slugs like `composer-2.5-fast`. |
+
+### Valid Cloud Agents API models (your account)
+
+Query live list: `curl -u "$CURSOR_API_KEY:" https://api.cursor.com/v1/models`
+
+| API `model.id` | Best for | Notes |
+|----------------|----------|-------|
+| `composer-2.5` | **Recommended** — fast, cheap commentary | Add `params: [{ id: "fast", value: "true" }]` (default) |
+| `claude-haiku-4-5` | Cheaper automation runs | Good for bulk cache via webhook |
+| `gemini-3.5-flash` | Fast, low cost | No extra params |
+| `gpt-5.3-codex` | Higher quality, more expensive | Default fast variant |
+| `claude-sonnet-4-6` | Balanced quality | Supports thinking/effort params |
+| `default` | Auto routing | Omit `model` or set `CURSOR_COMMENTARY_MODEL=default` |
+
+**Invalid:** `composer-2.5-fast` as a single string — that's a UI label. Use `composer-2.5` + `fast: true` param instead.
+
+**Cursor Automations (webhook UI):** Model is chosen in [cursor.com/automations](https://cursor.com/automations) when you create the automation — the webhook POST does **not** override it. All automations run in Max Mode.
 | `CURSOR_AUTOMATION_WEBHOOK_URL` | No | Optional async automation trigger |
 | `OPENAI_API_KEY` | No | Fallback commentary if Cursor fails |
 | `NEXT_PUBLIC_CONVEX_URL` | No | Auth (empty = demo mode) |

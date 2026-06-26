@@ -14,9 +14,9 @@ const features = [
       "Natural, expressive speech from ElevenLabs keeps the broadcast feeling human — not robotic text-to-speech — so fans stay immersed in the game.",
   },
   {
-    title: "Live stats, real reactions",
+    title: "Imported highlights, real reactions",
     description:
-      "ESPN scoreboard data drives commentary that reacts to score changes, period shifts, and momentum swings as the game unfolds.",
+      "OCR clock alignment maps your own highlight videos to match moments so commentary lands on goals, cards, and momentum swings.",
   },
   {
     title: "Watch with or without video",
@@ -27,19 +27,19 @@ const features = [
 
 const steps = [
   {
-    title: "Pick a game",
+    title: "Import a highlight",
     description:
-      "Choose a sport and event — basketball, lacrosse, rugby, and more — from leagues covered by live stats feeds.",
+      "Add a YouTube or VOD highlight and the matching LiveScore match ID in the admin panel.",
   },
   {
-    title: "Generate the broadcast",
+    title: "Align and cache",
     description:
-      "Our engine watches stat updates, writes broadcaster-style lines, and sends them to ElevenLabs for instant speech.",
+      "The app OCRs the scoreboard clock, aligns match moments, writes broadcaster-style lines, and caches them.",
   },
   {
-    title: "Listen live",
+    title: "Watch the replay",
     description:
-      "Stream AI commentary over your video or follow along audio-only. Every big moment gets a voice.",
+      "Play your imported highlight with markers and AI commentary landing on the right moments.",
   },
 ];
 

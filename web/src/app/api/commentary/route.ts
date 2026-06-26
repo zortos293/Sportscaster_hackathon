@@ -10,6 +10,7 @@ import {
   getCursorAutomationWebhookConfig,
   triggerAutomationWebhookIfAllowed,
 } from "@/lib/cursor-commentary";
+import { getCachedCommentaryLine } from "@/lib/match-cache-server";
 import type { GameBroadcastContext } from "@/lib/game-context";
 import type { TimelineEvent } from "@/lib/timeline";
 import OpenAI from "openai";
@@ -19,6 +20,7 @@ export const maxDuration = 60;
 type CommentaryRequest = {
   event: TimelineEvent;
   gameTitle: string;
+  gameId?: string;
   persona: string;
   gameContext?: GameBroadcastContext;
   recentLines?: string[];
@@ -32,6 +34,7 @@ export async function POST(request: Request) {
   const {
     event,
     gameTitle,
+    gameId,
     persona,
     gameContext,
     recentLines = [],
@@ -56,12 +59,13 @@ export async function POST(request: Request) {
   const debug: Record<string, unknown> = {
     generatedAt,
     event,
+    gameId,
     persona,
     gameContext,
     recentLines,
     userPrompt,
     systemPrompt: COMMENTARY_SYSTEM_PROMPT,
-    model: process.env.CURSOR_COMMENTARY_MODEL ?? process.env.OPENAI_MODEL ?? "composer-2.5",
+    model: process.env.CURSOR_COMMENTARY_MODEL ?? process.env.OPENAI_MODEL ?? "composer-2",
     cursorAgentId,
   };
 
@@ -98,6 +102,22 @@ export async function POST(request: Request) {
   } else if (purpose === "prefetch") {
     debug.webhook = "skipped";
     debug.webhookSkipReason = "prefetch (playback-only)";
+  }
+
+  if (gameId) {
+    const cached = await getCachedCommentaryLine(gameId, event);
+    if (cached) {
+      return Response.json({
+        text: cached.text,
+        source: cached.source,
+        debug: {
+          ...debug,
+          cacheHit: true,
+          cachedAt: new Date(cached.cachedAt).toISOString(),
+        },
+      });
+    }
+    debug.cacheHit = false;
   }
 
   if (cursorCommentaryConfigured()) {

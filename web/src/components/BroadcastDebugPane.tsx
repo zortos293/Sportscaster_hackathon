@@ -67,7 +67,7 @@ export function BroadcastDebugPane({
   timelineDebug,
   videoCurrentTime,
 }: BroadcastDebugPaneProps) {
-  const [tab, setTab] = useState<"commentary" | "espn">("commentary");
+  const [tab, setTab] = useState<"commentary" | "timeline">("commentary");
 
   return (
     <div className="mt-8 rounded-xl ring-1 ring-black/10">
@@ -106,12 +106,12 @@ export function BroadcastDebugPane({
             </button>
             <button
               type="button"
-              onClick={() => setTab("espn")}
+              onClick={() => setTab("timeline")}
               className={`rounded-lg px-3 py-1.5 text-xs font-medium ring-1 ring-black/10 ${
-                tab === "espn" ? "bg-violet-600 text-white ring-violet-600" : "text-neutral-700"
+                tab === "timeline" ? "bg-violet-600 text-white ring-violet-600" : "text-neutral-700"
               }`}
             >
-              ESPN data
+              Timeline data
             </button>
           </div>
 
@@ -148,7 +148,7 @@ export function BroadcastDebugPane({
 
                     <dl className="mt-3 grid gap-2 text-xs/5 text-neutral-600 sm:grid-cols-2">
                       <div>
-                        <dt className="font-medium text-neutral-700">ESPN play</dt>
+                        <dt className="font-medium text-neutral-700">Timeline moment</dt>
                         <dd className="mt-0.5">{entry.event.description}</dd>
                       </div>
                       <div>
@@ -189,7 +189,7 @@ export function BroadcastDebugPane({
             <div className="space-y-4">
               {!timelineDebug ? (
                 <p className="text-sm/6 text-neutral-600">
-                  ESPN data loads when the video timeline is built.
+                  Timeline data loads when the video timeline is built.
                 </p>
               ) : (
                 <>
@@ -212,19 +212,27 @@ export function BroadcastDebugPane({
                         {timelineDebug.events.length}
                       </dd>
                     </div>
-                    <div className="sm:col-span-2">
-                      <dt className="text-xs font-medium text-neutral-700">ESPN URL</dt>
-                      <dd className="mt-0.5 break-all font-mono text-xs text-violet-700">
-                        <a href={timelineDebug.espnUrl} target="_blank" rel="noreferrer">
-                          {timelineDebug.espnUrl}
-                        </a>
-                      </dd>
-                    </div>
+                    {timelineDebug.sourceUrl ?? timelineDebug.espnUrl ? (
+                      <div className="sm:col-span-2">
+                        <dt className="text-xs font-medium text-neutral-700">Source URL</dt>
+                        <dd className="mt-0.5 break-all font-mono text-xs text-violet-700">
+                          <a
+                            href={timelineDebug.sourceUrl ?? timelineDebug.espnUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            {timelineDebug.sourceUrl ?? timelineDebug.espnUrl}
+                          </a>
+                        </dd>
+                      </div>
+                    ) : null}
                   </dl>
 
                   <JsonBlock label="Mapped timeline events" value={timelineDebug.events} />
-                  <JsonBlock label="ESPN summary (scoring / key events)" value={timelineDebug.summary} />
-                  <JsonBlock label="Full ESPN API response" value={timelineDebug.payload} />
+                  <JsonBlock label="Timeline summary" value={timelineDebug.summary} />
+                  {timelineDebug.payload ? (
+                    <JsonBlock label="Source API response" value={timelineDebug.payload} />
+                  ) : null}
                 </>
               )}
             </div>

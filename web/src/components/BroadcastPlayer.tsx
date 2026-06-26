@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BroadcastDebugPane } from "@/components/BroadcastDebugPane";
-import { type DemoGame, videoUrl } from "@/lib/demo-games";
+import { type BroadcastGame, videoUrl } from "@/lib/broadcast-game";
 import { templateCommentary } from "@/lib/commentary-prompts";
 import type { CommentaryDebugEntry, TimelineDebugInfo } from "@/lib/debug-types";
 import type { GameBroadcastContext } from "@/lib/game-context";
@@ -17,14 +17,19 @@ type CommentaryLine = {
   source: CommentaryDebugEntry["source"] | "cursor";
 };
 
+type TimelineMarker = {
+  key: string;
+  label: string;
+  title: string;
+  videoAt: number;
+  className: string;
+};
+
 function isAiSource(source: CommentaryLine["source"]): boolean {
   return source === "cursor" || source === "llm";
 }
 
-function eventCacheKey(event: TimelineEvent): string {
-  return `${event.id}@${event.videoAt.toFixed(1)}`;
-}
-
+import { eventCacheKey } from "@/lib/match-cache";
 type CachedCommentary = {
   text: string;
   source: CommentaryDebugEntry["source"] | "cursor";
@@ -52,13 +57,13 @@ function prefetchInBatches<T>(
 }
 
 type BroadcastPlayerProps = {
-  game: DemoGame;
+  game: BroadcastGame;
 };
 
 const SYNC_LOOKAHEAD_SECONDS = 3;
 const AI_SYNC_LOOKAHEAD_SECONDS = 12;
 const PREFETCH_CONCURRENCY = 1;
-const INITIAL_PREFETCH_LIMIT = 3;
+const INITIAL_PREFETCH_LIMIT = 8;
 const ROLLING_PREFETCH_SECONDS = 45;
 const ROLLING_PREFETCH_INTERVAL_MS = 8000;
 const MAJOR_EVENT_KINDS = new Set(["opening", "score", "key_play", "period"]);
@@ -69,6 +74,7 @@ function drainAudioQueue(
   queue: { current: string[] },
   isPlaying: { current: boolean },
   retainUrls: { current: Set<string> },
+  currentAudio: { current: HTMLAudioElement | null },
 ) {
   if (isPlaying.current || queue.current.length === 0) return;
 
@@ -77,12 +83,16 @@ function drainAudioQueue(
 
   isPlaying.current = true;
   const audio = new Audio(next);
+  currentAudio.current = audio;
   const onDone = () => {
     if (!retainUrls.current.has(next)) {
       URL.revokeObjectURL(next);
     }
+    if (currentAudio.current === audio) {
+      currentAudio.current = null;
+    }
     isPlaying.current = false;
-    drainAudioQueue(queue, isPlaying, retainUrls);
+    drainAudioQueue(queue, isPlaying, retainUrls, currentAudio);
   };
   audio.onended = onDone;
   audio.onerror = onDone;
@@ -140,6 +150,47 @@ function statusClass(status: "loading" | "ready" | "live" | "error") {
   return "rounded-full bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700 ring-1 ring-red-600/20";
 }
 
+function markerLabel(event: TimelineEvent): string {
+  const text = `${event.description} ${event.context ?? ""}`.toLowerCase();
+  if (event.kind === "score") return "Goal";
+  if (text.includes("red card")) return "Red card";
+  if (text.includes("yellow card")) return "Yellow card";
+  if (text.includes("card")) return "Card";
+  if (text.includes("substitution")) return "Sub";
+  if (event.kind === "period") return event.periodLabel;
+  return "Key";
+}
+
+function markerClass(event: TimelineEvent): string {
+  const text = `${event.description} ${event.context ?? ""}`.toLowerCase();
+  if (event.kind === "score") return "bg-emerald-500 ring-emerald-900/20";
+  if (text.includes("red card")) return "bg-red-600 ring-red-900/20";
+  if (text.includes("yellow card") || text.includes("card")) {
+    return "bg-yellow-400 ring-yellow-900/20";
+  }
+  if (event.kind === "period") return "bg-sky-500 ring-sky-900/20";
+  return "bg-purple-500 ring-purple-900/20";
+}
+
+function buildTimelineMarkers(events: TimelineEvent[]): TimelineMarker[] {
+  const seen = new Set<string>();
+  return events
+    .filter((event) => event.kind === "score" || event.kind === "key_play" || event.kind === "period")
+    .filter((event) => {
+      const key = eventCacheKey(event);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .map((event) => ({
+      key: eventCacheKey(event),
+      label: markerLabel(event),
+      title: `${markerLabel(event)} · ${event.periodLabel} · ${event.description}`,
+      videoAt: event.videoAt,
+      className: markerClass(event),
+    }));
+}
+
 export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const timelineRef = useRef<TimelineEvent[]>([]);
@@ -147,12 +198,15 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
   const processingRef = useRef<Set<string>>(new Set());
   const audioQueueRef = useRef<string[]>([]);
   const isPlayingAudioRef = useRef(false);
+  const currentAudioRef = useRef<HTMLAudioElement | null>(null);
+  const spokenAudioRef = useRef<Set<string>>(new Set());
   const audioUnlockedRef = useRef(false);
   const playbackActiveRef = useRef(false);
   const lastSyncRef = useRef(0);
   const lastRollingPrefetchRef = useRef(0);
   const commentaryRef = useRef<CommentaryLine[]>([]);
   const ttsCacheRef = useRef<Map<string, string>>(new Map());
+  const inFlightTtsRef = useRef<Set<string>>(new Set());
   const retainedTtsUrlsRef = useRef<Set<string>>(new Set());
   const rollingPrefetchRef = useRef<Set<string>>(new Set());
 
@@ -169,6 +223,8 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
   const [commentaryDebugLog, setCommentaryDebugLog] = useState<CommentaryDebugEntry[]>([]);
   const [timelineDebug, setTimelineDebug] = useState<TimelineDebugInfo | null>(null);
   const [videoCurrentTime, setVideoCurrentTime] = useState(0);
+  const [videoDuration, setVideoDuration] = useState(0);
+  const [timelineEvents, setTimelineEvents] = useState<TimelineEvent[]>([]);
   const gameContextRef = useRef<GameBroadcastContext | null>(null);
   const commentaryCacheRef = useRef<Map<string, CachedCommentary>>(new Map());
   const prefetchGenerationRef = useRef(0);
@@ -238,6 +294,7 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               event,
+              gameId: game.id,
               gameTitle: game.title,
               persona: game.persona,
               gameContext: gameContextRef.current ?? undefined,
@@ -299,12 +356,23 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
 
   const prefetchTts = useCallback(async (event: TimelineEvent, text: string) => {
     const cacheKey = eventCacheKey(event);
-    if (!ttsAvailableRef.current || ttsCacheRef.current.has(cacheKey) || !text.trim()) {
+    if (
+      !ttsAvailableRef.current ||
+      ttsCacheRef.current.has(cacheKey) ||
+      inFlightTtsRef.current.has(cacheKey) ||
+      !text.trim()
+    ) {
       return;
     }
 
-    const url = await fetchTtsBlobUrl(text);
-    if (!url) return;
+    inFlightTtsRef.current.add(cacheKey);
+    const url = await fetchTtsBlobUrl(text).finally(() => {
+      inFlightTtsRef.current.delete(cacheKey);
+    });
+    if (!url || ttsCacheRef.current.has(cacheKey)) {
+      if (url) URL.revokeObjectURL(url);
+      return;
+    }
 
     retainedTtsUrlsRef.current.add(url);
     ttsCacheRef.current.set(cacheKey, url);
@@ -375,21 +443,14 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
       }
 
       const cacheKey = eventCacheKey(event);
+      if (spokenAudioRef.current.has(cacheKey)) return;
+
       const cached = ttsCacheRef.current.get(cacheKey);
       if (cached) {
+        spokenAudioRef.current.add(cacheKey);
         audioQueueRef.current.push(cached);
-        drainAudioQueue(audioQueueRef, isPlayingAudioRef, retainedTtsUrlsRef);
-        return;
+        drainAudioQueue(audioQueueRef, isPlayingAudioRef, retainedTtsUrlsRef, currentAudioRef);
       }
-
-      void fetchTtsBlobUrl(text).then((url) => {
-        if (!url || !audioUnlockedRef.current) {
-          if (url) URL.revokeObjectURL(url);
-          return;
-        }
-        audioQueueRef.current.push(url);
-        drainAudioQueue(audioQueueRef, isPlayingAudioRef, retainedTtsUrlsRef);
-      });
     },
     [],
   );
@@ -425,24 +486,31 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
         const userPrompt = cached.userPrompt;
         const model = cached.model;
 
-        setCommentaryDebugLog((prev) => [
-          ...prev,
-          {
-            id: firedKey,
-            generatedAt: cached.generatedAt ?? generatedAt,
-            videoAt,
-            source,
-            text: line,
-            event,
-            model,
-            userPrompt,
-            recentLines,
-          },
-        ]);
+        setCommentaryDebugLog((prev) => {
+          if (prev.some((entry) => entry.id === firedKey)) return prev;
+          return [
+            ...prev,
+            {
+              id: firedKey,
+              generatedAt: cached.generatedAt ?? generatedAt,
+              videoAt,
+              source,
+              text: line,
+              event,
+              model,
+              userPrompt,
+              recentLines,
+            },
+          ];
+        });
 
         firedRef.current.add(firedKey);
 
         setCommentary((prev) => {
+          if (prev.some((entry) => entry.key === firedKey)) {
+            commentaryRef.current = prev;
+            return prev;
+          }
           const next = [
             ...prev,
             {
@@ -532,6 +600,7 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
           debug?: TimelineDebugInfo;
         };
         timelineRef.current = data.events;
+        setTimelineEvents(data.events);
         gameContextRef.current = data.gameContext ?? data.debug?.gameContext ?? null;
         setTimelineDebug(data.debug ?? null);
         firedRef.current.clear();
@@ -542,6 +611,8 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
         }
         retainedTtsUrlsRef.current.clear();
         ttsCacheRef.current.clear();
+        inFlightTtsRef.current.clear();
+        spokenAudioRef.current.clear();
         rollingPrefetchRef.current.clear();
         cursorAgentIdRef.current = undefined;
         commentaryRef.current = [];
@@ -549,24 +620,29 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
         setCommentaryDebugLog([]);
         prefetchGenerationRef.current += 1;
         timelineLoadedDurationRef.current = duration;
+        setVideoDuration(duration);
         prefetchStartedRef.current = false;
         setTimelineReady(true);
         setStatus("ready");
+        if (llmAvailableRef.current) {
+          prefetchStartedRef.current = true;
+          void prefetchCommentary(data.events, prefetchGenerationRef.current);
+        }
       } catch {
-        setError("Could not build ESPN timeline for this video.");
+        setError("Could not load the imported highlight timeline for this video.");
         setStatus("error");
       } finally {
         timelineLoadInFlightRef.current = false;
       }
     },
-    [game.id],
+    [game.id, prefetchCommentary],
   );
 
   const unlockAudio = useCallback(() => {
     audioUnlockedRef.current = true;
     playbackActiveRef.current = true;
     setStatus("live");
-    drainAudioQueue(audioQueueRef, isPlayingAudioRef, retainedTtsUrlsRef);
+    drainAudioQueue(audioQueueRef, isPlayingAudioRef, retainedTtsUrlsRef, currentAudioRef);
 
     if (!prefetchStartedRef.current && llmAvailableRef.current) {
       prefetchStartedRef.current = true;
@@ -606,6 +682,7 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
         if (event.videoAt > t + 1) {
           firedRef.current.delete(firedKey);
           processingRef.current.delete(firedKey);
+          spokenAudioRef.current.delete(firedKey);
         }
       }
 
@@ -617,6 +694,11 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
       setCommentaryDebugLog((prev) => prev.filter((entry) => entry.videoAt <= t + 1));
 
       audioQueueRef.current = [];
+      if (currentAudioRef.current) {
+        currentAudioRef.current.pause();
+        currentAudioRef.current.currentTime = 0;
+        currentAudioRef.current = null;
+      }
       isPlayingAudioRef.current = false;
 
       syncToVideoTime(t);
@@ -642,6 +724,10 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
         }
       }
       audioQueueRef.current = [];
+      if (currentAudioRef.current) {
+        currentAudioRef.current.pause();
+        currentAudioRef.current = null;
+      }
       for (const url of retainedTtsUrlsRef.current) {
         URL.revokeObjectURL(url);
       }
@@ -649,11 +735,22 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
     };
   }, [loadTimeline, rollingPrefetch, syncToVideoTime, unlockAudio]);
 
+  const timelineMarkers = buildTimelineMarkers(timelineEvents);
+  const progressPct =
+    videoDuration > 0 ? Math.min(100, Math.max(0, (videoCurrentTime / videoDuration) * 100)) : 0;
+
+  function seekToMarker(videoAt: number) {
+    const video = videoRef.current;
+    if (!video) return;
+    video.currentTime = Math.max(0, Math.min(videoAt, video.duration || videoAt));
+    syncToVideoTime(video.currentTime, { catchUp: true });
+  }
+
   return (
     <div>
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
       <div>
-        <div className="overflow-hidden rounded-xl ring-1 ring-black/10">
+        <div className="relative overflow-hidden rounded-xl ring-1 ring-black/10">
           <video
             ref={videoRef}
             className="aspect-video w-full bg-neutral-950"
@@ -663,10 +760,74 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
             playsInline
             preload="metadata"
           />
+          <div className="pointer-events-none absolute inset-x-5 bottom-16 rounded-full bg-black/45 px-3 py-2 backdrop-blur-sm">
+            <div className="relative h-2 rounded-full bg-white/25">
+              <div
+                className="absolute left-0 top-0 h-full rounded-full bg-emerald-300/70"
+                style={{ width: `${progressPct}%` }}
+              />
+              {timelineMarkers.map((marker) => {
+                const left =
+                  videoDuration > 0
+                    ? Math.min(100, Math.max(0, (marker.videoAt / videoDuration) * 100))
+                    : 0;
+                return (
+                  <button
+                    key={`overlay-${marker.key}`}
+                    type="button"
+                    title={marker.title}
+                    aria-label={marker.title}
+                    onClick={() => seekToMarker(marker.videoAt)}
+                    className={`pointer-events-auto absolute top-1/2 h-5 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-white/80 transition hover:h-6 hover:w-4 ${marker.className}`}
+                    style={{ left: `${left}%` }}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        </div>
+        <div className="mt-3 rounded-xl bg-neutral-950/[0.03] px-3 py-3 ring-1 ring-black/10">
+          <div className="relative h-3 rounded-full bg-neutral-200">
+            <div
+              className="absolute left-0 top-0 h-full rounded-full bg-emerald-600/40"
+              style={{ width: `${progressPct}%` }}
+            />
+            {timelineMarkers.map((marker) => {
+              const left =
+                videoDuration > 0
+                  ? Math.min(100, Math.max(0, (marker.videoAt / videoDuration) * 100))
+                  : 0;
+              return (
+                <button
+                  key={marker.key}
+                  type="button"
+                  title={marker.title}
+                  aria-label={marker.title}
+                  onClick={() => seekToMarker(marker.videoAt)}
+                  className={`absolute top-1/2 h-4 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 transition hover:h-5 hover:w-3 ${marker.className}`}
+                  style={{ left: `${left}%` }}
+                />
+              );
+            })}
+          </div>
+          <div className="mt-3 flex flex-wrap gap-3 text-xs/5 text-neutral-600">
+            <span className="inline-flex items-center gap-1">
+              <span className="h-2 w-2 rounded-full bg-emerald-500" /> Goal
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <span className="h-2 w-2 rounded-full bg-yellow-400" /> Card
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <span className="h-2 w-2 rounded-full bg-purple-500" /> Key moment
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <span className="h-2 w-2 rounded-full bg-sky-500" /> Period
+            </span>
+          </div>
         </div>
         <p className="mt-3 text-sm/6 text-neutral-600">
-          Press play to start. This highlight reel uses sequential sync — each ESPN key moment
-          maps to the next clip in order, with continuous booth chatter between segments.
+          Press play to start. Markers show goals, cards, key moments, and period breaks; click a
+          marker to jump to that moment.
         </p>
       </div>
 
@@ -689,7 +850,7 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
               </dd>
             </div>
             <div>
-              <dt className="text-sm/6 text-neutral-600">Final (ESPN)</dt>
+              <dt className="text-sm/6 text-neutral-600">Source</dt>
               <dd className="mt-1 text-sm/6 font-medium text-neutral-950">{game.finalScore}</dd>
             </div>
           </dl>
@@ -714,7 +875,7 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
                     : llmAvailable
                       ? "Press play — AI commentary ready (add ELEVENLABS_API_KEY for voice)."
                       : "Press play — template commentary runs locally (add CURSOR_API_KEY for AI)."
-                  : "Building highlight timeline from ESPN data…"}
+                  : "Loading imported highlight timeline…"}
               </li>
             ) : (
               commentary.map((line) => (

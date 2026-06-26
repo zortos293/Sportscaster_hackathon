@@ -109,6 +109,55 @@ function buildScoreTriggerGuide(event: TimelineEvent): string {
   return hints.join("\n");
 }
 
+export type BatchCommentaryItem = {
+  eventKey: string;
+  kind: TimelineEventKind;
+  description: string;
+  scoreAway: number;
+  scoreHome: number;
+  periodLabel: string;
+  context?: string;
+};
+
+export function buildBatchCommentaryUserPrompt(options: {
+  persona: string;
+  gameTitle: string;
+  items: BatchCommentaryItem[];
+}): string {
+  const { persona, gameTitle, items } = options;
+
+  const feed = items
+    .map((item, index) => {
+      const kindGuide = KIND_GUIDANCE[item.kind] ?? KIND_GUIDANCE.color;
+      return `${index + 1}. eventKey: ${item.eventKey}
+   kind: ${item.kind}
+   period: ${item.periodLabel}
+   score: ${item.scoreAway}-${item.scoreHome}
+   raw: ${item.description}
+   guidance: ${kindGuide.split("\n")[0]}${item.context ? `\n   context: ${item.context}` : ""}`;
+    })
+    .join("\n\n");
+
+  return `Persona: ${persona}
+Game: ${gameTitle}
+
+Convert EVERY raw LiveScore feed line below into spoken broadcast commentary.
+
+Rules for each line:
+- 1–2 spoken sentences (max ~45 words; big moments up to ~55).
+- Vary phrasing across lines — do not repeat openings or structures.
+- Never invent stats or events not in the raw text.
+- Stay in character for the persona.
+
+Feed lines (${items.length} total):
+${feed}
+
+Reply with ONLY valid JSON — no markdown fences, no commentary outside the JSON:
+{"lines":[{"eventKey":"<exact eventKey from above>","text":"<spoken line>"}]}
+
+Include exactly one entry per eventKey, in the same order as the feed.`;
+}
+
 export function templateCommentary(
   event: TimelineEvent,
   gameTitle: string,

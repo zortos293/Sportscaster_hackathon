@@ -1,6 +1,6 @@
 import type { TimelineEvent, TimelineEventKind } from "@/lib/timeline";
 
-export type VideoSyncMode = "highlights" | "full_match";
+export type VideoSyncMode = "highlights" | "full_match" | "full_match_aligned";
 
 const FOOTBALL_QUARTER_SECONDS = 15 * 60;
 const SOCCER_MATCH_SECONDS = 90 * 60;

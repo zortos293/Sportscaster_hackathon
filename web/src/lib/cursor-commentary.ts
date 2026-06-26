@@ -52,6 +52,38 @@ export function normalizeCursorAutomationToken(raw: string | undefined): string 
   return token || undefined;
 }
 
+export type CursorModelParam = { id: string; value: string };
+
+export type CursorModelSelection = {
+  id: string;
+  params?: CursorModelParam[];
+};
+
+/** Map UI-style model slugs to Cloud Agents API `model` objects. */
+export function resolveCursorModelSelection(raw?: string): CursorModelSelection {
+  const envModel = (raw ?? process.env.CURSOR_COMMENTARY_MODEL ?? "composer-2.5").trim();
+  const normalized = envModel.toLowerCase();
+
+  const aliases: Record<string, CursorModelSelection> = {
+    composer: { id: "composer-2.5", params: [{ id: "fast", value: "true" }] },
+    "composer-latest": { id: "composer-2.5", params: [{ id: "fast", value: "true" }] },
+    "composer-2": { id: "composer-2.5", params: [{ id: "fast", value: "true" }] },
+    "composer-2-fast": { id: "composer-2.5", params: [{ id: "fast", value: "true" }] },
+    "composer-2.5": { id: "composer-2.5", params: [{ id: "fast", value: "true" }] },
+    "composer-2.5-fast": { id: "composer-2.5", params: [{ id: "fast", value: "true" }] },
+    "composer-2-slow": { id: "composer-2.5", params: [{ id: "fast", value: "false" }] },
+    "composer-2.5-slow": { id: "composer-2.5", params: [{ id: "fast", value: "false" }] },
+    auto: { id: "default" },
+    default: { id: "default" },
+  };
+
+  if (aliases[normalized]) {
+    return aliases[normalized];
+  }
+
+  return { id: envModel };
+}
+
 export type CursorCommentaryOptions = {
   apiKey: string;
   systemPrompt: string;
@@ -146,6 +178,168 @@ ${userPrompt}
 Reply with ONLY the spoken broadcast line — no quotes, labels, markdown, or explanation.`;
 }
 
+function buildBatchPrompt(systemPrompt: string, userPrompt: string): string {
+  return `${systemPrompt}
+
+---
+
+${userPrompt}`;
+}
+
+export type CursorBatchCommentaryResult = {
+  text: string;
+  agentId: string;
+  runId: string;
+  source: "cursor";
+};
+
+export async function generateCursorBatchCommentary(options: {
+  apiKey: string;
+  systemPrompt: string;
+  userPrompt: string;
+  model?: string;
+  agentId?: string;
+  timeoutMs?: number;
+}): Promise<CursorBatchCommentaryResult> {
+  return withCommentaryQueue(() => generateCursorBatchCommentaryInner(options));
+}
+
+async function generateCursorBatchCommentaryInner(options: {
+  apiKey: string;
+  systemPrompt: string;
+  userPrompt: string;
+  model?: string;
+  agentId?: string;
+  timeoutMs?: number;
+}): Promise<CursorBatchCommentaryResult> {
+  const {
+    apiKey,
+    systemPrompt,
+    userPrompt,
+    model,
+    agentId,
+    timeoutMs = Number.parseInt(process.env.CURSOR_BATCH_TIMEOUT_MS ?? "180000", 10) || 180_000,
+  } = options;
+
+  const modelSelection = resolveCursorModelSelection(model);
+  const promptText = buildBatchPrompt(systemPrompt, userPrompt);
+
+  let activeAgentId = agentId;
+  let run: CursorRun | undefined;
+
+  if (activeAgentId) {
+    try {
+      const followUp = await cursorFetch<{ run: CursorRun }>(
+        apiKey,
+        `/agents/${activeAgentId}/runs`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            prompt: { text: promptText },
+          }),
+        },
+      );
+      run = followUp.run;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      if (!message.includes("409")) {
+        throw error;
+      }
+      activeAgentId = undefined;
+    }
+  }
+
+  if (!activeAgentId || !run) {
+    try {
+      const created = await cursorFetch<CursorAgentResponse>(apiKey, "/agents", {
+        method: "POST",
+        body: JSON.stringify({
+          prompt: { text: promptText },
+          model: modelSelection,
+          name: "Sportscaster batch cache",
+        }),
+      });
+      activeAgentId = created.agent.id;
+      run = created.run;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      if (isCursorRateLimitError(message)) {
+        cursorApiCooldownUntil = Date.now() + cursorRateLimitCooldownMs();
+        throw new Error(
+          "Cursor rate limit reached (100/min). Commentary will resume shortly — one moment at a time.",
+        );
+      }
+      if (isCursorAgentLimitError(message)) {
+        throw new Error(
+          "Cursor Cloud Agent limit reached on your plan. Close other agents at cursor.com/agents, then retry — caching uses one agent for all lines.",
+        );
+      }
+      throw error;
+    }
+  }
+
+  const text = await waitForRun(apiKey, activeAgentId, run.id, timeoutMs);
+
+  return {
+    text,
+    agentId: activeAgentId,
+    runId: run.id,
+    source: "cursor",
+  };
+}
+
+export function parseBatchCommentaryJson(
+  raw: string,
+  expectedKeys: string[],
+): Map<string, string> {
+  const trimmed = raw.trim();
+  const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  const jsonText = (fenced?.[1] ?? trimmed).trim();
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(jsonText);
+  } catch {
+    throw new Error("Cursor batch response was not valid JSON");
+  }
+
+  const entries = Array.isArray(parsed)
+    ? parsed
+    : typeof parsed === "object" &&
+        parsed !== null &&
+        Array.isArray((parsed as { lines?: unknown }).lines)
+      ? (parsed as { lines: unknown[] }).lines
+      : null;
+
+  if (!entries) {
+    throw new Error("Cursor batch response missing lines array");
+  }
+
+  const byKey = new Map<string, string>();
+  for (const entry of entries) {
+    if (
+      typeof entry !== "object" ||
+      entry === null ||
+      typeof (entry as { eventKey?: unknown }).eventKey !== "string" ||
+      typeof (entry as { text?: unknown }).text !== "string"
+    ) {
+      continue;
+    }
+    const { eventKey, text } = entry as { eventKey: string; text: string };
+    const line = text.trim();
+    if (line) {
+      byKey.set(eventKey, line);
+    }
+  }
+
+  const missing = expectedKeys.filter((key) => !byKey.has(key));
+  if (missing.length === expectedKeys.length) {
+    throw new Error("Cursor batch response contained no matching commentary lines");
+  }
+
+  return byKey;
+}
+
 async function cursorFetch<T>(
   apiKey: string,
   path: string,
@@ -216,11 +410,12 @@ async function generateCursorCommentaryInner(
     apiKey,
     systemPrompt,
     userPrompt,
-    model = process.env.CURSOR_COMMENTARY_MODEL ?? "composer-2.5",
+    model,
     agentId,
     timeoutMs = 45_000,
   } = options;
 
+  const modelSelection = resolveCursorModelSelection(model);
   const promptText = buildPrompt(systemPrompt, userPrompt);
 
   let activeAgentId = agentId;
@@ -254,7 +449,7 @@ async function generateCursorCommentaryInner(
         method: "POST",
         body: JSON.stringify({
           prompt: { text: promptText },
-          model: { id: model },
+          model: modelSelection,
           name: "Sportscaster commentary",
         }),
       });
@@ -270,7 +465,7 @@ async function generateCursorCommentaryInner(
       }
       if (isCursorAgentLimitError(message)) {
         throw new Error(
-          "Cursor Cloud Agent limit reached on your plan. Close other agents or upgrade — only one agent is used per broadcast.",
+          "Cursor Cloud Agent limit reached on your plan. Close other agents at cursor.com/agents, then retry — caching uses one agent for all lines.",
         );
       }
       throw error;

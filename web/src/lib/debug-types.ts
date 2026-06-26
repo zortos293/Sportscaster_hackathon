@@ -35,10 +35,11 @@ export type EspnDebugSummary = {
 };
 
 export type TimelineDebugInfo = {
-  espnUrl: string;
+  sourceUrl?: string;
+  espnUrl?: string;
   fetchedAt: string;
-  summary: EspnDebugSummary;
-  payload: unknown;
+  summary: EspnDebugSummary | Record<string, unknown>;
+  payload?: unknown;
   events: TimelineEvent[];
   gameContext?: GameBroadcastContext;
   videoMode?: string;
