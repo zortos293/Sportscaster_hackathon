@@ -19,7 +19,7 @@ export function SiteHeader() {
   const router = useRouter();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const isDashboard = pathname.startsWith("/dashboard");
+  const hideMarketing = pathname.startsWith("/admin");
 
   useEffect(() => {
     setMobileMenuOpen(false);
@@ -47,10 +47,10 @@ export function SiteHeader() {
       {!isLoading && isAuthenticated ? (
         <>
           <Link
-            href="/dashboard"
-            className={navLinkClass(pathname.startsWith("/dashboard"))}
+            href="/live"
+            className={navLinkClass(pathname.startsWith("/live"))}
           >
-            Dashboard
+            Live
           </Link>
           <button
             type="button"
@@ -90,7 +90,7 @@ export function SiteHeader() {
           aria-label="Main"
           className="hidden items-center gap-x-1 lg:flex lg:gap-x-2"
         >
-          {!isDashboard ? marketingLinks : null}
+          {!hideMarketing ? marketingLinks : null}
           {authLinks}
         </nav>
 
@@ -144,7 +144,7 @@ export function SiteHeader() {
             className="absolute inset-x-0 top-full z-50 border-b border-neutral-950/10 bg-white px-6 py-4 lg:hidden"
           >
             <div className="flex flex-col gap-1">
-              {!isDashboard ? (
+              {!hideMarketing ? (
                 <>
                   <Link href="/#features" className={navLinkClass(false)}>
                     Features
@@ -157,10 +157,10 @@ export function SiteHeader() {
               {!isLoading && isAuthenticated ? (
                 <>
                   <Link
-                    href="/dashboard"
-                    className={navLinkClass(pathname.startsWith("/dashboard"))}
+                    href="/live"
+                    className={navLinkClass(pathname.startsWith("/live"))}
                   >
-                    Dashboard
+                    Live
                   </Link>
                   <Link href="/" className={navLinkClass(false)}>
                     Home

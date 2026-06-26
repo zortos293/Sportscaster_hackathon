@@ -7,7 +7,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 const isAuthPage = createRouteMatcher(["/sign-in", "/sign-up"]);
-const isProtectedRoute = createRouteMatcher(["/dashboard(.*)"]);
+const isProtectedRoute = createRouteMatcher(["/admin(.*)"]);
 
 const convexAuthEnabled =
   process.env.NEXT_PUBLIC_DISABLE_CONVEX_AUTH !== "true" &&
@@ -19,7 +19,7 @@ const convexAuthEnabled =
 export default convexAuthEnabled
   ? convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
       if (isAuthPage(request) && (await convexAuth.isAuthenticated())) {
-        return nextjsMiddlewareRedirect(request, "/dashboard");
+        return nextjsMiddlewareRedirect(request, "/live");
       }
 
       if (isProtectedRoute(request) && !(await convexAuth.isAuthenticated())) {

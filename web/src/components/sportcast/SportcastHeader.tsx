@@ -10,7 +10,11 @@ type NavItem = "live" | "highlight";
 
 export function SportcastHeader({ activeNav, dark = false }: { activeNav?: NavItem; dark?: boolean }) {
   const pathname = usePathname();
-  const liveActive = activeNav === "live" || pathname.startsWith("/live") || pathname.startsWith("/matches") || pathname.startsWith("/commentary");
+  const liveActive =
+    activeNav === "live" ||
+    pathname.startsWith("/live") ||
+    pathname.startsWith("/matches") ||
+    pathname.startsWith("/commentary");
   const highlightActive = activeNav === "highlight" || pathname.startsWith("/highlight");
 
   return (

@@ -29,5 +29,5 @@ the next clip in order, with booth chatter filling gaps.
 
 Direct URLs:
 
-- http://localhost:3000/dashboard/watch/georgia-ole-miss
-- http://localhost:3000/dashboard/watch/chelsea-newcastle
+- http://localhost:3000/live/watch/georgia-ole-miss
+- http://localhost:3000/live/watch/chelsea-newcastle

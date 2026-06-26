@@ -36,7 +36,7 @@ export function PasswordAuthForm({
 
     try {
       await signIn("password", { email, password, flow });
-      router.push("/dashboard");
+      router.push("/live");
       router.refresh();
     } catch {
       setError(

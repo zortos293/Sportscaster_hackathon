@@ -18,9 +18,11 @@ export function MatchCard({
         ? "top-3 right-3"
         : "top-3 left-3";
 
+  const href = match.watchHref ?? `/matches#${match.id}`;
+
   if (variant === "compact") {
     return (
-      <Link href={`/matches#${match.id}`} className="group block">
+      <Link href={href} className="group block">
         <div className="relative mb-3 aspect-video overflow-hidden rounded-lg border border-surface-container bg-black shadow-sm">
           <Image
             src={match.poster}
@@ -48,10 +50,11 @@ export function MatchCard({
   }
 
   return (
-    <article
-      id={match.id}
-      className="group scroll-mt-28 overflow-hidden rounded-xl border border-surface-container bg-surface-container-lowest shadow-sm transition-shadow hover:shadow-md"
-    >
+    <Link href={href} className="group block">
+      <article
+        id={match.id}
+        className="group scroll-mt-28 overflow-hidden rounded-xl border border-surface-container bg-surface-container-lowest shadow-sm transition-shadow hover:shadow-md"
+      >
       <div className="relative aspect-video overflow-hidden bg-black">
         <Image
           src={match.poster}
@@ -71,6 +74,7 @@ export function MatchCard({
         <h3 className="mt-1 mb-1 font-display text-on-surface">{match.venue}</h3>
         <p className="text-sm text-secondary">{match.sport}</p>
       </div>
-    </article>
+      </article>
+    </Link>
   );
 }

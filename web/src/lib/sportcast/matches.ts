@@ -13,6 +13,7 @@ export type SportcastMatch = {
   poster: string;
   badge: MatchBadge;
   subtitle?: string;
+  watchHref?: string;
 };
 
 export const AVATAR_URL =

@@ -535,7 +535,7 @@ export default function AdminPage() {
               {busyGameId === game.id ? "Caching…" : "Cache commentary"}
             </button>
             <Link
-              href={`/dashboard/watch/${game.id}`}
+              href={`/live/watch/${game.id}`}
               className="rounded-lg px-4 py-2.5 text-center text-sm/6 font-medium text-emerald-700 ring-1 ring-black/10"
             >
               Watch broadcast
@@ -826,7 +826,7 @@ export default function AdminPage() {
             Refresh
           </button>
           <Link
-            href="/dashboard"
+            href="/live"
             className="rounded-lg px-4 py-2.5 text-center text-base/7 font-medium text-emerald-700 sm:text-sm/6"
           >
             Back to dashboard

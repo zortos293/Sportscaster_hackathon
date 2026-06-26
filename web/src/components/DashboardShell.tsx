@@ -5,9 +5,9 @@ import { usePathname } from "next/navigation";
 import { ReactNode } from "react";
 
 const sidebarLinks = [
-  { href: "/dashboard", label: "Overview" },
-  { href: "/dashboard/watch/georgia-ole-miss", label: "College football" },
-  { href: "/dashboard/watch/chelsea-newcastle", label: "Premier League" },
+  { href: "/live", label: "Overview" },
+  { href: "/live/watch/georgia-ole-miss", label: "College football" },
+  { href: "/live/watch/chelsea-newcastle", label: "Premier League" },
 ];
 
 function navItemClass(isActive: boolean) {
@@ -17,8 +17,8 @@ function navItemClass(isActive: boolean) {
 }
 
 function isLinkActive(pathname: string, href: string) {
-  if (href === "/dashboard") {
-    return pathname === "/dashboard";
+  if (href === "/live") {
+    return pathname === "/live";
   }
   return pathname.startsWith(href);
 }

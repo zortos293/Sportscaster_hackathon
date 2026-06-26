@@ -86,7 +86,7 @@ npm run dev
 
 Videos are symlinked from `samples/` → `web/public/samples/`.
 
-Open http://localhost:3000/dashboard → pick a match → **press play**.
+Open http://localhost:3000/live → pick a match → **press play**.
 
 ### How sync works
 
