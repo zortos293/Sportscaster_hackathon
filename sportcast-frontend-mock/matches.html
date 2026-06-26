@@ -14,7 +14,7 @@
             theme: {
                 extend: {
                     "colors": {
-                        "surface-tint": "#b52420",
+                        "surface-tint": "#ff5a4e",
                         "inverse-surface": "#2f3132",
                         "on-secondary-fixed": "#1b1b1b",
                         "on-secondary-fixed-variant": "#474747",
@@ -52,7 +52,7 @@
                         "on-error": "#ffffff",
                         "primary-fixed": "#ffdad6",
                         "surface-bright": "#f9f9fb",
-                        "primary": "#b52420",
+                        "primary": "#ff5a4e",
                         "error": "#ba1a1a",
                         "surface-container-high": "#e8e8ea",
                         "background": "#f9f9fb",
@@ -272,8 +272,8 @@
 
         .live-action-btn.is-active {
             background: #fef2f2;
-            border-color: #b52420;
-            box-shadow: 0 0 0 1px rgba(181, 36, 32, 0.12);
+            border-color: #ff5a4e;
+            box-shadow: 0 0 0 1px rgba(255, 90, 78, 0.12);
         }
 
     
@@ -281,35 +281,35 @@
             animation: pulse-red 2s infinite;
         }
         @keyframes pulse-red {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(181, 36, 32, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(181, 36, 32, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(181, 36, 32, 0); }
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 90, 78, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(255, 90, 78, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 90, 78, 0); }
         }
     </style>
 </head>
 <body class="bg-background text-on-background font-body-md selection:bg-primary-container selection:text-on-primary-container">
-<header class="bg-surface shadow-sm sticky top-0 z-50 h-20 flex items-center">
+<header class="bg-black shadow-sm sticky top-0 z-50 h-20 flex items-center text-white">
 <nav class="flex justify-between items-center px-margin-mobile md:px-margin-desktop w-full max-w-container-max mx-auto">
 <!-- Brand -->
 <a aria-label="Sportcast home" class="flex items-center gap-3 cursor-pointer active:scale-95 transition-transform" href="live.html">
-<img alt="" aria-hidden="true" class="h-12 w-12 md:h-14 md:w-14 shrink-0 object-contain" src="assets/logo.png"/>
-<span class="font-display-lg text-headline-md md:text-display-lg font-extrabold text-primary">Sportcast</span>
+<img alt="Sportcast" class="h-12 w-12 md:h-14 md:w-14 shrink-0 object-contain" src="assets/logo.png"/>
+<span class="font-display-lg text-headline-md md:text-display-lg font-extrabold text-white">Sportcast</span>
 </a>
-<!-- Desktop Links -->
-<div class="hidden md:flex items-center gap-8">
+<div class="flex items-center gap-4 md:gap-8">
 <a class="text-primary font-bold border-b-2 border-primary py-1 px-1 transition-colors" href="live.html">Live</a>
-<a class="text-secondary font-label-md hover:text-primary transition-colors" href="highlight.html">Highlight</a>
+<a class="text-white/65 font-label-md hover:text-primary transition-colors border-b-2 border-transparent py-1 px-1" href="highlight.html">Highlight</a>
+<a class="text-white/65 font-label-md hover:text-primary transition-colors border-b-2 border-transparent py-1 px-1" href="live.html#categories">Categories</a>
 </div>
 <!-- Actions -->
 <div class="flex items-center gap-4 md:gap-6">
 <div class="relative hidden sm:block">
-<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-secondary pointer-events-none">search</span>
-<input aria-label="Search matches" class="bg-surface-container-low border-none rounded-full pl-10 pr-4 py-2 w-48 md:w-64 font-body-md text-on-surface focus:ring-2 focus:ring-primary outline-none transition-all" placeholder="Search matches..." type="search"/>
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none">search</span>
+<input aria-label="Search matches" class="bg-white/10 border-none rounded-full pl-10 pr-4 py-2 w-48 md:w-64 font-body-md text-white placeholder:text-white/40 focus:ring-2 focus:ring-primary outline-none transition-all" placeholder="Search matches..." type="search"/>
 </div>
-<button class="p-2 rounded-full hover:bg-surface-container transition-colors cursor-pointer active:scale-95" type="button">
-<span class="material-symbols-outlined text-secondary">notifications</span>
+<button class="p-2 rounded-full hover:bg-white/10 transition-colors cursor-pointer active:scale-95 text-white/70" type="button">
+<span class="material-symbols-outlined">notifications</span>
 </button>
-<div class="h-10 w-10 rounded-full border-2 border-primary-container overflow-hidden cursor-pointer active:scale-95 transition-transform">
+<div class="h-10 w-10 rounded-full border-2 border-primary overflow-hidden cursor-pointer active:scale-95 transition-transform">
 <img class="w-full h-full object-cover" data-alt="A professional close-up studio portrait of a sports enthusiast with a friendly expression, set against a clean, minimalist light gray background. The lighting is soft and cinematic, following the modern Sportcast aesthetic of premium streaming platforms. High contrast and sharp focus on facial features." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBwQ1b33Tg2FBsjSFsMtZFNeCLeGnOt-cb5jgK4gvgOAD_dfx2ItzrjbUjqCFsZaYXot8bET-czNBzPFcn4oYq1Uzyi9FKrNrUQvwwODZ-W38f6Ucgw63AfjVzoJtwPdKieoaXUixsV-a1hWeNy_v61oLsKlPd4kzvRnLH-yxs3LcDAvlQgvZx7V6XlLrXMeVtABuMv3tDtlorH5pNsfHkMe2Ux_8K5vyq5vFJTd8zbpcw9lHNEEy_xKvL7I4lKCbN_m4lqVJFTwcHo"/>
 </div>
 </div>
@@ -328,7 +328,7 @@
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
 <article class="group bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm border border-surface-container hover:shadow-md transition-shadow scroll-mt-28" id="match-1">
 <div class="aspect-video relative overflow-hidden bg-black">
-<video class="w-full h-full object-cover" controls playsinline preload="metadata" poster="https://lh3.googleusercontent.com/aida-public/AB6AXuBnUwTm1KreFAKYwt6xd5Yfbt-Z7rh-meOlO-Yf1oblKtlgSNvCD1VrcSLYItHrt1JzXxXOO-e-eMN-grmEm4aB3RTwkdr63bcOWINcXQUVvuGXIL1Z7a_3jPV3VLCIYo8204njGiDQDdm_8yi-JK5HhsiEbFVoQ472aEdFbzcNuL5xNIjgdrV4iXH6Scz1uW9DwioFGn4vkdUuV1jF22ZAIUZW7eXDfDwQ19yTLra4kFjnESzQeaNIukQesW0tWULWstenXunmDvdm" aria-label="Teqball World Series">
+<video class="w-full h-full object-contain bg-black" controls playsinline preload="metadata" poster="https://lh3.googleusercontent.com/aida-public/AB6AXuBnUwTm1KreFAKYwt6xd5Yfbt-Z7rh-meOlO-Yf1oblKtlgSNvCD1VrcSLYItHrt1JzXxXOO-e-eMN-grmEm4aB3RTwkdr63bcOWINcXQUVvuGXIL1Z7a_3jPV3VLCIYo8204njGiDQDdm_8yi-JK5HhsiEbFVoQ472aEdFbzcNuL5xNIjgdrV4iXH6Scz1uW9DwioFGn4vkdUuV1jF22ZAIUZW7eXDfDwQ19yTLra4kFjnESzQeaNIukQesW0tWULWstenXunmDvdm" aria-label="Teqball World Series">
 <source src="assets/videos/match-1.mp4" type="video/mp4"/>
 <source src="https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" type="video/mp4"/>
 </video>
@@ -342,7 +342,7 @@
 </article>
 <article class="group bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm border border-surface-container hover:shadow-md transition-shadow scroll-mt-28" id="match-2">
 <div class="aspect-video relative overflow-hidden bg-black">
-<video class="w-full h-full object-cover" controls playsinline preload="metadata" poster="https://lh3.googleusercontent.com/aida-public/AB6AXuAXnpvJzw5PcV4oRXA1a46VhfI65KMpKS2ZaMe22-_2vLwkL8wSrkBfn26DwPdAyTmd1U8KNMKHLIMfGwXEzSiHpxbkejUrrJK2UPCwF3fis1UbMdVKCeYyI1UGcY7qAw4oB27I_s000q-ZcqGNT4-8h2Aq9vPP9ci7uaNc-sDA7XKJNokSmbx-DptMPdwkW50D-9W3ScfjRgxqdw8hVQC6kOWTaRnk9Vbe6IkU8vOVdvhyWaVNg0def1ITyWPnyeX7h2OLOlfq1-Wf" aria-label="National Dodgeball League">
+<video class="w-full h-full object-contain bg-black" controls playsinline preload="metadata" poster="https://lh3.googleusercontent.com/aida-public/AB6AXuAXnpvJzw5PcV4oRXA1a46VhfI65KMpKS2ZaMe22-_2vLwkL8wSrkBfn26DwPdAyTmd1U8KNMKHLIMfGwXEzSiHpxbkejUrrJK2UPCwF3fis1UbMdVKCeYyI1UGcY7qAw4oB27I_s000q-ZcqGNT4-8h2Aq9vPP9ci7uaNc-sDA7XKJNokSmbx-DptMPdwkW50D-9W3ScfjRgxqdw8hVQC6kOWTaRnk9Vbe6IkU8vOVdvhyWaVNg0def1ITyWPnyeX7h2OLOlfq1-Wf" aria-label="National Dodgeball League">
 <source src="assets/videos/match-2.mp4" type="video/mp4"/>
 <source src="https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" type="video/mp4"/>
 </video>
@@ -356,7 +356,7 @@
 </article>
 <article class="group bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm border border-surface-container hover:shadow-md transition-shadow scroll-mt-28" id="match-3">
 <div class="aspect-video relative overflow-hidden bg-black">
-<video class="w-full h-full object-cover" controls playsinline preload="metadata" poster="https://lh3.googleusercontent.com/aida-public/AB6AXuBxDSm53sy-4RECnS5S3unf2P37ywb9rIMa4xLBhaYwF9JrVMrmtkAjp02rb2dAIhm56RS8QdUspLIVVMVeQD_xiJtAln8GIhVyzGY9IWzBdk5o_ctrmgfDgP0Uw6g8M5vmgxmxFCPQHFYdqR-fIi0e8j9F88cNUPtrl63fFoF-wXiohUpKtP2NJ7rMLSQXie9kcicVs3wsG2S7soEtbCNMbZSTK7MDvVdJynAARHr_VAPE6g3E4aac5QtAvEKaK_UFF6LrpCqg8glt" aria-label="World Padel Tour">
+<video class="w-full h-full object-contain bg-black" controls playsinline preload="metadata" poster="https://lh3.googleusercontent.com/aida-public/AB6AXuBxDSm53sy-4RECnS5S3unf2P37ywb9rIMa4xLBhaYwF9JrVMrmtkAjp02rb2dAIhm56RS8QdUspLIVVMVeQD_xiJtAln8GIhVyzGY9IWzBdk5o_ctrmgfDgP0Uw6g8M5vmgxmxFCPQHFYdqR-fIi0e8j9F88cNUPtrl63fFoF-wXiohUpKtP2NJ7rMLSQXie9kcicVs3wsG2S7soEtbCNMbZSTK7MDvVdJynAARHr_VAPE6g3E4aac5QtAvEKaK_UFF6LrpCqg8glt" aria-label="World Padel Tour">
 <source src="assets/videos/match-3.mp4" type="video/mp4"/>
 <source src="https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" type="video/mp4"/>
 </video>
@@ -370,7 +370,7 @@
 </article>
 <article class="group bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm border border-surface-container hover:shadow-md transition-shadow scroll-mt-28" id="match-4">
 <div class="aspect-video relative overflow-hidden bg-black">
-<video class="w-full h-full object-cover" controls playsinline preload="metadata" poster="https://lh3.googleusercontent.com/aida-public/AB6AXuBp21ZXLx6PDarPLKs3NNGxDE5AnzV9VMzIqMQy5ZJU7x09N5derkJb3Ih4Ma_tAYwF5sy2chuULZ4jlw6HyKxv-kCrI9u3nONZrThAxo_Je2-JX5P8hMftT8DTHTeM8EEFj-OZ4Dncfoqtj-cX44s89GTeLN2PBROabsFEpbetZV5D9irS8gOvGsaxtt2RzQuGqJViTjpGdMBvWbSAyNSgToees-gwOMcYMoAl_UhJsNwiNCFu700P6h2LpRaRMV4w5l4rNZqItNDk" aria-label="Spikeball Pro Tour">
+<video class="w-full h-full object-contain bg-black" controls playsinline preload="metadata" poster="https://lh3.googleusercontent.com/aida-public/AB6AXuBp21ZXLx6PDarPLKs3NNGxDE5AnzV9VMzIqMQy5ZJU7x09N5derkJb3Ih4Ma_tAYwF5sy2chuULZ4jlw6HyKxv-kCrI9u3nONZrThAxo_Je2-JX5P8hMftT8DTHTeM8EEFj-OZ4Dncfoqtj-cX44s89GTeLN2PBROabsFEpbetZV5D9irS8gOvGsaxtt2RzQuGqJViTjpGdMBvWbSAyNSgToees-gwOMcYMoAl_UhJsNwiNCFu700P6h2LpRaRMV4w5l4rNZqItNDk" aria-label="Spikeball Pro Tour">
 <source src="assets/videos/match-4.mp4" type="video/mp4"/>
 <source src="https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" type="video/mp4"/>
 </video>
@@ -384,7 +384,7 @@
 </article>
 <article class="group bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm border border-surface-container hover:shadow-md transition-shadow scroll-mt-28" id="match-5">
 <div class="aspect-video relative overflow-hidden bg-black">
-<video class="w-full h-full object-cover" controls playsinline preload="metadata" poster="https://lh3.googleusercontent.com/aida-public/AB6AXuA5MXOuBpJ7Q39de1TfAucflQST2s8GohUxSKyJ_sT6MvhnBIupcsPsnrLCKxDvBDytrMWnf7SI_Bf8M7vq4pu0VaxWebNWFIXOlkUg7u0s_LeSzautKa_TMR2mLlC1CZblAF6cfSUsoroP2VC4RYdC286E1ESamHHp4lgZ7Mv8C8hpLXwfeGNDHAkgqwEvhg9jADGtkOvWkDGZwnBfSABxzMIfP-mE4ERQdvbXkfMTUhjdZP_jEwdF3_HV_d4lkK5uKxShkNbmUfO3" aria-label="IFSC Bouldering World Cup">
+<video class="w-full h-full object-contain bg-black" controls playsinline preload="metadata" poster="https://lh3.googleusercontent.com/aida-public/AB6AXuA5MXOuBpJ7Q39de1TfAucflQST2s8GohUxSKyJ_sT6MvhnBIupcsPsnrLCKxDvBDytrMWnf7SI_Bf8M7vq4pu0VaxWebNWFIXOlkUg7u0s_LeSzautKa_TMR2mLlC1CZblAF6cfSUsoroP2VC4RYdC286E1ESamHHp4lgZ7Mv8C8hpLXwfeGNDHAkgqwEvhg9jADGtkOvWkDGZwnBfSABxzMIfP-mE4ERQdvbXkfMTUhjdZP_jEwdF3_HV_d4lkK5uKxShkNbmUfO3" aria-label="IFSC Bouldering World Cup">
 <source src="assets/videos/match-5.mp4" type="video/mp4"/>
 <source src="https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" type="video/mp4"/>
 </video>
@@ -398,7 +398,7 @@
 </article>
 <article class="group bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm border border-surface-container hover:shadow-md transition-shadow scroll-mt-28" id="match-6">
 <div class="aspect-video relative overflow-hidden bg-black">
-<video class="w-full h-full object-cover" controls playsinline preload="metadata" poster="https://lh3.googleusercontent.com/aida-public/AB6AXuCC00P0wvRF_MBUWqXrLt5Z1mdygbdSkHdYumsqWP3kShvVgj7bo0GE0cPNEg_6q1L77l6bB9Wl2JPwD9pzgOW2Nwc5WEfzdB5svfpPLzwqg4BgQtYPUn51X2Z2BvT4_Na8-4BI3wFN23qDkeVm7c72f9FuCQrY6Bxbs7KssuHgY_KGmgk_Vpd_0pqpaC2hpnnnYF4qQKkuUELnRavFKRlvbeGFAG0jX1S1SOL7B1NLv5MkoV_u2rEexI2cACEqaJ-wROsxJ7HDHRyp" aria-label="GKA Kite World Tour">
+<video class="w-full h-full object-contain bg-black" controls playsinline preload="metadata" poster="https://lh3.googleusercontent.com/aida-public/AB6AXuCC00P0wvRF_MBUWqXrLt5Z1mdygbdSkHdYumsqWP3kShvVgj7bo0GE0cPNEg_6q1L77l6bB9Wl2JPwD9pzgOW2Nwc5WEfzdB5svfpPLzwqg4BgQtYPUn51X2Z2BvT4_Na8-4BI3wFN23qDkeVm7c72f9FuCQrY6Bxbs7KssuHgY_KGmgk_Vpd_0pqpaC2hpnnnYF4qQKkuUELnRavFKRlvbeGFAG0jX1S1SOL7B1NLv5MkoV_u2rEexI2cACEqaJ-wROsxJ7HDHRyp" aria-label="GKA Kite World Tour">
 <source src="assets/videos/match-6.mp4" type="video/mp4"/>
 <source src="https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" type="video/mp4"/>
 </video>
@@ -412,7 +412,7 @@
 </article>
 <article class="group bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm border border-surface-container hover:shadow-md transition-shadow scroll-mt-28" id="match-7">
 <div class="aspect-video relative overflow-hidden bg-black">
-<video class="w-full h-full object-cover" controls playsinline preload="metadata" poster="https://lh3.googleusercontent.com/aida-public/AB6AXuAzIBJkJ0QShuDUD1hBch2nINbZ6LVrKz8KqgE4h6P4VRg09zbG59U49Wn2X8MQk9gXqwp5J_uLu-LhOKHmUoIYZz6WU_YnnNGrCM4k2UW1UQNzVQUiS6Dl9qToc0Pg85qvSn_MYhUZR75txcVgXmKar1ktC2p74f_Fga-nTOWgnr3Vjde4SYOiYEjPUq691VmHDnohM18H3JC-7FWlkYxE5WVAs0lt_ShH8VEKO2qv1Ip1mgzWGZbvpiuz5YOCiZJ1Od5x6wBin6LG" aria-label="Finnish Hobby Horse Champs">
+<video class="w-full h-full object-contain bg-black" controls playsinline preload="metadata" poster="https://lh3.googleusercontent.com/aida-public/AB6AXuAzIBJkJ0QShuDUD1hBch2nINbZ6LVrKz8KqgE4h6P4VRg09zbG59U49Wn2X8MQk9gXqwp5J_uLu-LhOKHmUoIYZz6WU_YnnNGrCM4k2UW1UQNzVQUiS6Dl9qToc0Pg85qvSn_MYhUZR75txcVgXmKar1ktC2p74f_Fga-nTOWgnr3Vjde4SYOiYEjPUq691VmHDnohM18H3JC-7FWlkYxE5WVAs0lt_ShH8VEKO2qv1Ip1mgzWGZbvpiuz5YOCiZJ1Od5x6wBin6LG" aria-label="Finnish Hobby Horse Champs">
 <source src="assets/videos/match-7.mp4" type="video/mp4"/>
 <source src="https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" type="video/mp4"/>
 </video>
@@ -426,7 +426,7 @@
 </article>
 <article class="group bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm border border-surface-container hover:shadow-md transition-shadow scroll-mt-28" id="match-8">
 <div class="aspect-video relative overflow-hidden bg-black">
-<video class="w-full h-full object-cover" controls playsinline preload="metadata" poster="https://lh3.googleusercontent.com/aida-public/AB6AXuDfYpYaXPM0arN2aT-c02mlUXwsa9HPOh91JNPIEDKgyuaFdQvyNYufq7C7bfXLtWCm0q-3D92NIICEPKs4aWBWoAf2V2qjlSInjRuqHRukqFdMFT21YiR3Utt0pP4JCMqePMk04ZKrImRXf_6XcSqqE5Uph-uefNr5gz7Bo6Yd4zyzcZ_IHAVDYUzVHegZ2Dl03L24IL8bczu2GgHr72xdQiMOJkr2g-F-f6JRCguIF0m39mAt-F23v8vedlLMYR4BE1SRRreHueVV" aria-label="CMAS World Championship">
+<video class="w-full h-full object-contain bg-black" controls playsinline preload="metadata" poster="https://lh3.googleusercontent.com/aida-public/AB6AXuDfYpYaXPM0arN2aT-c02mlUXwsa9HPOh91JNPIEDKgyuaFdQvyNYufq7C7bfXLtWCm0q-3D92NIICEPKs4aWBWoAf2V2qjlSInjRuqHRukqFdMFT21YiR3Utt0pP4JCMqePMk04ZKrImRXf_6XcSqqE5Uph-uefNr5gz7Bo6Yd4zyzcZ_IHAVDYUzVHegZ2Dl03L24IL8bczu2GgHr72xdQiMOJkr2g-F-f6JRCguIF0m39mAt-F23v8vedlLMYR4BE1SRRreHueVV" aria-label="CMAS World Championship">
 <source src="assets/videos/match-8.mp4" type="video/mp4"/>
 <source src="https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" type="video/mp4"/>
 </video>
@@ -440,7 +440,7 @@
 </article>
 <article class="group bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm border border-surface-container hover:shadow-md transition-shadow scroll-mt-28" id="match-9">
 <div class="aspect-video relative overflow-hidden bg-black">
-<video class="w-full h-full object-cover" controls playsinline preload="metadata" poster="https://lh3.googleusercontent.com/aida-public/AB6AXuAlEIOqm-L25WcbAT4FB4WmxSBX6Ava2zPMwbeqoX4kQyCew-SPyq1-i7Z3Sw93pMHPrE1p82niiOZ-wYZ7lPyUH1RVGusiDo38YW9fu1sCk6hbiQwG5RKn7yDQBY8hBM3ezGjm3yu392hJKqf7GLb0Gp0xAme9NAmaHodcUbjD5nZ-trn9gZERhZFv9MZHrCDnRrFBfhp3CjndoiedaWJdJ103v7guiT3eJagw1HqDQr75BPJYvcEtGTn6CVgdZsy8PAEVz30RxCj8" aria-label="Bassmaster Classic">
+<video class="w-full h-full object-contain bg-black" controls playsinline preload="metadata" poster="https://lh3.googleusercontent.com/aida-public/AB6AXuAlEIOqm-L25WcbAT4FB4WmxSBX6Ava2zPMwbeqoX4kQyCew-SPyq1-i7Z3Sw93pMHPrE1p82niiOZ-wYZ7lPyUH1RVGusiDo38YW9fu1sCk6hbiQwG5RKn7yDQBY8hBM3ezGjm3yu392hJKqf7GLb0Gp0xAme9NAmaHodcUbjD5nZ-trn9gZERhZFv9MZHrCDnRrFBfhp3CjndoiedaWJdJ103v7guiT3eJagw1HqDQr75BPJYvcEtGTn6CVgdZsy8PAEVz30RxCj8" aria-label="Bassmaster Classic">
 <source src="assets/videos/match-9.mp4" type="video/mp4"/>
 <source src="https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" type="video/mp4"/>
 </video>

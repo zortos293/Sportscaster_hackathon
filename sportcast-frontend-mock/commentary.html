@@ -3,7 +3,7 @@
 <html class="light" lang="en"><head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Sportcast - AI Commentary</title>
+<title>Sportcast - Podcast</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Inter:wght@400;600;700&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
@@ -14,7 +14,7 @@
             theme: {
                 extend: {
                     "colors": {
-                        "surface-tint": "#b52420",
+                        "surface-tint": "#ff5a4e",
                         "inverse-surface": "#2f3132",
                         "on-secondary-fixed": "#1b1b1b",
                         "on-secondary-fixed-variant": "#474747",
@@ -52,7 +52,7 @@
                         "on-error": "#ffffff",
                         "primary-fixed": "#ffdad6",
                         "surface-bright": "#f9f9fb",
-                        "primary": "#b52420",
+                        "primary": "#ff5a4e",
                         "error": "#ba1a1a",
                         "surface-container-high": "#e8e8ea",
                         "background": "#f9f9fb",
@@ -272,8 +272,8 @@
 
         .live-action-btn.is-active {
             background: #fef2f2;
-            border-color: #b52420;
-            box-shadow: 0 0 0 1px rgba(181, 36, 32, 0.12);
+            border-color: #ff5a4e;
+            box-shadow: 0 0 0 1px rgba(255, 90, 78, 0.12);
         }
 
     
@@ -308,28 +308,28 @@
     </style>
 </head>
 <body class="bg-background text-on-background font-body-md overflow-x-hidden">
-<header class="bg-surface shadow-sm sticky top-0 z-50 h-20 flex items-center">
+<header class="bg-black shadow-sm sticky top-0 z-50 h-20 flex items-center text-white">
 <nav class="flex justify-between items-center px-margin-mobile md:px-margin-desktop w-full max-w-container-max mx-auto">
 <!-- Brand -->
 <a aria-label="Sportcast home" class="flex items-center gap-3 cursor-pointer active:scale-95 transition-transform" href="live.html">
-<img alt="" aria-hidden="true" class="h-12 w-12 md:h-14 md:w-14 shrink-0 object-contain" src="assets/logo.png"/>
-<span class="font-display-lg text-headline-md md:text-display-lg font-extrabold text-primary">Sportcast</span>
+<img alt="Sportcast" class="h-12 w-12 md:h-14 md:w-14 shrink-0 object-contain" src="assets/logo.png"/>
+<span class="font-display-lg text-headline-md md:text-display-lg font-extrabold text-white">Sportcast</span>
 </a>
-<!-- Desktop Links -->
-<div class="hidden md:flex items-center gap-8">
+<div class="flex items-center gap-4 md:gap-8">
 <a class="text-primary font-bold border-b-2 border-primary py-1 px-1 transition-colors" href="live.html">Live</a>
-<a class="text-secondary font-label-md hover:text-primary transition-colors" href="highlight.html">Highlight</a>
+<a class="text-white/65 font-label-md hover:text-primary transition-colors border-b-2 border-transparent py-1 px-1" href="highlight.html">Highlight</a>
+<a class="text-white/65 font-label-md hover:text-primary transition-colors border-b-2 border-transparent py-1 px-1" href="live.html#categories">Categories</a>
 </div>
 <!-- Actions -->
 <div class="flex items-center gap-4 md:gap-6">
 <div class="relative hidden sm:block">
-<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-secondary pointer-events-none">search</span>
-<input aria-label="Search matches" class="bg-surface-container-low border-none rounded-full pl-10 pr-4 py-2 w-48 md:w-64 font-body-md text-on-surface focus:ring-2 focus:ring-primary outline-none transition-all" placeholder="Search matches..." type="search"/>
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none">search</span>
+<input aria-label="Search matches" class="bg-white/10 border-none rounded-full pl-10 pr-4 py-2 w-48 md:w-64 font-body-md text-white placeholder:text-white/40 focus:ring-2 focus:ring-primary outline-none transition-all" placeholder="Search matches..." type="search"/>
 </div>
-<button class="p-2 rounded-full hover:bg-surface-container transition-colors cursor-pointer active:scale-95" type="button">
-<span class="material-symbols-outlined text-secondary">notifications</span>
+<button class="p-2 rounded-full hover:bg-white/10 transition-colors cursor-pointer active:scale-95 text-white/70" type="button">
+<span class="material-symbols-outlined">notifications</span>
 </button>
-<div class="h-10 w-10 rounded-full border-2 border-primary-container overflow-hidden cursor-pointer active:scale-95 transition-transform">
+<div class="h-10 w-10 rounded-full border-2 border-primary overflow-hidden cursor-pointer active:scale-95 transition-transform">
 <img class="w-full h-full object-cover" data-alt="A professional close-up studio portrait of a sports enthusiast with a friendly expression, set against a clean, minimalist light gray background. The lighting is soft and cinematic, following the modern Sportcast aesthetic of premium streaming platforms. High contrast and sharp focus on facial features." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBwQ1b33Tg2FBsjSFsMtZFNeCLeGnOt-cb5jgK4gvgOAD_dfx2ItzrjbUjqCFsZaYXot8bET-czNBzPFcn4oYq1Uzyi9FKrNrUQvwwODZ-W38f6Ucgw63AfjVzoJtwPdKieoaXUixsV-a1hWeNy_v61oLsKlPd4kzvRnLH-yxs3LcDAvlQgvZx7V6XlLrXMeVtABuMv3tDtlorH5pNsfHkMe2Ux_8K5vyq5vFJTd8zbpcw9lHNEEy_xKvL7I4lKCbN_m4lqVJFTwcHo"/>
 </div>
 </div>
@@ -355,7 +355,7 @@
 <span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span>
 LIVE
 </span>
-<p class="text-white/60 font-body-md">AI Live Commentary • Sportcast Premium</p>
+<p class="text-white/60 font-body-md">Match Podcast • Sportcast Premium</p>
 </div>
 </div>
 <div class="w-full mb-8">
@@ -393,7 +393,7 @@ View Insights
 </button>
 <button class="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-full font-label-md transition-all active:scale-95 backdrop-blur-md border border-white/10" type="button">
 <span class="material-symbols-outlined text-lg">share</span>
-Share Commentary
+Share Podcast
 </button>
 </div>
 </div>

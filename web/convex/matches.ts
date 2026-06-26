@@ -268,6 +268,33 @@ export const getFullMatchAlignedEvents = query({
   },
 });
 
+export const listHighlights = query({
+  args: {},
+  handler: async (ctx) => {
+    const events = await ctx.db.query("fullMatchAlignedEvents").collect();
+    const imports = await ctx.db.query("fullMatchImports").collect();
+    const importMap = new Map(imports.map((imp) => [imp.gameId, imp]));
+
+    return events
+      .filter((e) => e.kind === "score" || e.kind === "key_play")
+      .map((e) => ({
+        _id: e._id,
+        gameId: e.gameId,
+        kind: e.kind,
+        description: e.description,
+        gameElapsed: e.gameElapsed,
+        videoAt: e.videoAt,
+        scoreHome: e.scoreHome,
+        scoreAway: e.scoreAway,
+        periodLabel: e.periodLabel,
+        context: e.context,
+        confidence: e.confidence,
+        matchTitle: importMap.get(e.gameId)?.title ?? "Unknown Match",
+        matchSubtitle: importMap.get(e.gameId)?.subtitle ?? "",
+      }));
+  },
+});
+
 export const clearFullMatchImport = mutation({
   args: { gameId: v.string() },
   handler: async (ctx, { gameId }) => {

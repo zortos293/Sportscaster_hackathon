@@ -14,7 +14,7 @@
             theme: {
                 extend: {
                     "colors": {
-                        "surface-tint": "#b52420",
+                        "surface-tint": "#ff5a4e",
                         "inverse-surface": "#2f3132",
                         "on-secondary-fixed": "#1b1b1b",
                         "on-secondary-fixed-variant": "#474747",
@@ -52,7 +52,7 @@
                         "on-error": "#ffffff",
                         "primary-fixed": "#ffdad6",
                         "surface-bright": "#f9f9fb",
-                        "primary": "#b52420",
+                        "primary": "#ff5a4e",
                         "error": "#ba1a1a",
                         "surface-container-high": "#e8e8ea",
                         "background": "#f9f9fb",
@@ -123,8 +123,6 @@
 
         .live-action-bar {
             background: #ffffff;
-            border: 1px solid #e8e8ea;
-            border-top: none;
         }
 
         .live-action-btn {
@@ -188,12 +186,43 @@
 
         #live-player-section {
             --insights-panel-width: 380px;
+            width: 100vw;
+            max-width: 100vw;
+            margin-left: calc(50% - 50vw);
+            margin-right: calc(50% - 50vw);
+        }
+
+        #live-screen {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            min-height: clamp(280px, 56.25vw, 82vh);
+        }
+
+        #live-screen video,
+        #live-screen-bg {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        #live-video {
+            display: none;
+        }
+
+        #live-player-section.is-live #live-video {
+            display: block;
+        }
+
+        #live-player-section.is-live #live-screen-bg {
+            opacity: 0;
         }
 
         .live-stage {
             background: #ffffff;
-            border: 1px solid #e8e8ea;
             overflow: hidden;
+            border-radius: 0;
+            box-shadow: none;
         }
 
         #insights-panel {
@@ -272,8 +301,8 @@
 
         .live-action-btn.is-active {
             background: #fef2f2;
-            border-color: #b52420;
-            box-shadow: 0 0 0 1px rgba(181, 36, 32, 0.12);
+            border-color: #ff5a4e;
+            box-shadow: 0 0 0 1px rgba(255, 90, 78, 0.12);
         }
 
         .sport-chip {
@@ -365,40 +394,71 @@
             color: #ffffff;
         }
 
+        .nav-link {
+            font-size: 14px;
+            font-weight: 600;
+            line-height: 20px;
+            letter-spacing: 0.01em;
+            color: rgba(255, 255, 255, 0.65);
+            padding: 0.25rem 0.25rem;
+            border-bottom: 2px solid transparent;
+            transition: color 0.2s, border-color 0.2s;
+        }
+
+        .nav-link:hover {
+            color: #ff5a4e;
+        }
+
+        .nav-link.is-active {
+            color: #ff5a4e;
+            font-weight: 700;
+            border-bottom-color: #ff5a4e;
+        }
+
+        #sport-categories-panel {
+            display: none;
+            background: #000000;
+        }
+
+        #sport-categories-panel.is-open {
+            display: block;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
     </style>
 </head>
 <body class="bg-background text-on-background font-body-md selection:bg-primary-container selection:text-on-primary-container">
 <!-- Top Navigation Bar -->
-<header class="bg-surface shadow-sm sticky top-0 z-50 h-20 flex items-center">
+<header class="bg-black shadow-sm sticky top-0 z-50 h-20 flex items-center text-white">
 <nav class="flex justify-between items-center px-margin-mobile md:px-margin-desktop w-full max-w-container-max mx-auto">
 <!-- Brand -->
 <a aria-label="Sportcast home" class="flex items-center gap-3 cursor-pointer active:scale-95 transition-transform" href="live.html">
-<img alt="" aria-hidden="true" class="h-12 w-12 md:h-14 md:w-14 shrink-0 object-contain" src="assets/logo.png"/>
-<span class="font-display-lg text-headline-md md:text-display-lg font-extrabold text-primary">Sportcast</span>
+<img alt="Sportcast" class="h-12 w-12 md:h-14 md:w-14 shrink-0 object-contain" src="assets/logo.png"/>
+<span class="font-display-lg text-headline-md md:text-display-lg font-extrabold text-white">Sportcast</span>
 </a>
 <!-- Desktop Links -->
-<div class="hidden md:flex items-center gap-8">
-<a class="text-primary font-bold border-b-2 border-primary py-1 px-1 transition-colors" href="live.html">Live</a>
-<a class="text-secondary font-label-md hover:text-primary transition-colors" href="highlight.html">Highlight</a>
+<div class="flex items-center gap-4 md:gap-8">
+<a class="nav-link is-active" href="live.html" id="nav-live">Live</a>
+<a class="nav-link" href="highlight.html" id="nav-highlight">Highlight</a>
+<button aria-expanded="false" aria-controls="sport-categories-panel" class="nav-link" id="categories-nav-btn" type="button">Categories</button>
 </div>
 <!-- Actions -->
 <div class="flex items-center gap-4 md:gap-6">
 <div class="relative hidden sm:block">
-<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-secondary pointer-events-none">search</span>
-<input aria-label="Search matches" class="bg-surface-container-low border-none rounded-full pl-10 pr-4 py-2 w-48 md:w-64 font-body-md text-on-surface focus:ring-2 focus:ring-primary outline-none transition-all" placeholder="Search matches..." type="search"/>
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none">search</span>
+<input aria-label="Search matches" class="bg-white/10 border-none rounded-full pl-10 pr-4 py-2 w-48 md:w-64 font-body-md text-white placeholder:text-white/40 focus:ring-2 focus:ring-primary outline-none transition-all" placeholder="Search matches..." type="search"/>
 </div>
-<button class="p-2 rounded-full hover:bg-surface-container transition-colors cursor-pointer active:scale-95" type="button">
-<span class="material-symbols-outlined text-secondary">notifications</span>
+<button class="p-2 rounded-full hover:bg-white/10 transition-colors cursor-pointer active:scale-95 text-white/70" type="button">
+<span class="material-symbols-outlined">notifications</span>
 </button>
-<div class="h-10 w-10 rounded-full border-2 border-primary-container overflow-hidden cursor-pointer active:scale-95 transition-transform">
+<div class="h-10 w-10 rounded-full border-2 border-primary overflow-hidden cursor-pointer active:scale-95 transition-transform">
 <img class="w-full h-full object-cover" data-alt="A professional close-up studio portrait of a sports enthusiast with a friendly expression, set against a clean, minimalist light gray background. The lighting is soft and cinematic, following the modern Sportcast aesthetic of premium streaming platforms. High contrast and sharp focus on facial features." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBwQ1b33Tg2FBsjSFsMtZFNeCLeGnOt-cb5jgK4gvgOAD_dfx2ItzrjbUjqCFsZaYXot8bET-czNBzPFcn4oYq1Uzyi9FKrNrUQvwwODZ-W38f6Ucgw63AfjVzoJtwPdKieoaXUixsV-a1hWeNy_v61oLsKlPd4kzvRnLH-yxs3LcDAvlQgvZx7V6XlLrXMeVtABuMv3tDtlorH5pNsfHkMe2Ux_8K5vyq5vFJTd8zbpcw9lHNEEy_xKvL7I4lKCbN_m4lqVJFTwcHo"/>
 </div>
 </div>
 </nav>
 </header>
-<main class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-8">
-<!-- Category Chips -->
-<section class="mb-10">
+<div class="bg-black sticky top-20 z-40" id="sport-categories-panel">
+<div class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-4">
 <div class="flex items-center gap-3">
 <div class="flex items-center gap-3 overflow-x-auto hide-scrollbar flex-1 min-w-0 pb-1" id="sport-categories">
 <button class="sport-chip active" data-sport="all" type="button">All</button>
@@ -423,25 +483,29 @@ More
 </div>
 </div>
 </div>
-</section>
+</div>
+</div>
 <!-- Hero Section -->
 <section class="mb-16" id="live-player-section">
-<div class="live-stage flex flex-col lg:flex-row lg:items-stretch rounded-xl shadow-xl">
+<div class="live-stage flex flex-col lg:flex-row lg:items-stretch">
 <div class="live-player-main flex-1 min-w-0 flex flex-col">
-<div class="relative w-full aspect-[16/9] md:aspect-[21/9] rounded-t-xl overflow-hidden" id="live-screen">
-<!-- Hero Image -->
-<div class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105" id="live-screen-bg" data-alt="A wide-angle cinematic shot of a professional football match in a packed stadium at night. A player strikes the ball under dramatic floodlights with vibrant green pitch and blurred crowd energy. Premium sports broadcast style." style="background-image: url('https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=1920&q=80')">
+<div class="relative w-full overflow-hidden bg-black" id="live-screen">
+<video class="absolute inset-0 z-0" id="live-video" playsinline controls poster="https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=1920&q=80">
+<source src="assets/videos/match-1.mp4" type="video/mp4"/>
+<source src="https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" type="video/mp4"/>
+</video>
+<div class="absolute inset-0 bg-cover bg-center transition-all duration-700 group-hover:scale-105 z-[1]" id="live-screen-bg" data-alt="A wide-angle cinematic shot of a professional football match in a packed stadium at night. A player strikes the ball under dramatic floodlights with vibrant green pitch and blurred crowd energy. Premium sports broadcast style." style="background-image: url('https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=1920&q=80')">
 </div>
 <!-- Overlays -->
-<div class="absolute inset-0 hero-gradient"></div>
+<div class="absolute inset-0 hero-gradient z-[2] pointer-events-none"></div>
 <!-- Play Button Overlay -->
-<div class="absolute inset-0 flex items-center justify-center transition-opacity duration-300" id="play-overlay">
+<div class="absolute inset-0 flex items-center justify-center transition-opacity duration-300 z-[3]" id="play-overlay">
 <button class="w-20 h-20 md:w-28 md:h-28 rounded-full bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center transition-all hover:bg-white/40 hover:scale-110 active:scale-95" id="play-live-btn" type="button">
 <span class="material-symbols-outlined text-white text-5xl md:text-7xl" style="font-variation-settings: 'FILL' 1">play_arrow</span>
 </button>
 </div>
 <!-- Content Info -->
-<div class="absolute bottom-6 left-6 md:left-10 right-6 md:right-10 z-10 pointer-events-none transition-opacity duration-300" id="hero-info">
+<div class="absolute bottom-6 left-6 md:left-10 right-6 md:right-10 z-[4] pointer-events-none transition-opacity duration-300" id="hero-info">
 <div class="flex flex-wrap gap-2 mb-4">
 <span class="bg-primary px-3 py-1 rounded-full text-white text-[10px] font-bold uppercase tracking-wider flex items-center gap-1" id="live-status-badge">
 <span class="w-2 h-2 rounded-full bg-white pulse-animation" id="live-status-dot"></span>
@@ -458,14 +522,14 @@ More
 </div>
 </div>
 <!-- Persistent Action Bar -->
-<div class="live-action-bar flex flex-col sm:flex-row gap-3 p-4 md:p-5 rounded-b-xl shadow-xl">
+<div class="live-action-bar flex flex-col sm:flex-row gap-3 p-4 md:px-margin-desktop md:py-5 max-w-container-max mx-auto w-full">
 <button class="live-action-btn" id="ai-commentary-btn" type="button">
 <div class="icon-wrap">
-<span class="material-symbols-outlined text-[22px]">mic</span>
+<span class="material-symbols-outlined text-[22px]">podcasts</span>
 </div>
 <div class="text-left min-w-0">
-<div class="font-bold text-sm md:text-base leading-tight">AI Commentary</div>
-<div class="text-xs md:text-sm text-zinc-500 leading-snug">Listen to live commentary</div>
+<div class="font-bold text-sm md:text-base leading-tight">Podcast</div>
+<div class="text-xs md:text-sm text-zinc-500 leading-snug">Listen to the match podcast</div>
 </div>
 </button>
 <button class="live-action-btn" id="insights-btn" type="button" aria-controls="insights-panel" aria-expanded="false">
@@ -630,6 +694,7 @@ Share Insights
 </aside>
 </div>
 </section>
+<main class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop pb-8 pt-8">
 <!-- Secondary Sections -->
 <div class="space-y-16">
 <!-- Continue Watching -->
@@ -732,11 +797,15 @@ Share Insights
             const playBtn = document.getElementById('play-live-btn');
             const playerSection = document.getElementById('live-player-section');
             const statusText = document.getElementById('live-status-text');
+            const liveVideo = document.getElementById('live-video');
 
             if (playBtn && playerSection) {
                 playBtn.addEventListener('click', () => {
                     playerSection.classList.add('is-live');
                     if (statusText) statusText.textContent = 'Live';
+                    if (liveVideo) {
+                        liveVideo.play().catch(() => {});
+                    }
                 });
             }
 
@@ -775,6 +844,9 @@ Share Insights
             }
 
             const sportCategories = document.getElementById('sport-categories');
+            const sportCategoriesPanel = document.getElementById('sport-categories-panel');
+            const categoriesNavBtn = document.getElementById('categories-nav-btn');
+            const navLive = document.getElementById('nav-live');
             const sportMoreWrap = document.getElementById('sport-more-wrap');
             const sportMoreBtn = document.getElementById('sport-more-btn');
             const sportMoreMenu = document.getElementById('sport-more-menu');
@@ -788,6 +860,16 @@ Share Insights
                 }
             }
 
+            function setCategoriesOpen(isOpen) {
+                if (sportCategoriesPanel) sportCategoriesPanel.classList.toggle('is-open', isOpen);
+                if (categoriesNavBtn) {
+                    categoriesNavBtn.classList.toggle('is-active', isOpen);
+                    categoriesNavBtn.setAttribute('aria-expanded', String(isOpen));
+                }
+                if (navLive) navLive.classList.toggle('is-active', !isOpen);
+                if (!isOpen) closeSportMoreMenu();
+            }
+
             function setActiveSportChip(chip) {
                 if (!chip) return;
                 document.querySelectorAll('.sport-chip').forEach((btn) => btn.classList.remove('active'));
@@ -798,6 +880,36 @@ Share Insights
                     sportMoreBtn.classList.toggle('has-selection', Boolean(sport && sport !== 'all' && overflowSports.has(sport)));
                 }
             }
+
+            if (categoriesNavBtn && sportCategoriesPanel) {
+                categoriesNavBtn.addEventListener('click', () => {
+                    const willOpen = !sportCategoriesPanel.classList.contains('is-open');
+                    setCategoriesOpen(willOpen);
+                    if (willOpen) {
+                        history.replaceState(null, '', '#categories');
+                    } else {
+                        history.replaceState(null, '', 'live.html');
+                    }
+                });
+            }
+
+            if (navLive) {
+                navLive.addEventListener('click', (evt) => {
+                    if (sportCategoriesPanel?.classList.contains('is-open')) {
+                        evt.preventDefault();
+                        setCategoriesOpen(false);
+                        history.replaceState(null, '', 'live.html');
+                    }
+                });
+            }
+
+            if (location.hash === '#categories') {
+                setCategoriesOpen(true);
+            }
+
+            window.addEventListener('hashchange', () => {
+                setCategoriesOpen(location.hash === '#categories');
+            });
 
             if (sportCategories) {
                 sportCategories.addEventListener('click', (evt) => {
@@ -833,6 +945,10 @@ Share Insights
 
             document.addEventListener('keydown', (evt) => {
                 if (evt.key === 'Escape') {
+                    if (sportCategoriesPanel?.classList.contains('is-open')) {
+                        setCategoriesOpen(false);
+                        history.replaceState(null, '', 'live.html');
+                    }
                     closeSportMoreMenu();
                 }
                 if (evt.key === 'Escape' && playerSection?.classList.contains('insights-open')) {
