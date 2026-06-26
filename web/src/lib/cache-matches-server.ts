@@ -47,6 +47,7 @@ export type MatchCacheStatus = {
   videoFile?: string;
   alignmentStatus?: string;
   alignmentConfidence?: number;
+  alignmentStatusMessage?: string;
   homeTeamName: string;
   awayTeamName: string;
   homeScore?: number;
@@ -559,6 +560,7 @@ export async function listCachedMatchStatuses(): Promise<{
         videoFile: importJob.videoFile,
         alignmentStatus: importJob.status,
         alignmentConfidence: importJob.confidence,
+        alignmentStatusMessage: importJob.statusMessage,
         homeTeamName: "",
         awayTeamName: "",
         commentaryAvailable: false,

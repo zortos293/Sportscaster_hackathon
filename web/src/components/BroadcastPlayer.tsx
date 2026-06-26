@@ -73,6 +73,18 @@ function drainAudioQueue(
   const next = queue.current.shift();
   if (!next) return;
 
+  if (next.text?.trim()) {
+    isPlaying.current = true;
+    void streamTtsAndPlay(next.text, () => {
+      if (currentAudio.current) {
+        currentAudio.current = null;
+      }
+      isPlaying.current = false;
+      drainAudioQueue(queue, isPlaying, retainUrls, currentAudio);
+    });
+    return;
+  }
+
   if (!next.url) {
     isPlaying.current = false;
     drainAudioQueue(queue, isPlaying, retainUrls, currentAudio);
@@ -95,6 +107,12 @@ function drainAudioQueue(
   audio.onended = onDone;
   audio.onerror = onDone;
   audio.play().catch(onDone);
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
 }
 
 async function fetchTtsBlobUrl(text: string): Promise<string | null> {
@@ -510,9 +528,7 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
 
   const prefetchCommentary = useCallback(
     async (events: TimelineEvent[], generation: number) => {
-      if (!llmAvailableRef.current) return;
       if (prefetchPipelineRunningRef.current) return;
-      if (Date.now() < cursorPausedUntilRef.current) return;
       if (generation !== prefetchGenerationRef.current) return;
 
       prefetchPipelineRunningRef.current = true;
@@ -525,23 +541,33 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
           .filter((event) => !firedRef.current.has(eventCacheKey(event)))
           .filter((event) => event.videoAt >= currentTime - 2)
           .filter((event) => event.videoAt <= currentTime + COMMENTARY_LEAD_SECONDS)
-          .filter((event) => !commentaryCacheRef.current.has(eventCacheKey(event)))
           .sort((a, b) => a.videoAt - b.videoAt)
           .slice(0, PREFETCH_PIPELINE_BATCH);
 
         for (const event of upcoming) {
-          const cacheKey = eventCacheKey(event);
-          if (commentaryCacheRef.current.has(cacheKey)) continue;
+          if (generation !== prefetchGenerationRef.current) return;
 
-          const result = await fetchCommentary(event, [...recentLines], "prefetch");
-          recentLines.push(result.text);
-          if (recentLines.length > 4) recentLines.shift();
+          const cacheKey = eventCacheKey(event);
+          let result = commentaryCacheRef.current.get(cacheKey);
+          if (!result) {
+            if (llmAvailableRef.current && Date.now() >= cursorPausedUntilRef.current) {
+              result = await fetchCommentary(event, [...recentLines], "prefetch");
+            } else {
+              result = resolveCommentaryLocally(event);
+            }
+            recentLines.push(result.text);
+            if (recentLines.length > 4) recentLines.shift();
+          }
+
+          if (ttsAvailableRef.current) {
+            void prefetchTts(event, result.text);
+          }
         }
       } finally {
         prefetchPipelineRunningRef.current = false;
       }
     },
-    [fetchCommentary],
+    [fetchCommentary, prefetchTts, resolveCommentaryLocally],
   );
 
   const runPrefetchPipeline = useCallback(() => {
@@ -566,13 +592,39 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
 
       const cacheKey = eventCacheKey(event);
       if (spokenAudioRef.current.has(cacheKey)) return;
+      spokenAudioRef.current.add(cacheKey);
 
-      const cached = ttsCacheRef.current.get(cacheKey);
-      if (cached) {
-        spokenAudioRef.current.add(cacheKey);
-        audioQueueRef.current.push({ url: cached });
+      void (async () => {
+        let url: string | null | undefined = ttsCacheRef.current.get(cacheKey);
+        if (!url && inFlightTtsRef.current.has(cacheKey)) {
+          for (let attempt = 0; attempt < 40; attempt += 1) {
+            await sleep(250);
+            url = ttsCacheRef.current.get(cacheKey);
+            if (url || !inFlightTtsRef.current.has(cacheKey)) break;
+          }
+        }
+
+        if (!url) {
+          inFlightTtsRef.current.add(cacheKey);
+          const fetched = await fetchTtsBlobUrl(text).finally(() => {
+            inFlightTtsRef.current.delete(cacheKey);
+          });
+          url = fetched ?? undefined;
+          if (url) {
+            retainedTtsUrlsRef.current.add(url);
+            ttsCacheRef.current.set(cacheKey, url);
+          }
+        }
+
+        if (url) {
+          audioQueueRef.current.push({ url });
+          drainAudioQueue(audioQueueRef, isPlayingAudioRef, retainedTtsUrlsRef, currentAudioRef);
+          return;
+        }
+
+        audioQueueRef.current.push({ text });
         drainAudioQueue(audioQueueRef, isPlayingAudioRef, retainedTtsUrlsRef, currentAudioRef);
-      }
+      })();
     },
     [],
   );
@@ -739,10 +791,8 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
         prefetchStartedRef.current = false;
         setTimelineReady(true);
         setStatus("ready");
-        if (llmAvailableRef.current) {
-          prefetchStartedRef.current = true;
-          void prefetchCommentary(data.events, prefetchGenerationRef.current);
-        }
+        prefetchStartedRef.current = true;
+        void prefetchCommentary(data.events, prefetchGenerationRef.current);
       } catch {
         setError("Could not load the imported highlight timeline for this video.");
         setStatus("error");
@@ -759,7 +809,7 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
     setStatus("live");
     drainAudioQueue(audioQueueRef, isPlayingAudioRef, retainedTtsUrlsRef, currentAudioRef);
 
-    if (!prefetchStartedRef.current && llmAvailableRef.current) {
+    if (!prefetchStartedRef.current) {
       prefetchStartedRef.current = true;
       void prefetchCommentary(timelineRef.current, prefetchGenerationRef.current);
     }

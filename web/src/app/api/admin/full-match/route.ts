@@ -3,6 +3,7 @@ import {
   listFullMatchImports,
   manualAlignFullMatch,
   processFullMatchImport,
+  realignFullMatchImport,
   type FullMatchImportRequest,
 } from "@/lib/full-match-server";
 
@@ -25,11 +26,29 @@ export async function POST(request: Request) {
     action?: string;
     firstHalfVideoAt?: number;
     secondHalfVideoAt?: number;
+    reOcr?: boolean;
   } = {};
   try {
     body = await request.json();
   } catch {
     body = {};
+  }
+
+  if (body.action === "realign") {
+    if (!body.gameId?.trim()) {
+      return Response.json({ error: "gameId is required for realignment" }, { status: 400 });
+    }
+    try {
+      const result = await realignFullMatchImport({
+        gameId: body.gameId,
+        alignmentMode: body.alignmentMode,
+        reOcr: body.reOcr,
+      });
+      return Response.json({ ok: true, result });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Realignment failed";
+      return Response.json({ ok: false, error: message }, { status: 502 });
+    }
   }
 
   if (body.action === "manual-align") {
@@ -68,6 +87,7 @@ export async function POST(request: Request) {
       gameId: body.gameId,
       sampleEverySeconds: body.sampleEverySeconds,
       maxSamples: body.maxSamples,
+      alignmentMode: body.alignmentMode,
     });
     return Response.json({ ok: true, result });
   } catch (error) {

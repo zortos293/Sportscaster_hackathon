@@ -14,6 +14,7 @@ type ImportedHighlightStatus = {
   feedType: "full_match";
   alignmentStatus?: string;
   alignmentConfidence?: number;
+  alignmentStatusMessage?: string;
   eventsLineCount: number;
   cacheable: boolean;
   cached: boolean;
@@ -45,6 +46,21 @@ type DeleteHighlightResponse = {
   };
 };
 
+type FullMatchImportProgress = {
+  gameId: string;
+  title: string;
+  status: string;
+  statusMessage?: string;
+  confidence?: number;
+  durationSeconds?: number;
+  updatedAt?: number;
+};
+
+type FullMatchImportsResponse = {
+  imports?: FullMatchImportProgress[];
+  error?: string;
+};
+
 type StatusResponse = {
   games: ImportedHighlightStatus[];
   commentaryConfigured: boolean;
@@ -54,6 +70,48 @@ type StatusResponse = {
 function formatCachedAt(timestamp: number | null): string {
   if (!timestamp) return "Not cached";
   return new Date(timestamp).toLocaleString();
+}
+
+function fullMatchGameId(liveScoreMatchId: string): string {
+  return `fm-${liveScoreMatchId.trim()}`;
+}
+
+function progressPercent(status: string): number {
+  switch (status) {
+    case "starting":
+      return 8;
+    case "importing":
+      return 25;
+    case "ocr":
+      return 60;
+    case "aligning":
+      return 82;
+    case "aligned":
+      return 100;
+    case "error":
+      return 100;
+    default:
+      return 15;
+  }
+}
+
+function progressLabel(status: string): string {
+  switch (status) {
+    case "starting":
+      return "Starting";
+    case "importing":
+      return "Downloading";
+    case "ocr":
+      return "Reading clock";
+    case "aligning":
+      return "Aligning moments";
+    case "aligned":
+      return "Complete";
+    case "error":
+      return "Failed";
+    default:
+      return status || "Working";
+  }
 }
 
 export default function AdminPage() {
@@ -69,10 +127,12 @@ export default function AdminPage() {
   const [fullMatchLiveScoreId, setFullMatchLiveScoreId] = useState("");
   const [fullMatchTitle, setFullMatchTitle] = useState("");
   const [importingFullMatch, setImportingFullMatch] = useState(false);
+  const [importProgress, setImportProgress] = useState<FullMatchImportProgress | null>(null);
   const [manualGameId, setManualGameId] = useState("");
   const [manualFirstHalfVideoAt, setManualFirstHalfVideoAt] = useState("");
   const [manualSecondHalfVideoAt, setManualSecondHalfVideoAt] = useState("");
   const [manualAligning, setManualAligning] = useState(false);
+  const [realigningGameId, setRealigningGameId] = useState<string | null>(null);
 
   const refreshStatus = useCallback(async () => {
     setLoadingStatus(true);
@@ -196,8 +256,111 @@ export default function AdminPage() {
     }
   }
 
+  async function refreshImportProgress(gameId: string) {
+    const response = await fetch("/api/admin/full-match");
+    const data = (await response.json()) as FullMatchImportsResponse;
+    if (!response.ok) {
+      throw new Error(data.error ?? "Failed to load import progress");
+    }
+    const current = data.imports?.find((item) => item.gameId === gameId);
+    if (current) {
+      setImportProgress(current);
+    }
+    return current;
+  }
+
   async function importFullMatch() {
+    const liveScoreMatchId = fullMatchLiveScoreId.trim();
+    const gameId = fullMatchGameId(liveScoreMatchId);
+    const title = fullMatchTitle.trim() || `LiveScore ${liveScoreMatchId}`;
+    let progressTimer: number | undefined;
+
     setImportingFullMatch(true);
+    setImportProgress({
+      gameId,
+      title,
+      status: "starting",
+      statusMessage: "Checking local tools and finding the LiveScore match",
+    });
+    setMessage(null);
+    setError(null);
+    try {
+      progressTimer = window.setInterval(() => {
+        void refreshImportProgress(gameId).catch(() => undefined);
+      }, 2500);
+
+      const response = await fetch("/api/admin/full-match", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          gameId,
+          sourceUrl: fullMatchUrl,
+          liveScoreMatchId,
+          title: fullMatchTitle || undefined,
+        }),
+      });
+      const data = (await response.json()) as {
+        ok?: boolean;
+        error?: string;
+        result?: {
+          title: string;
+          eventCount?: number;
+          anchorCount?: number;
+          segmentCount?: number;
+          alignmentMode?: string;
+        };
+      };
+      if (!response.ok || !data.ok) throw new Error(data.error ?? "Import failed");
+      setImportProgress({
+        gameId,
+        title: data.result?.title ?? title,
+        status: "aligned",
+        statusMessage: `Aligned ${data.result?.eventCount ?? 0} moments from ${data.result?.anchorCount ?? 0} OCR anchors (${data.result?.segmentCount ?? 0} clip segments, ${data.result?.alignmentMode ?? "highlight"} mode)`,
+      });
+      setMessage(
+        `Imported ${data.result?.title ?? "highlight"} with ${data.result?.eventCount ?? 0} aligned moments from ${data.result?.anchorCount ?? 0} OCR anchors (${data.result?.segmentCount ?? 0} clip segments, ${data.result?.alignmentMode ?? "highlight"} mode).`,
+      );
+      setFullMatchUrl("");
+      setFullMatchLiveScoreId("");
+      setFullMatchTitle("");
+      await refreshStatus();
+    } catch (err) {
+      await refreshImportProgress(gameId)
+        .then((current) => {
+          if (!current) {
+            setImportProgress((previous) =>
+              previous?.gameId === gameId
+                ? {
+                    ...previous,
+                    status: "error",
+                    statusMessage: err instanceof Error ? err.message : "Import failed",
+                  }
+                : previous,
+            );
+          }
+        })
+        .catch(() => {
+        setImportProgress((current) =>
+          current?.gameId === gameId
+            ? {
+                ...current,
+                status: "error",
+                statusMessage: err instanceof Error ? err.message : "Import failed",
+              }
+            : current,
+        );
+        });
+      setError(err instanceof Error ? err.message : "Import failed");
+    } finally {
+      if (progressTimer != null) {
+        window.clearInterval(progressTimer);
+      }
+      setImportingFullMatch(false);
+    }
+  }
+
+  async function realignHighlight(game: ImportedHighlightStatus, reOcr = false) {
+    setRealigningGameId(game.id);
     setMessage(null);
     setError(null);
     try {
@@ -205,28 +368,32 @@ export default function AdminPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          sourceUrl: fullMatchUrl,
-          liveScoreMatchId: fullMatchLiveScoreId,
-          title: fullMatchTitle || undefined,
+          action: "realign",
+          gameId: game.id,
+          alignmentMode: "highlight",
+          reOcr,
         }),
       });
       const data = (await response.json()) as {
         ok?: boolean;
         error?: string;
-        result?: { title: string; eventCount?: number; anchorCount?: number };
+        result?: {
+          title: string;
+          eventCount?: number;
+          anchorCount?: number;
+          segmentCount?: number;
+          alignmentMode?: string;
+        };
       };
-      if (!response.ok || !data.ok) throw new Error(data.error ?? "Import failed");
+      if (!response.ok || !data.ok) throw new Error(data.error ?? "Realignment failed");
       setMessage(
-        `Imported ${data.result?.title ?? "highlight"} with ${data.result?.eventCount ?? 0} aligned moments from ${data.result?.anchorCount ?? 0} OCR anchors.`,
+        `Re-aligned ${data.result?.title ?? game.title}: ${data.result?.eventCount ?? 0} moments from ${data.result?.anchorCount ?? 0} anchors (${data.result?.segmentCount ?? 0} clip segments, ${data.result?.alignmentMode ?? "highlight"} mode).`,
       );
-      setFullMatchUrl("");
-      setFullMatchLiveScoreId("");
-      setFullMatchTitle("");
       await refreshStatus();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Import failed");
+      setError(err instanceof Error ? err.message : "Realignment failed");
     } finally {
-      setImportingFullMatch(false);
+      setRealigningGameId(null);
     }
   }
 
@@ -304,6 +471,12 @@ export default function AdminPage() {
                   {game.eventsLineCount} aligned moments · {game.alignmentStatus ?? "pending"}
                 </dd>
               </div>
+              {game.alignmentStatusMessage ? (
+                <div className="flex gap-2">
+                  <dt className="text-neutral-500">Alignment</dt>
+                  <dd>{game.alignmentStatusMessage}</dd>
+                </div>
+              ) : null}
               <div className="flex gap-2">
                 <dt className="text-neutral-500">Cache</dt>
                 <dd>{game.cached ? `${game.lineCount} lines` : game.cacheable ? "Ready" : "No feed"}</dd>
@@ -342,6 +515,32 @@ export default function AdminPage() {
             >
               Watch broadcast
             </Link>
+            <button
+              type="button"
+              onClick={() => void realignHighlight(game)}
+              disabled={
+                realigningGameId === game.id ||
+                deletingGameId === game.id ||
+                busyGameId === game.id ||
+                game.alignmentStatus !== "aligned"
+              }
+              className="rounded-lg px-4 py-2.5 text-center text-sm/6 font-medium text-neutral-950 ring-1 ring-black/10 disabled:opacity-50"
+            >
+              {realigningGameId === game.id ? "Re-aligning…" : "Re-align markers"}
+            </button>
+            <button
+              type="button"
+              onClick={() => void realignHighlight(game, true)}
+              disabled={
+                realigningGameId === game.id ||
+                deletingGameId === game.id ||
+                busyGameId === game.id ||
+                game.alignmentStatus !== "aligned"
+              }
+              className="rounded-lg px-4 py-2.5 text-center text-sm/6 font-medium text-neutral-700 ring-1 ring-black/10 disabled:opacity-50"
+            >
+              Re-align with re-OCR
+            </button>
             <button
               type="button"
               onClick={() => void deleteHighlight(game)}
@@ -442,6 +641,50 @@ export default function AdminPage() {
             >
               {importingFullMatch ? "Importing and aligning…" : "Import highlight"}
             </button>
+            {importProgress ? (
+              <div className="rounded-xl bg-neutral-950/[0.03] p-4 ring-1 ring-black/10">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-sm/6 font-semibold text-neutral-950">
+                      {progressLabel(importProgress.status)} · {importProgress.title}
+                    </p>
+                    <p className="mt-1 text-sm/6 text-neutral-600">
+                      {importProgress.statusMessage ?? "Working on the import…"}
+                    </p>
+                    {importProgress.updatedAt ? (
+                      <p className="mt-1 text-xs/5 text-neutral-500">
+                        Updated {new Date(importProgress.updatedAt).toLocaleTimeString()}
+                      </p>
+                    ) : null}
+                  </div>
+                  <span
+                    className={`w-fit rounded-full px-2 py-0.5 text-xs font-medium ${
+                      importProgress.status === "error"
+                        ? "bg-red-50 text-red-700 ring-1 ring-red-200"
+                        : importProgress.status === "aligned"
+                          ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
+                          : "bg-amber-50 text-amber-700 ring-1 ring-amber-200"
+                    }`}
+                  >
+                    {progressPercent(importProgress.status)}%
+                  </span>
+                </div>
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-neutral-200">
+                  <div
+                    className={`h-full rounded-full transition-all ${
+                      importProgress.status === "error" ? "bg-red-500" : "bg-emerald-600"
+                    }`}
+                    style={{ width: `${progressPercent(importProgress.status)}%` }}
+                  />
+                </div>
+                {importingFullMatch ? (
+                  <p className="mt-2 text-xs/5 text-neutral-500">
+                    This can take a while for long videos. You can leave this page open while OCR
+                    samples the clock.
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
           </div>
 
           <div className="mt-6 border-t border-black/10 pt-5">
