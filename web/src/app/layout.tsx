@@ -2,7 +2,7 @@ import { ConvexAuthNextjsServerProvider } from "@convex-dev/auth/nextjs/server";
 import type { Metadata } from "next";
 import { AppAuthProvider } from "@/components/AppAuthProvider";
 import { ConvexClientProvider } from "@/components/ConvexClientProvider";
-import { isConvexEnabled } from "@/lib/env";
+import { isConvexAuthEnabled } from "@/lib/env";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -31,7 +31,7 @@ export default async function RootLayout({
         />
       </head>
       <body className="isolate flex min-h-dvh flex-col bg-background font-sans text-on-background">
-        {isConvexEnabled() ? (
+        {isConvexAuthEnabled() ? (
           <ConvexAuthNextjsServerProvider>{app}</ConvexAuthNextjsServerProvider>
         ) : (
           app

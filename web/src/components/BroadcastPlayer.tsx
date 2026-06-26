@@ -55,6 +55,10 @@ const COMMENTARY_LEAD_SECONDS = ROLLING_PREFETCH_SECONDS;
 const PREFETCH_PIPELINE_BATCH = INITIAL_PREFETCH_LIMIT;
 const MAJOR_EVENT_KINDS = new Set(["opening", "score", "key_play", "period"]);
 
+function isEventDue(currentTime: number, event: TimelineEvent): boolean {
+  return currentTime >= event.videoAt - PLAYBACK_FIRE_AHEAD_SECONDS;
+}
+
 type CommentaryPurpose = "prefetch" | "playback";
 
 type AudioQueueItem = {
@@ -290,11 +294,9 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const timelineRef = useRef<TimelineEvent[]>([]);
   const firedRef = useRef<Set<string>>(new Set());
-  const processingRef = useRef<Set<string>>(new Set());
   const audioQueueRef = useRef<AudioQueueItem[]>([]);
   const isPlayingAudioRef = useRef(false);
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
-  const spokenAudioRef = useRef<Set<string>>(new Set());
   const audioUnlockedRef = useRef(false);
   const playbackActiveRef = useRef(false);
   const lastSyncRef = useRef(0);
@@ -302,8 +304,6 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
   const prefetchStartedRef = useRef(false);
   const prefetchGenerationRef = useRef(0);
   const commentaryRef = useRef<CommentaryLine[]>([]);
-  const ttsCacheRef = useRef<Map<string, string>>(new Map());
-  const inFlightTtsRef = useRef<Set<string>>(new Set());
   const retainedTtsUrlsRef = useRef<Set<string>>(new Set());
   const schedulePrefetchRef = useRef<() => void>(() => {});
 
@@ -334,6 +334,9 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
   const commentaryFetchChainRef = useRef<Promise<unknown>>(Promise.resolve());
   const inFlightCommentaryRef = useRef<Map<string, Promise<CachedCommentary>>>(new Map());
   const cursorPausedUntilRef = useRef(0);
+  const playbackQueueRef = useRef<TimelineEvent[]>([]);
+  const playbackPumpRunningRef = useRef(false);
+  const enqueuePlaybackRef = useRef<(event: TimelineEvent) => void>(() => {});
 
   const resolveCommentaryLocally = useCallback(
     (event: TimelineEvent): CachedCommentary => {
@@ -490,10 +493,7 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
         }
       };
 
-      const request = (purpose === "prefetch"
-        ? runSerializedCommentaryFetch(doFetch)
-        : doFetch()
-      ).finally(() => {
+      const request = runSerializedCommentaryFetch(doFetch).finally(() => {
         inFlightCommentaryRef.current.delete(cacheKey);
       });
 
@@ -503,29 +503,131 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
     [bootstrapStreamSession, game.persona, game.title, resolveCommentaryLocally, runSerializedCommentaryFetch],
   );
 
-  const prefetchTts = useCallback(async (event: TimelineEvent, text: string) => {
-    const cacheKey = eventCacheKey(event);
-    if (
-      !ttsAvailableRef.current ||
-      ttsCacheRef.current.has(cacheKey) ||
-      inFlightTtsRef.current.has(cacheKey) ||
-      !text.trim()
-    ) {
+  const speakCommentary = useCallback((text: string) => {
+    if (!ttsAvailableRef.current || !audioUnlockedRef.current || !text.trim()) {
       return;
     }
 
-    inFlightTtsRef.current.add(cacheKey);
-    const url = await fetchTtsBlobUrl(text).finally(() => {
-      inFlightTtsRef.current.delete(cacheKey);
-    });
-    if (!url || ttsCacheRef.current.has(cacheKey)) {
-      if (url) URL.revokeObjectURL(url);
-      return;
-    }
-
-    retainedTtsUrlsRef.current.add(url);
-    ttsCacheRef.current.set(cacheKey, url);
+    audioQueueRef.current.push({ text });
+    drainAudioQueue(audioQueueRef, isPlayingAudioRef, retainedTtsUrlsRef, currentAudioRef);
   }, []);
+
+  const deliverCommentary = useCallback(
+    (event: TimelineEvent, cached: CachedCommentary) => {
+      const firedKey = eventCacheKey(event);
+      if (firedRef.current.has(firedKey)) return;
+
+      const videoAt = videoRef.current?.currentTime ?? event.videoAt;
+      const recentLines = commentaryRef.current.map((line) => line.text);
+
+      setScoreAway(event.scoreAway);
+      setScoreHome(event.scoreHome);
+      setPeriod(event.periodLabel);
+
+      setCommentaryDebugLog((prev) => {
+        if (prev.some((entry) => entry.id === firedKey)) return prev;
+        return [
+          ...prev,
+          {
+            id: firedKey,
+            generatedAt: cached.generatedAt,
+            videoAt,
+            source: cached.source,
+            text: cached.text,
+            event,
+            model: cached.model,
+            userPrompt: cached.userPrompt,
+            recentLines,
+          },
+        ];
+      });
+
+      firedRef.current.add(firedKey);
+
+      setCommentary((prev) => {
+        if (prev.some((entry) => entry.key === firedKey)) {
+          commentaryRef.current = prev;
+          return prev;
+        }
+        const next = [
+          ...prev,
+          {
+            key: firedKey,
+            id: event.id,
+            text: cached.text,
+            trigger: event.kind,
+            videoAt: event.videoAt,
+            source: cached.source,
+          },
+        ];
+        commentaryRef.current = next;
+        return next;
+      });
+
+      speakCommentary(cached.text);
+    },
+    [speakCommentary],
+  );
+
+  const pumpPlaybackQueue = useCallback(async () => {
+    if (playbackPumpRunningRef.current) return;
+    playbackPumpRunningRef.current = true;
+
+    try {
+      while (playbackQueueRef.current.length > 0) {
+        const event = playbackQueueRef.current[0];
+        const firedKey = eventCacheKey(event);
+
+        if (firedRef.current.has(firedKey)) {
+          playbackQueueRef.current.shift();
+          continue;
+        }
+
+        const recentLines = commentaryRef.current.map((line) => line.text).slice(-4);
+        let cached: CachedCommentary;
+        try {
+          cached = await fetchCommentary(event, recentLines, "playback");
+        } catch {
+          cached = resolveCommentaryLocally(event);
+        }
+
+        deliverCommentary(event, cached);
+        playbackQueueRef.current.shift();
+        schedulePrefetchRef.current();
+      }
+    } finally {
+      playbackPumpRunningRef.current = false;
+      if (playbackQueueRef.current.length > 0) {
+        void pumpPlaybackQueue();
+      }
+    }
+  }, [deliverCommentary, fetchCommentary, resolveCommentaryLocally]);
+
+  const enqueuePlayback = useCallback(
+    (event: TimelineEvent) => {
+      const firedKey = eventCacheKey(event);
+      if (firedRef.current.has(firedKey)) return;
+
+      const cached = commentaryCacheRef.current.get(firedKey);
+      if (cached) {
+        deliverCommentary(event, cached);
+        return;
+      }
+
+      if (playbackQueueRef.current.some((queued) => eventCacheKey(queued) === firedKey)) {
+        return;
+      }
+
+      playbackQueueRef.current.push(event);
+      playbackQueueRef.current.sort((a, b) => a.videoAt - b.videoAt);
+      void pumpPlaybackQueue();
+    },
+    [deliverCommentary, pumpPlaybackQueue],
+  );
+
+  useEffect(() => {
+    enqueuePlaybackRef.current = enqueuePlayback;
+  }, [enqueuePlayback]);
 
   const prefetchCommentary = useCallback(
     async (events: TimelineEvent[], generation: number) => {
@@ -560,15 +662,15 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
             if (recentLines.length > 4) recentLines.shift();
           }
 
-          if (ttsAvailableRef.current) {
-            void prefetchTts(event, result.text);
+          if (isEventDue(videoRef.current?.currentTime ?? 0, event)) {
+            enqueuePlaybackRef.current(event);
           }
         }
       } finally {
         prefetchPipelineRunningRef.current = false;
       }
     },
-    [fetchCommentary, prefetchTts, resolveCommentaryLocally],
+    [fetchCommentary, resolveCommentaryLocally],
   );
 
   const runPrefetchPipeline = useCallback(() => {
@@ -585,133 +687,6 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
     runPrefetchPipeline();
   }, [runPrefetchPipeline]);
 
-  const speakCommentary = useCallback(
-    (event: TimelineEvent, text: string) => {
-      if (!ttsAvailableRef.current || !audioUnlockedRef.current || !text.trim()) {
-        return;
-      }
-
-      const cacheKey = eventCacheKey(event);
-      if (spokenAudioRef.current.has(cacheKey)) return;
-      spokenAudioRef.current.add(cacheKey);
-
-      void (async () => {
-        let url: string | null | undefined = ttsCacheRef.current.get(cacheKey);
-        if (!url && inFlightTtsRef.current.has(cacheKey)) {
-          for (let attempt = 0; attempt < 40; attempt += 1) {
-            await sleep(250);
-            url = ttsCacheRef.current.get(cacheKey);
-            if (url || !inFlightTtsRef.current.has(cacheKey)) break;
-          }
-        }
-
-        if (!url) {
-          inFlightTtsRef.current.add(cacheKey);
-          const fetched = await fetchTtsBlobUrl(text).finally(() => {
-            inFlightTtsRef.current.delete(cacheKey);
-          });
-          url = fetched ?? undefined;
-          if (url) {
-            retainedTtsUrlsRef.current.add(url);
-            ttsCacheRef.current.set(cacheKey, url);
-          }
-        }
-
-        if (url) {
-          audioQueueRef.current.push({ url });
-          drainAudioQueue(audioQueueRef, isPlayingAudioRef, retainedTtsUrlsRef, currentAudioRef);
-          return;
-        }
-
-        audioQueueRef.current.push({ text });
-        drainAudioQueue(audioQueueRef, isPlayingAudioRef, retainedTtsUrlsRef, currentAudioRef);
-      })();
-    },
-    [],
-  );
-
-  const fireEvent = useCallback(
-    async (event: TimelineEvent) => {
-      const firedKey = eventCacheKey(event);
-      if (firedRef.current.has(firedKey) || processingRef.current.has(firedKey)) {
-        return;
-      }
-      processingRef.current.add(firedKey);
-
-      setScoreAway(event.scoreAway);
-      setScoreHome(event.scoreHome);
-      setPeriod(event.periodLabel);
-
-      const recentLines = commentaryRef.current.map((line) => line.text);
-      const generatedAt = new Date().toISOString();
-      const videoAt = videoRef.current?.currentTime ?? event.videoAt;
-
-      try {
-        const cached = await fetchCommentary(event, recentLines, "playback");
-
-        const line = cached.text;
-        const source = cached.source;
-        const userPrompt = cached.userPrompt;
-        const model = cached.model;
-
-        setCommentaryDebugLog((prev) => {
-          if (prev.some((entry) => entry.id === firedKey)) return prev;
-          return [
-            ...prev,
-            {
-              id: firedKey,
-              generatedAt: cached.generatedAt ?? generatedAt,
-              videoAt,
-              source,
-              text: line,
-              event,
-              model,
-              userPrompt,
-              recentLines,
-            },
-          ];
-        });
-
-        firedRef.current.add(firedKey);
-
-        setCommentary((prev) => {
-          if (prev.some((entry) => entry.key === firedKey)) {
-            commentaryRef.current = prev;
-            return prev;
-          }
-          const next = [
-            ...prev,
-            {
-              key: firedKey,
-              id: event.id,
-              text: line,
-              trigger: event.kind,
-              videoAt: event.videoAt,
-              source,
-            },
-          ];
-          commentaryRef.current = next;
-          return next;
-        });
-
-        if (audioUnlockedRef.current) {
-          speakCommentary(event, line);
-        }
-
-        schedulePrefetch();
-      } catch {
-        const fallback = resolveCommentaryLocally(event);
-        if (audioUnlockedRef.current) {
-          speakCommentary(event, fallback.text);
-        }
-        firedRef.current.add(firedKey);
-      } finally {
-        processingRef.current.delete(firedKey);
-      }
-    },
-    [fetchCommentary, resolveCommentaryLocally, schedulePrefetch, speakCommentary],
-  );
-
   const syncToVideoTime = useCallback(
     (currentTime: number) => {
       if (!timelineReady || !playbackActiveRef.current) return;
@@ -719,18 +694,16 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
       const due = timelineRef.current
         .filter((event) => {
           const key = eventCacheKey(event);
-          if (firedRef.current.has(key) || processingRef.current.has(key)) return false;
-          return currentTime >= event.videoAt - PLAYBACK_FIRE_AHEAD_SECONDS;
+          if (firedRef.current.has(key)) return false;
+          return isEventDue(currentTime, event);
         })
         .sort((a, b) => a.videoAt - b.videoAt);
 
-      if (due.length === 0) return;
-
       for (const event of due) {
-        void fireEvent(event);
+        enqueuePlayback(event);
       }
     },
-    [fireEvent, timelineReady],
+    [enqueuePlayback, timelineReady],
   );
 
   const loadTimeline = useCallback(
@@ -773,15 +746,12 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
         gameContextRef.current = data.gameContext ?? data.debug?.gameContext ?? null;
         setTimelineDebug(data.debug ?? null);
         firedRef.current.clear();
-        processingRef.current.clear();
+        playbackQueueRef.current = [];
         commentaryCacheRef.current.clear();
         for (const url of retainedTtsUrlsRef.current) {
           URL.revokeObjectURL(url);
         }
         retainedTtsUrlsRef.current.clear();
-        ttsCacheRef.current.clear();
-        inFlightTtsRef.current.clear();
-        spokenAudioRef.current.clear();
         cursorAgentIdRef.current = undefined;
         streamAgentBootstrapRef.current = null;
         commentaryRef.current = [];
@@ -849,10 +819,12 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
         const firedKey = eventCacheKey(event);
         if (event.videoAt > t + 1) {
           firedRef.current.delete(firedKey);
-          processingRef.current.delete(firedKey);
-          spokenAudioRef.current.delete(firedKey);
         }
       }
+
+      playbackQueueRef.current = playbackQueueRef.current.filter(
+        (event) => event.videoAt <= t + 1,
+      );
 
       setCommentary((prev) => {
         const next = prev.filter((line) => line.videoAt <= t + 1);
