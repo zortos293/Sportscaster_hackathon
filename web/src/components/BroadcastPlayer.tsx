@@ -39,23 +39,6 @@ type CachedCommentary = {
   cursorAgentId?: string;
 };
 
-function prefetchInBatches<T>(
-  items: T[],
-  concurrency: number,
-  worker: (item: T) => Promise<void>,
-): Promise<void> {
-  let index = 0;
-  async function runWorker() {
-    while (index < items.length) {
-      const current = items[index];
-      index += 1;
-      await worker(current);
-    }
-  }
-  const workers = Array.from({ length: Math.min(concurrency, items.length) }, () => runWorker());
-  return Promise.all(workers).then(() => undefined);
-}
-
 type BroadcastPlayerProps = {
   game: BroadcastGame;
 };
@@ -70,8 +53,14 @@ const MAJOR_EVENT_KINDS = new Set(["opening", "score", "key_play", "period"]);
 
 type CommentaryPurpose = "prefetch" | "playback";
 
+type AudioQueueItem = {
+  url?: string;
+  text?: string;
+  streaming?: boolean;
+};
+
 function drainAudioQueue(
-  queue: { current: string[] },
+  queue: { current: AudioQueueItem[] },
   isPlaying: { current: boolean },
   retainUrls: { current: Set<string> },
   currentAudio: { current: HTMLAudioElement | null },
@@ -85,8 +74,8 @@ function drainAudioQueue(
   const audio = new Audio(next);
   currentAudio.current = audio;
   const onDone = () => {
-    if (!retainUrls.current.has(next)) {
-      URL.revokeObjectURL(next);
+    if (!retainUrls.current.has(next.url!)) {
+      URL.revokeObjectURL(next.url!);
     }
     if (currentAudio.current === audio) {
       currentAudio.current = null;
@@ -99,47 +88,104 @@ function drainAudioQueue(
   audio.play().catch(onDone);
 }
 
-async function fetchTtsBlobUrl(text: string): Promise<string | null> {
+async function streamTtsAndPlay(text: string, onDone: () => void): Promise<void> {
   try {
-    const response = await fetch("/api/tts", {
+    const response = await fetch("/api/tts/stream", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text }),
     });
-    if (!response.ok) return null;
 
-    const { audioBase64, mime } = (await response.json()) as {
-      audioBase64: string;
-      mime: string;
+    if (!response.ok || !response.body) {
+      onDone();
+      return;
+    }
+
+    const chunks: Uint8Array[] = [];
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() ?? "";
+
+      for (const line of lines) {
+        if (line.startsWith("data: ")) {
+          const data = line.slice(6);
+          if (!data || data === "{}") continue;
+
+          try {
+            const parsed = JSON.parse(data) as { audio?: string; error?: string };
+            if (parsed.audio) {
+              const binary = atob(parsed.audio);
+              const bytes = new Uint8Array(binary.length);
+              for (let i = 0; i < binary.length; i++) {
+                bytes[i] = binary.codePointAt(i) ?? 0;
+              }
+              chunks.push(bytes);
+            }
+          } catch {
+            // Skip malformed chunks
+          }
+        }
+      }
+    }
+
+    if (chunks.length === 0) {
+      onDone();
+      return;
+    }
+
+    const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+    const fullAudio = new Uint8Array(totalLength);
+    let offset = 0;
+    for (const chunk of chunks) {
+      fullAudio.set(chunk, offset);
+      offset += chunk.length;
+    }
+
+    const blob = new Blob([fullAudio], { type: "audio/mpeg" });
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+
+    const cleanup = () => {
+      URL.revokeObjectURL(url);
+      onDone();
     };
 
-    const binary = atob(audioBase64);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i += 1) {
-      bytes[i] = binary.charCodeAt(i);
-    }
-    const blob = new Blob([bytes], { type: mime });
-    return URL.createObjectURL(blob);
+    audio.onended = cleanup;
+    audio.onerror = cleanup;
+    audio.play().catch(cleanup);
   } catch {
-    return null;
+    onDone();
   }
 }
+
 
 function formatScore(away: number | null, home: number | null) {
   if (away === null || home === null) return "0 – 0";
   return `${away} – ${home}`;
 }
 
-function statusLabel(status: "loading" | "ready" | "live" | "error") {
+function statusLabel(status: "loading" | "ready" | "live" | "buffering" | "error") {
   if (status === "live") return "On air";
+  if (status === "buffering") return "Buffering";
   if (status === "loading") return "Loading";
   if (status === "ready") return "Press play";
   return "Offline";
 }
 
-function statusClass(status: "loading" | "ready" | "live" | "error") {
+function statusClass(status: "loading" | "ready" | "live" | "buffering" | "error") {
   if (status === "live") {
     return "rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 ring-1 ring-emerald-600/20";
+  }
+  if (status === "buffering") {
+    return "rounded-full bg-violet-50 px-2.5 py-1 text-xs font-medium text-violet-700 ring-1 ring-violet-600/20";
   }
   if (status === "loading") {
     return "rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700 ring-1 ring-amber-600/20";
@@ -196,21 +242,21 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
   const timelineRef = useRef<TimelineEvent[]>([]);
   const firedRef = useRef<Set<string>>(new Set());
   const processingRef = useRef<Set<string>>(new Set());
-  const audioQueueRef = useRef<string[]>([]);
+  const audioQueueRef = useRef<AudioQueueItem[]>([]);
   const isPlayingAudioRef = useRef(false);
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
   const spokenAudioRef = useRef<Set<string>>(new Set());
   const audioUnlockedRef = useRef(false);
   const playbackActiveRef = useRef(false);
   const lastSyncRef = useRef(0);
-  const lastRollingPrefetchRef = useRef(0);
+  const prefetchPipelineRunningRef = useRef(false);
   const commentaryRef = useRef<CommentaryLine[]>([]);
   const ttsCacheRef = useRef<Map<string, string>>(new Map());
   const inFlightTtsRef = useRef<Set<string>>(new Set());
   const retainedTtsUrlsRef = useRef<Set<string>>(new Set());
-  const rollingPrefetchRef = useRef<Set<string>>(new Set());
+  const schedulePrefetchRef = useRef<() => void>(() => {});
 
-  const [status, setStatus] = useState<"loading" | "ready" | "live" | "error">("loading");
+  const [status, setStatus] = useState<"loading" | "ready" | "live" | "buffering" | "error">("loading");
   const [error, setError] = useState<string | null>(null);
   const [scoreAway, setScoreAway] = useState(0);
   const [scoreHome, setScoreHome] = useState(0);
@@ -227,16 +273,16 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
   const [timelineEvents, setTimelineEvents] = useState<TimelineEvent[]>([]);
   const gameContextRef = useRef<GameBroadcastContext | null>(null);
   const commentaryCacheRef = useRef<Map<string, CachedCommentary>>(new Map());
-  const prefetchGenerationRef = useRef(0);
   const cursorAgentIdRef = useRef<string | undefined>(undefined);
+  const cursorCloudAgentsRef = useRef(false);
+  const streamAgentBootstrapRef = useRef<Promise<boolean> | null>(null);
   const llmAvailableRef = useRef(false);
   const ttsAvailableRef = useRef(false);
   const timelineLoadedDurationRef = useRef<number | null>(null);
   const timelineLoadInFlightRef = useRef(false);
   const commentaryFetchChainRef = useRef<Promise<unknown>>(Promise.resolve());
-  const inFlightCommentaryRef = useRef<Map<string, Promise<CachedCommentary | null>>>(new Map());
+  const inFlightCommentaryRef = useRef<Map<string, Promise<CachedCommentary>>>(new Map());
   const cursorPausedUntilRef = useRef(0);
-  const prefetchStartedRef = useRef(false);
 
   const resolveCommentaryLocally = useCallback(
     (event: TimelineEvent): CachedCommentary => {
@@ -249,13 +295,6 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
     [game.title],
   );
 
-  const shouldBroadcastEvent = useCallback((event: TimelineEvent): boolean => {
-    if (llmAvailableRef.current) {
-      return MAJOR_EVENT_KINDS.has(event.kind);
-    }
-    return true;
-  }, []);
-
   const runSerializedCommentaryFetch = useCallback(<T,>(fn: () => Promise<T>): Promise<T> => {
     const task = commentaryFetchChainRef.current.then(fn, fn);
     commentaryFetchChainRef.current = task.then(
@@ -265,12 +304,55 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
     return task;
   }, []);
 
+  const bootstrapStreamSession = useCallback(async (): Promise<boolean> => {
+    if (!cursorCloudAgentsRef.current) return true;
+    if (cursorAgentIdRef.current) return true;
+    if (streamAgentBootstrapRef.current) return streamAgentBootstrapRef.current;
+
+    const task = runSerializedCommentaryFetch(async (): Promise<boolean> => {
+      try {
+        const response = await fetch("/api/commentary/session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            gameId: game.id,
+            gameTitle: game.title,
+            persona: game.persona,
+            gameContext: gameContextRef.current ?? undefined,
+            cursorAgentId: cursorAgentIdRef.current,
+          }),
+        });
+        const data = (await response.json()) as {
+          cursorAgentId?: string;
+          error?: string;
+        };
+
+        if (!response.ok || !data.cursorAgentId) {
+          if (response.status === 429 || /rate limit/i.test(data.error ?? "")) {
+            cursorPausedUntilRef.current = Date.now() + 60_000;
+          }
+          return false;
+        }
+
+        cursorAgentIdRef.current = data.cursorAgentId;
+        return true;
+      } catch {
+        return false;
+      } finally {
+        streamAgentBootstrapRef.current = null;
+      }
+    });
+
+    streamAgentBootstrapRef.current = task;
+    return task;
+  }, [game.id, game.persona, game.title, runSerializedCommentaryFetch]);
+
   const fetchCommentary = useCallback(
     async (
       event: TimelineEvent,
       recentLines: string[],
       purpose: CommentaryPurpose,
-    ): Promise<CachedCommentary | null> => {
+    ): Promise<CachedCommentary> => {
       const cacheKey = eventCacheKey(event);
       const cached = commentaryCacheRef.current.get(cacheKey);
       if (cached) return cached;
@@ -280,13 +362,20 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
       }
 
       if (Date.now() < cursorPausedUntilRef.current) {
-        return null;
+        return resolveCommentaryLocally(event);
+      }
+
+      if (cursorCloudAgentsRef.current) {
+        const ready = await bootstrapStreamSession();
+        if (!ready || !cursorAgentIdRef.current) {
+          return resolveCommentaryLocally(event);
+        }
       }
 
       const inFlight = inFlightCommentaryRef.current.get(cacheKey);
       if (inFlight) return inFlight;
 
-      const request = runSerializedCommentaryFetch(async (): Promise<CachedCommentary | null> => {
+      const doFetch = async (): Promise<CachedCommentary> => {
         const generatedAt = new Date().toISOString();
         try {
           const response = await fetch("/api/commentary", {
@@ -317,15 +406,19 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
 
           if (response.status === 429 || /rate limit/i.test(data.error ?? "")) {
             cursorPausedUntilRef.current = Date.now() + 60_000;
-            return null;
+            return resolveCommentaryLocally(event);
+          }
+
+          if (
+            response.status === 502 &&
+            /cloud agent limit|agent busy|agent limit/i.test(data.error ?? "")
+          ) {
+            cursorPausedUntilRef.current = Date.now() + 30_000;
+            return resolveCommentaryLocally(event);
           }
 
           if (!response.ok || !data.text?.trim()) {
-            return null;
-          }
-
-          if (data.source !== "cursor" && data.source !== "llm") {
-            return null;
+            return resolveCommentaryLocally(event);
           }
 
           if (data.cursorAgentId) {
@@ -333,7 +426,7 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
           }
           const result: CachedCommentary = {
             text: data.text,
-            source: data.source,
+            source: data.source ?? "template",
             userPrompt: data.debug?.userPrompt,
             model: data.debug?.model,
             generatedAt: data.debug?.generatedAt ?? generatedAt,
@@ -342,16 +435,21 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
           commentaryCacheRef.current.set(cacheKey, result);
           return result;
         } catch {
-          return null;
+          return resolveCommentaryLocally(event);
         }
-      }).finally(() => {
+      };
+
+      const request = (purpose === "prefetch"
+        ? runSerializedCommentaryFetch(doFetch)
+        : doFetch()
+      ).finally(() => {
         inFlightCommentaryRef.current.delete(cacheKey);
       });
 
       inFlightCommentaryRef.current.set(cacheKey, request);
       return request;
     },
-    [game.persona, game.title, resolveCommentaryLocally, runSerializedCommentaryFetch],
+    [bootstrapStreamSession, game.persona, game.title, resolveCommentaryLocally, runSerializedCommentaryFetch],
   );
 
   const prefetchTts = useCallback(async (event: TimelineEvent, text: string) => {
@@ -381,63 +479,50 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
   const prefetchCommentary = useCallback(
     async (events: TimelineEvent[], generation: number) => {
       if (!llmAvailableRef.current) return;
+      if (prefetchPipelineRunningRef.current) return;
+      if (Date.now() < cursorPausedUntilRef.current) return;
 
-      const toPrefetch = events
-        .filter((event) => MAJOR_EVENT_KINDS.has(event.kind))
-        .slice(0, INITIAL_PREFETCH_LIMIT);
-      const recentLines: string[] = [];
-      await prefetchInBatches(toPrefetch, PREFETCH_CONCURRENCY, async (event) => {
-        if (prefetchGenerationRef.current !== generation) return;
-        try {
+      prefetchPipelineRunningRef.current = true;
+
+      try {
+        const currentTime = videoRef.current?.currentTime ?? 0;
+        const recentLines = commentaryRef.current.map((line) => line.text).slice(-4);
+
+        const upcoming = timelineRef.current
+          .filter((event) => !firedRef.current.has(eventCacheKey(event)))
+          .filter((event) => event.videoAt >= currentTime - 2)
+          .filter((event) => event.videoAt <= currentTime + COMMENTARY_LEAD_SECONDS)
+          .filter((event) => !commentaryCacheRef.current.has(eventCacheKey(event)))
+          .sort((a, b) => a.videoAt - b.videoAt)
+          .slice(0, PREFETCH_PIPELINE_BATCH);
+
+        for (const event of upcoming) {
+          const cacheKey = eventCacheKey(event);
+          if (commentaryCacheRef.current.has(cacheKey)) continue;
+
           const result = await fetchCommentary(event, [...recentLines], "prefetch");
-          if (!result) return;
           recentLines.push(result.text);
           if (recentLines.length > 4) recentLines.shift();
-          await prefetchTts(event, result.text);
-        } catch {
-          // Skip failed prefetch — playback will retry.
         }
-      });
-    },
-    [fetchCommentary, prefetchTts],
-  );
-
-  const rollingPrefetch = useCallback(
-    (currentTime: number) => {
-      if (!llmAvailableRef.current || !playbackActiveRef.current) return;
-
-      const now = Date.now();
-      if (now - lastRollingPrefetchRef.current < ROLLING_PREFETCH_INTERVAL_MS) return;
-      if (now < cursorPausedUntilRef.current) return;
-      lastRollingPrefetchRef.current = now;
-
-      const recentLines = commentaryRef.current.map((line) => line.text).slice(-4);
-      const upcoming = timelineRef.current
-        .filter(
-          (event) =>
-            shouldBroadcastEvent(event) &&
-            event.videoAt >= currentTime &&
-            event.videoAt <= currentTime + ROLLING_PREFETCH_SECONDS &&
-            !commentaryCacheRef.current.has(eventCacheKey(event)) &&
-            !rollingPrefetchRef.current.has(eventCacheKey(event)),
-        )
-        .slice(0, 1);
-
-      for (const event of upcoming) {
-        const cacheKey = eventCacheKey(event);
-        rollingPrefetchRef.current.add(cacheKey);
-        void fetchCommentary(event, recentLines, "prefetch")
-          .then((result) => (result ? prefetchTts(event, result.text) : undefined))
-          .finally(() => {
-            rollingPrefetchRef.current.delete(cacheKey);
-          });
+      } finally {
+        prefetchPipelineRunningRef.current = false;
       }
     },
-    [fetchCommentary, prefetchTts, shouldBroadcastEvent],
+    [fetchCommentary],
   );
 
+  useEffect(() => {
+    schedulePrefetchRef.current = () => {
+      void runPrefetchPipeline();
+    };
+  }, [runPrefetchPipeline]);
+
+  const schedulePrefetch = useCallback(() => {
+    void runPrefetchPipeline();
+  }, [runPrefetchPipeline]);
+
   const speakCommentary = useCallback(
-    (event: TimelineEvent, text: string) => {
+    (text: string) => {
       if (!ttsAvailableRef.current || !audioUnlockedRef.current || !text.trim()) {
         return;
       }
@@ -458,11 +543,7 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
   const fireEvent = useCallback(
     async (event: TimelineEvent) => {
       const firedKey = eventCacheKey(event);
-      if (
-        !shouldBroadcastEvent(event) ||
-        firedRef.current.has(firedKey) ||
-        processingRef.current.has(firedKey)
-      ) {
+      if (firedRef.current.has(firedKey) || processingRef.current.has(firedKey)) {
         return;
       }
       processingRef.current.add(firedKey);
@@ -477,9 +558,6 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
 
       try {
         const cached = await fetchCommentary(event, recentLines, "playback");
-        if (!cached || (llmAvailableRef.current && !isAiSource(cached.source))) {
-          return;
-        }
 
         const line = cached.text;
         const source = cached.source;
@@ -527,43 +605,42 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
         });
 
         if (audioUnlockedRef.current) {
-          speakCommentary(event, line);
+          speakCommentary(line);
         }
+
+        schedulePrefetch();
       } catch {
-        // Skip moment if AI commentary failed — no template fallback in AI mode.
+        const fallback = resolveCommentaryLocally(event);
+        if (audioUnlockedRef.current) {
+          speakCommentary(fallback.text);
+        }
+        firedRef.current.add(firedKey);
       } finally {
         processingRef.current.delete(firedKey);
       }
     },
-    [fetchCommentary, shouldBroadcastEvent, speakCommentary],
+    [fetchCommentary, resolveCommentaryLocally, schedulePrefetch, speakCommentary],
   );
 
   const syncToVideoTime = useCallback(
-    (currentTime: number, options?: { catchUp?: boolean }) => {
+    (currentTime: number) => {
       if (!timelineReady || !playbackActiveRef.current) return;
 
-      const lookahead = llmAvailableRef.current
-        ? AI_SYNC_LOOKAHEAD_SECONDS
-        : SYNC_LOOKAHEAD_SECONDS;
-
       const due = timelineRef.current
-        .filter(
-          (event) =>
-            shouldBroadcastEvent(event) &&
-            event.videoAt <= currentTime + lookahead &&
-            !firedRef.current.has(eventCacheKey(event)) &&
-            !processingRef.current.has(eventCacheKey(event)),
-        )
+        .filter((event) => {
+          const key = eventCacheKey(event);
+          if (firedRef.current.has(key) || processingRef.current.has(key)) return false;
+          return currentTime >= event.videoAt - PLAYBACK_FIRE_AHEAD_SECONDS;
+        })
         .sort((a, b) => a.videoAt - b.videoAt);
 
       if (due.length === 0) return;
 
-      const batch = options?.catchUp ? due : [due[0]];
-      for (const event of batch) {
+      for (const event of due) {
         void fireEvent(event);
       }
     },
-    [fireEvent, shouldBroadcastEvent, timelineReady],
+    [fireEvent, timelineReady],
   );
 
   const loadTimeline = useCallback(
@@ -583,6 +660,7 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
           llmAvailableRef.current = Boolean(
             status.providers?.cursorCloudAgents || status.providers?.openAi,
           );
+          cursorCloudAgentsRef.current = Boolean(status.providers?.cursorCloudAgents);
           ttsAvailableRef.current = Boolean(status.providers?.elevenLabs);
           setLlmAvailable(llmAvailableRef.current);
           setTtsAvailable(ttsAvailableRef.current);
@@ -615,10 +693,10 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
         spokenAudioRef.current.clear();
         rollingPrefetchRef.current.clear();
         cursorAgentIdRef.current = undefined;
+        streamAgentBootstrapRef.current = null;
         commentaryRef.current = [];
         setCommentary([]);
         setCommentaryDebugLog([]);
-        prefetchGenerationRef.current += 1;
         timelineLoadedDurationRef.current = duration;
         setVideoDuration(duration);
         prefetchStartedRef.current = false;
@@ -649,8 +727,9 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
       void prefetchCommentary(timelineRef.current, prefetchGenerationRef.current);
     }
 
+    void runPrefetchPipeline();
     syncToVideoTime(videoRef.current?.currentTime ?? 0);
-  }, [prefetchCommentary, syncToVideoTime]);
+  }, [runPrefetchPipeline, syncToVideoTime]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -672,7 +751,7 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
       if (now - lastSyncRef.current < 150) return;
       lastSyncRef.current = now;
       syncToVideoTime(video.currentTime);
-      rollingPrefetch(video.currentTime);
+      schedulePrefetch();
     };
 
     const onSeeked = () => {
@@ -702,6 +781,7 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
       isPlayingAudioRef.current = false;
 
       syncToVideoTime(t);
+      void runPrefetchPipeline();
     };
 
     video.addEventListener("loadedmetadata", onLoadedMetadata);
@@ -718,9 +798,9 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
       video.removeEventListener("play", onPlay);
       video.removeEventListener("timeupdate", onTimeUpdate);
       video.removeEventListener("seeked", onSeeked);
-      for (const url of audioQueueRef.current) {
-        if (!retainedTtsUrlsRef.current.has(url)) {
-          URL.revokeObjectURL(url);
+      for (const item of audioQueueRef.current) {
+        if (item.url && !retainedTtsUrlsRef.current.has(item.url)) {
+          URL.revokeObjectURL(item.url);
         }
       }
       audioQueueRef.current = [];
@@ -733,7 +813,7 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
       }
       retainedTtsUrlsRef.current.clear();
     };
-  }, [loadTimeline, rollingPrefetch, syncToVideoTime, unlockAudio]);
+  }, [loadTimeline, runPrefetchPipeline, schedulePrefetch, syncToVideoTime, unlockAudio]);
 
   const timelineMarkers = buildTimelineMarkers(timelineEvents);
   const progressPct =

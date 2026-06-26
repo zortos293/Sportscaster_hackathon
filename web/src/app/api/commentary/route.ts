@@ -8,6 +8,7 @@ import {
   cursorCommentaryConfigured,
   generateCursorCommentary,
   getCursorAutomationWebhookConfig,
+  resolveCursorCommentaryModel,
   triggerAutomationWebhookIfAllowed,
 } from "@/lib/cursor-commentary";
 import { getCachedCommentaryLine } from "@/lib/match-cache-server";
@@ -55,6 +56,7 @@ export async function POST(request: Request) {
     recentLines,
   });
   const fallback = templateCommentary(event, gameTitle, gameContext);
+  const cursorModel = resolveCursorCommentaryModel();
 
   const debug: Record<string, unknown> = {
     generatedAt,
@@ -121,6 +123,17 @@ export async function POST(request: Request) {
   }
 
   if (cursorCommentaryConfigured()) {
+    if (!cursorAgentId) {
+      return Response.json(
+        {
+          error: "cursorAgentId required — call POST /api/commentary/session to start the stream agent",
+          source: "error",
+          debug,
+        },
+        { status: 400 },
+      );
+    }
+
     try {
       const result = await generateCursorCommentary({
         apiKey: process.env.CURSOR_API_KEY!,
@@ -131,10 +144,11 @@ export async function POST(request: Request) {
 
       const text = result.text?.trim();
       if (!text) {
-        return Response.json(
-          { error: "Cursor returned empty commentary", source: "error", debug },
-          { status: 502 },
-        );
+        return Response.json({
+          text: fallback,
+          source: "template",
+          debug: { ...debug, cursorEmpty: true },
+        });
       }
 
       return Response.json({
@@ -149,11 +163,20 @@ export async function POST(request: Request) {
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Cursor commentary failed";
-      const status = /rate limit|429/i.test(message) ? 429 : 502;
-      return Response.json(
-        { error: message, source: "error", debug: { ...debug, error: message } },
-        { status },
-      );
+      console.warn("[commentary] cursor failed:", message);
+
+      if (/rate limit|429/i.test(message)) {
+        return Response.json(
+          { error: message, source: "error", debug: { ...debug, error: message } },
+          { status: 429 },
+        );
+      }
+
+      return Response.json({
+        text: fallback,
+        source: "template",
+        debug: { ...debug, cursorError: message },
+      });
     }
   }
 
