@@ -1,7 +1,9 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { FOOTBALL_POSTER } from "@/lib/sportcast/live-matches";
 import { MaterialIcon } from "./MaterialIcon";
 
 type ImportedHighlightStatus = {
@@ -51,8 +53,17 @@ export function ImportedHighlightsRow() {
           href={`/live/watch/${game.id}`}
           className="group block overflow-hidden rounded-xl border border-surface-container bg-surface-container-lowest shadow-sm transition-shadow hover:shadow-md"
         >
-          <div className="flex aspect-video items-center justify-center bg-surface-container-high">
-            <MaterialIcon name="play_circle" filled className="text-5xl text-primary" />
+          <div className="relative aspect-video overflow-hidden bg-black">
+            <Image
+              src={FOOTBALL_POSTER}
+              alt={game.title}
+              fill
+              className="object-cover transition-transform duration-300 group-hover:scale-105"
+              sizes="(max-width: 768px) 100vw, 33vw"
+            />
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/25 opacity-0 transition-opacity group-hover:opacity-100">
+              <MaterialIcon name="play_circle" filled className="text-5xl text-white" />
+            </div>
           </div>
           <div className="p-4">
             <span className="text-xs font-bold tracking-wider text-primary uppercase">
