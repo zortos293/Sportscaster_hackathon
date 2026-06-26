@@ -60,7 +60,9 @@ export type CursorModelSelection = {
 };
 
 /** Map UI-style model slugs to Cloud Agents API `model` objects. */
-export function resolveCursorModelSelection(raw?: string): CursorModelSelection {
+export function resolveCursorModelSelection(raw?: string | CursorModelSelection): CursorModelSelection {
+  if (raw && typeof raw !== "string") return raw;
+
   const envModel = (raw ?? process.env.CURSOR_COMMENTARY_MODEL ?? "composer-2.5").trim();
   const normalized = envModel.toLowerCase();
 
@@ -84,12 +86,15 @@ export function resolveCursorModelSelection(raw?: string): CursorModelSelection 
   return { id: envModel };
 }
 
+export function resolveCursorCommentaryModel(raw?: string | CursorModelSelection): CursorModelSelection {
+  return resolveCursorModelSelection(raw);
+}
+
 export type CursorCommentaryOptions = {
   apiKey: string;
   systemPrompt: string;
   userPrompt: string;
-  /** Required — one agent per stream, created via bootstrapStreamAgent. */
-  agentId: string;
+  agentId?: string;
   model?: string | CursorModelSelection;
   timeoutMs?: number;
 };
@@ -99,6 +104,21 @@ export type CursorCommentaryResult = {
   agentId: string;
   runId: string;
   source: "cursor";
+};
+
+export type BootstrapStreamAgentOptions = {
+  apiKey: string;
+  gameId: string;
+  bootstrapPrompt: string;
+  existingAgentId?: string;
+  model?: string | CursorModelSelection;
+  timeoutMs?: number;
+};
+
+export type BootstrapStreamAgentResult = {
+  agentId: string;
+  source: "cursor";
+  reused: boolean;
 };
 
 type CursorRun = {
@@ -161,6 +181,20 @@ function isCursorAgentBusyError(message: string): boolean {
 
 function normalizeRunStatus(status: string | undefined): string {
   return (status ?? "").toUpperCase();
+}
+
+function modelSelectionKey(model: CursorModelSelection): string {
+  const params = model.params
+    ?.map((param) => `${param.id}=${param.value}`)
+    .sort()
+    .join(",");
+  return params ? `${model.id}:${params}` : model.id;
+}
+
+function streamAgentName(gameId: string, modelKey: string): string {
+  const safeGameId = gameId.replace(/[^a-zA-Z0-9_.-]/g, "-").slice(0, 80);
+  const safeModelKey = modelKey.replace(/[^a-zA-Z0-9_.=-]/g, "-").slice(0, 80);
+  return `sportscaster-${safeGameId}-${safeModelKey}`;
 }
 
 function isTerminalRunStatus(status: string): boolean {
@@ -686,7 +720,7 @@ async function generateCursorCommentaryInner(
 
   return {
     text,
-    agentId,
+    agentId: activeAgentId,
     runId: run.id,
     source: "cursor",
   };

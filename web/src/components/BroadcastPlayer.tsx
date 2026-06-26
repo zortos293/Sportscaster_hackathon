@@ -45,10 +45,13 @@ type BroadcastPlayerProps = {
 
 const SYNC_LOOKAHEAD_SECONDS = 3;
 const AI_SYNC_LOOKAHEAD_SECONDS = 12;
+const PLAYBACK_FIRE_AHEAD_SECONDS = SYNC_LOOKAHEAD_SECONDS;
 const PREFETCH_CONCURRENCY = 1;
 const INITIAL_PREFETCH_LIMIT = 8;
 const ROLLING_PREFETCH_SECONDS = 45;
 const ROLLING_PREFETCH_INTERVAL_MS = 8000;
+const COMMENTARY_LEAD_SECONDS = ROLLING_PREFETCH_SECONDS;
+const PREFETCH_PIPELINE_BATCH = INITIAL_PREFETCH_LIMIT;
 const MAJOR_EVENT_KINDS = new Set(["opening", "score", "key_play", "period"]);
 
 type CommentaryPurpose = "prefetch" | "playback";
@@ -70,12 +73,18 @@ function drainAudioQueue(
   const next = queue.current.shift();
   if (!next) return;
 
+  if (!next.url) {
+    isPlaying.current = false;
+    drainAudioQueue(queue, isPlaying, retainUrls, currentAudio);
+    return;
+  }
+
   isPlaying.current = true;
-  const audio = new Audio(next);
+  const audio = new Audio(next.url);
   currentAudio.current = audio;
   const onDone = () => {
-    if (!retainUrls.current.has(next.url!)) {
-      URL.revokeObjectURL(next.url!);
+    if (next.url && !retainUrls.current.has(next.url)) {
+      URL.revokeObjectURL(next.url);
     }
     if (currentAudio.current === audio) {
       currentAudio.current = null;
@@ -86,6 +95,27 @@ function drainAudioQueue(
   audio.onended = onDone;
   audio.onerror = onDone;
   audio.play().catch(onDone);
+}
+
+async function fetchTtsBlobUrl(text: string): Promise<string | null> {
+  const response = await fetch("/api/tts", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+  });
+
+  if (!response.ok) return null;
+
+  const data = (await response.json()) as { audioBase64?: string; mime?: string };
+  if (!data.audioBase64) return null;
+
+  const binary = atob(data.audioBase64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  const blob = new Blob([bytes], { type: data.mime ?? "audio/mpeg" });
+  return URL.createObjectURL(blob);
 }
 
 async function streamTtsAndPlay(text: string, onDone: () => void): Promise<void> {
@@ -250,6 +280,8 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
   const playbackActiveRef = useRef(false);
   const lastSyncRef = useRef(0);
   const prefetchPipelineRunningRef = useRef(false);
+  const prefetchStartedRef = useRef(false);
+  const prefetchGenerationRef = useRef(0);
   const commentaryRef = useRef<CommentaryLine[]>([]);
   const ttsCacheRef = useRef<Map<string, string>>(new Map());
   const inFlightTtsRef = useRef<Set<string>>(new Set());
@@ -481,6 +513,7 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
       if (!llmAvailableRef.current) return;
       if (prefetchPipelineRunningRef.current) return;
       if (Date.now() < cursorPausedUntilRef.current) return;
+      if (generation !== prefetchGenerationRef.current) return;
 
       prefetchPipelineRunningRef.current = true;
 
@@ -488,7 +521,7 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
         const currentTime = videoRef.current?.currentTime ?? 0;
         const recentLines = commentaryRef.current.map((line) => line.text).slice(-4);
 
-        const upcoming = timelineRef.current
+        const upcoming = events
           .filter((event) => !firedRef.current.has(eventCacheKey(event)))
           .filter((event) => event.videoAt >= currentTime - 2)
           .filter((event) => event.videoAt <= currentTime + COMMENTARY_LEAD_SECONDS)
@@ -511,18 +544,22 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
     [fetchCommentary],
   );
 
+  const runPrefetchPipeline = useCallback(() => {
+    void prefetchCommentary(timelineRef.current, prefetchGenerationRef.current);
+  }, [prefetchCommentary]);
+
   useEffect(() => {
     schedulePrefetchRef.current = () => {
-      void runPrefetchPipeline();
+      runPrefetchPipeline();
     };
   }, [runPrefetchPipeline]);
 
   const schedulePrefetch = useCallback(() => {
-    void runPrefetchPipeline();
+    runPrefetchPipeline();
   }, [runPrefetchPipeline]);
 
   const speakCommentary = useCallback(
-    (text: string) => {
+    (event: TimelineEvent, text: string) => {
       if (!ttsAvailableRef.current || !audioUnlockedRef.current || !text.trim()) {
         return;
       }
@@ -533,7 +570,7 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
       const cached = ttsCacheRef.current.get(cacheKey);
       if (cached) {
         spokenAudioRef.current.add(cacheKey);
-        audioQueueRef.current.push(cached);
+        audioQueueRef.current.push({ url: cached });
         drainAudioQueue(audioQueueRef, isPlayingAudioRef, retainedTtsUrlsRef, currentAudioRef);
       }
     },
@@ -605,14 +642,14 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
         });
 
         if (audioUnlockedRef.current) {
-          speakCommentary(line);
+          speakCommentary(event, line);
         }
 
         schedulePrefetch();
       } catch {
         const fallback = resolveCommentaryLocally(event);
         if (audioUnlockedRef.current) {
-          speakCommentary(fallback.text);
+          speakCommentary(event, fallback.text);
         }
         firedRef.current.add(firedKey);
       } finally {
@@ -691,12 +728,12 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
         ttsCacheRef.current.clear();
         inFlightTtsRef.current.clear();
         spokenAudioRef.current.clear();
-        rollingPrefetchRef.current.clear();
         cursorAgentIdRef.current = undefined;
         streamAgentBootstrapRef.current = null;
         commentaryRef.current = [];
         setCommentary([]);
         setCommentaryDebugLog([]);
+        prefetchGenerationRef.current += 1;
         timelineLoadedDurationRef.current = duration;
         setVideoDuration(duration);
         prefetchStartedRef.current = false;
@@ -823,7 +860,7 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
     const video = videoRef.current;
     if (!video) return;
     video.currentTime = Math.max(0, Math.min(videoAt, video.duration || videoAt));
-    syncToVideoTime(video.currentTime, { catchUp: true });
+    syncToVideoTime(video.currentTime);
   }
 
   return (
