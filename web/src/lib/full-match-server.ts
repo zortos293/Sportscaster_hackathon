@@ -1,4 +1,19 @@
 import {
+  fetchFlashscoreEventsForMatch,
+  isApifyConfigured as isFlashscoreApifyConfigured,
+} from "@/lib/apify-flashscore";
+import {
+  fetchFotMobEventsForMatch,
+  isApifyConfigured,
+} from "@/lib/apify-fotmob";
+import {
+  fetchSofaScoreEventsForMatch,
+} from "@/lib/sofascore";
+import {
+  filterMajorTimelineEvents,
+  filterMajorTimelineLines,
+} from "@/lib/match-event-filter";
+import {
   alignLiveScoreLinesToAnchors,
   filterNoisyOcrAnchors,
   getAlignmentStats,
@@ -11,7 +26,6 @@ import type {
   FullMatchOcrAnchor,
 } from "@/lib/full-match-align";
 import {
-  fetchLiveScoreCommentary,
   fetchLiveScoreEvents,
   fetchLiveScoreMatchesWithCommentary,
   matchSubtitle,
@@ -28,7 +42,7 @@ import {
 import { ConvexHttpClient } from "convex/browser";
 import { createHash } from "node:crypto";
 import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, readFile, rm, unlink } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, readFile, rm, stat, unlink } from "node:fs/promises";
 import { availableParallelism, tmpdir } from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -43,6 +57,9 @@ type ConvexFullMatchImport = {
   sourceUrl: string;
   videoFile?: string;
   liveScoreMatchId: string;
+  fotmobMatchId?: string;
+  flashscoreMatchId?: string;
+  sofaScoreEventId?: string;
   status: string;
   statusMessage?: string;
   durationSeconds?: number;
@@ -53,7 +70,10 @@ type ConvexFullMatchImport = {
 
 export type FullMatchImportRequest = {
   sourceUrl: string;
-  liveScoreMatchId: string;
+  liveScoreMatchId?: string;
+  fotmobMatchId?: string;
+  flashscoreMatchId?: string;
+  sofaScoreEventId?: string;
   title?: string;
   subtitle?: string;
   gameId?: string;
@@ -118,11 +138,28 @@ type OcrProgress = {
 
 const CHANGE_ONLY_VIDEO_WINDOW_SECONDS = 5;
 
-const DEFAULT_SAMPLE_SECONDS = 2;
+const DEFAULT_SAMPLE_SECONDS = 1;
 const SHORT_VIDEO_SAMPLE_SECONDS = 1;
 const SHORT_VIDEO_MAX_DURATION_SECONDS = 20 * 60;
-const DEFAULT_MAX_SAMPLES = 1200;
+const DEFAULT_MAX_SAMPLES = 3600;
 const DEFAULT_OCR_CONCURRENCY = 4;
+const FFMPEG_EXTRACT_TIMEOUT_MS = 600_000;
+const FFMPEG_BATCH_SELECT_CHUNK = 120;
+
+function ffmpegDecodeArgs(): string[] {
+  const args = ["-hide_banner", "-loglevel", "error", "-nostats", "-threads", "0"];
+  if (process.platform === "darwin") {
+    args.push("-hwaccel", "videotoolbox");
+  } else {
+    args.push("-hwaccel", "auto");
+  }
+  return args;
+}
+
+function ffmpegCropFilter(roi: Roi, filterProfile?: ClockCropFilterProfile): string {
+  const chain = CLOCK_CROP_FILTERS[filterProfile ?? roi.filter ?? "pill"];
+  return `crop=${roi.width}:${roi.height}:${roi.x}:${roi.y},${chain}`;
+}
 
 function adaptiveSampleEverySeconds(
   durationSeconds: number,
@@ -317,22 +354,236 @@ async function findLiveScoreMatch(matchId: string): Promise<LiveMatch> {
   };
 }
 
-async function fetchRawLines(match: LiveMatch): Promise<LiveScoreLine[]> {
-  const commentary = await fetchLiveScoreCommentary(match.sourceUrl, match.matchId).catch(
-    () => undefined,
+function explicitLiveScoreMatchId(importJob: {
+  liveScoreMatchId: string;
+  fotmobMatchId?: string;
+  flashscoreMatchId?: string;
+  sofaScoreEventId?: string;
+}): string | undefined {
+  const liveScoreMatchId = importJob.liveScoreMatchId.trim();
+  if (!liveScoreMatchId) return undefined;
+
+  const alternateIds = [
+    importJob.sofaScoreEventId?.trim(),
+    importJob.flashscoreMatchId?.trim(),
+    importJob.fotmobMatchId?.trim(),
+  ].filter(Boolean);
+
+  if (alternateIds.length === 0) return liveScoreMatchId;
+  return alternateIds.includes(liveScoreMatchId) ? undefined : liveScoreMatchId;
+}
+
+function eventSourceLabelFor(options: {
+  liveScoreMatchId?: string;
+  fotmobMatchId?: string;
+  flashscoreMatchId?: string;
+  sofaScoreEventId?: string;
+}): string {
+  if (options.liveScoreMatchId?.trim()) return "LiveScore";
+  if (options.sofaScoreEventId?.trim()) return "SofaScore";
+  if (options.flashscoreMatchId?.trim()) return "Flashscore";
+  if (options.fotmobMatchId?.trim()) return "FotMob";
+  return "LiveScore";
+}
+
+async function buildImportMatchContext(
+  request: Pick<
+    FullMatchImportRequest,
+    "liveScoreMatchId" | "fotmobMatchId" | "flashscoreMatchId" | "sofaScoreEventId"
+  >,
+): Promise<{
+  fotmobMatchId?: string;
+  flashscoreMatchId?: string;
+  sofaScoreEventId?: string;
+  explicitLiveScoreMatchId?: string;
+  liveScoreMatchId: string;
+  match: LiveMatch;
+  eventSourceLabel: string;
+}> {
+  const sofaScoreEventId = request.sofaScoreEventId?.trim() || undefined;
+  const flashscoreMatchId = request.flashscoreMatchId?.trim() || undefined;
+  const fotmobMatchId = request.fotmobMatchId?.trim() || undefined;
+  const explicitLiveScoreId = request.liveScoreMatchId?.trim() || undefined;
+  const liveScoreMatchId =
+    explicitLiveScoreId ||
+    sofaScoreEventId ||
+    flashscoreMatchId ||
+    fotmobMatchId ||
+    "";
+  if (!liveScoreMatchId && !fotmobMatchId && !flashscoreMatchId && !sofaScoreEventId) {
+    throw new Error(
+      "Provide a LiveScore match ID, SofaScore event ID, Flashscore match ID, or FotMob match ID.",
+    );
+  }
+
+  const match = await resolveImportMatch({
+    liveScoreMatchId: explicitLiveScoreId,
+    fotmobMatchId,
+    flashscoreMatchId,
+    sofaScoreEventId,
+  });
+  return {
+    fotmobMatchId,
+    flashscoreMatchId,
+    sofaScoreEventId,
+    explicitLiveScoreMatchId: explicitLiveScoreId,
+    liveScoreMatchId,
+    match,
+    eventSourceLabel: eventSourceLabelFor({
+      liveScoreMatchId: explicitLiveScoreId,
+      sofaScoreEventId,
+      flashscoreMatchId,
+      fotmobMatchId,
+    }),
+  };
+}
+
+async function buildStoredImportMatchContext(importJob: {
+  liveScoreMatchId: string;
+  fotmobMatchId?: string;
+  flashscoreMatchId?: string;
+  sofaScoreEventId?: string;
+}): Promise<{
+  fotmobMatchId?: string;
+  flashscoreMatchId?: string;
+  sofaScoreEventId?: string;
+  explicitLiveScoreMatchId?: string;
+  liveScoreMatchId: string;
+  match: LiveMatch;
+  eventSourceLabel: string;
+}> {
+  const sofaScoreEventId = importJob.sofaScoreEventId?.trim() || undefined;
+  const flashscoreMatchId = importJob.flashscoreMatchId?.trim() || undefined;
+  const fotmobMatchId = importJob.fotmobMatchId?.trim() || undefined;
+  const explicitLiveScoreId = explicitLiveScoreMatchId(importJob);
+  const liveScoreMatchId =
+    explicitLiveScoreId ||
+    sofaScoreEventId ||
+    flashscoreMatchId ||
+    fotmobMatchId ||
+    "";
+  const match = await resolveImportMatch({
+    liveScoreMatchId: explicitLiveScoreId,
+    fotmobMatchId,
+    flashscoreMatchId,
+    sofaScoreEventId,
+  });
+  return {
+    fotmobMatchId,
+    flashscoreMatchId,
+    sofaScoreEventId,
+    explicitLiveScoreMatchId: explicitLiveScoreId,
+    liveScoreMatchId,
+    match,
+    eventSourceLabel: eventSourceLabelFor({
+      liveScoreMatchId: explicitLiveScoreId,
+      sofaScoreEventId,
+      flashscoreMatchId,
+      fotmobMatchId,
+    }),
+  };
+}
+
+async function resolveImportMatch(options: {
+  liveScoreMatchId?: string;
+  fotmobMatchId?: string;
+  flashscoreMatchId?: string;
+  sofaScoreEventId?: string;
+}): Promise<LiveMatch> {
+  const liveScoreMatchId = options.liveScoreMatchId?.trim();
+  if (liveScoreMatchId) {
+    return findLiveScoreMatch(liveScoreMatchId);
+  }
+
+  if (options.sofaScoreEventId?.trim()) {
+    const { match } = await fetchSofaScoreEventsForMatch(options.sofaScoreEventId.trim());
+    return match;
+  }
+
+  if (options.flashscoreMatchId?.trim()) {
+    if (!isFlashscoreApifyConfigured()) {
+      throw new Error(
+        "APIFY_TOKEN is missing. Add it to web/.env.local to fetch Flashscore event times.",
+      );
+    }
+    const { match } = await fetchFlashscoreEventsForMatch(options.flashscoreMatchId.trim());
+    return match;
+  }
+
+  if (options.fotmobMatchId?.trim()) {
+    if (!isApifyConfigured()) {
+      throw new Error(
+        "APIFY_TOKEN is missing. Add it to web/.env.local to fetch FotMob event times.",
+      );
+    }
+    const { match } = await fetchFotMobEventsForMatch(options.fotmobMatchId.trim());
+    return match;
+  }
+
+  throw new Error(
+    "Provide a LiveScore match ID, SofaScore event ID, Flashscore match ID, or FotMob match ID.",
   );
-  if (commentary && commentary.lines.length > 0) return commentary.lines;
+}
 
-  const events = await fetchLiveScoreEvents(match.sourceUrl, match.matchId);
-  if (events.lines.length > 0) return events.lines;
+async function fetchRawLines(options: {
+  match: LiveMatch;
+  liveScoreMatchId?: string;
+  fotmobMatchId?: string;
+  flashscoreMatchId?: string;
+  sofaScoreEventId?: string;
+}): Promise<LiveScoreLine[]> {
+  if (options.liveScoreMatchId?.trim()) {
+    const events = await fetchLiveScoreEvents(options.match.sourceUrl, options.liveScoreMatchId.trim());
+    const major = filterMajorTimelineLines(events.lines);
+    if (major.length > 0) return major;
+    throw new Error("LiveScore returned no goal or card incidents for this match.");
+  }
 
-  throw new Error("LiveScore returned no commentary or incident lines for this match.");
+  if (options.sofaScoreEventId?.trim()) {
+    const { lines } = await fetchSofaScoreEventsForMatch(options.sofaScoreEventId.trim());
+    const major = filterMajorTimelineLines(lines);
+    if (major.length > 0) return major;
+    throw new Error("SofaScore returned no goals or cards for this match.");
+  }
+
+  if (options.flashscoreMatchId?.trim()) {
+    if (!isFlashscoreApifyConfigured()) {
+      throw new Error(
+        "APIFY_TOKEN is missing. Add it to web/.env.local to fetch Flashscore event times.",
+      );
+    }
+    const { lines } = await fetchFlashscoreEventsForMatch(options.flashscoreMatchId.trim());
+    const major = filterMajorTimelineLines(lines);
+    if (major.length > 0) return major;
+    throw new Error("Apify Flashscore returned no goals or cards for this match.");
+  }
+
+  if (options.fotmobMatchId?.trim()) {
+    if (!isApifyConfigured()) {
+      throw new Error(
+        "APIFY_TOKEN is missing. Add it to web/.env.local to fetch FotMob event times.",
+      );
+    }
+    const { lines } = await fetchFotMobEventsForMatch(options.fotmobMatchId.trim());
+    const major = filterMajorTimelineLines(lines);
+    if (major.length > 0) return major;
+    throw new Error("Apify FotMob returned no goals or cards for this match.");
+  }
+
+  const events = await fetchLiveScoreEvents(options.match.sourceUrl, options.match.matchId);
+  const major = filterMajorTimelineLines(events.lines);
+  if (major.length > 0) return major;
+
+  throw new Error("LiveScore returned no goal or card incidents for this match.");
 }
 
 async function upsertImport(
   payload: Omit<FullMatchImportResult, "anchorCount" | "eventCount"> & {
     sourceUrl: string;
     liveScoreMatchId: string;
+    fotmobMatchId?: string;
+    flashscoreMatchId?: string;
+    sofaScoreEventId?: string;
   },
 ): Promise<void> {
   const client = getConvexClient();
@@ -342,12 +593,81 @@ async function upsertImport(
     subtitle: payload.subtitle,
     sourceUrl: payload.sourceUrl,
     liveScoreMatchId: payload.liveScoreMatchId,
+    fotmobMatchId: payload.fotmobMatchId,
+    flashscoreMatchId: payload.flashscoreMatchId,
+    sofaScoreEventId: payload.sofaScoreEventId,
     status: payload.status,
     statusMessage: payload.statusMessage,
     videoFile: payload.videoFile,
     durationSeconds: payload.durationSeconds,
     confidence: payload.confidence,
   });
+}
+
+async function localVideoFileExists(absolutePath: string): Promise<boolean> {
+  try {
+    const info = await stat(absolutePath);
+    return info.isFile() && info.size > 0;
+  } catch {
+    return false;
+  }
+}
+
+function fullMatchVideoPaths(options: { gameId: string; title: string }): {
+  filename: string;
+  absolutePath: string;
+  videoFile: string;
+} {
+  const samplesDir = path.join(process.cwd(), ".full-matches");
+  const filename = `${options.gameId}-${slugify(options.title)}.mp4`;
+  return {
+    filename,
+    absolutePath: path.join(samplesDir, filename),
+    videoFile: `full-matches/${filename}`,
+  };
+}
+
+async function findExistingLocalVideo(options: {
+  gameId: string;
+  title: string;
+  preferredVideoFile?: string;
+}): Promise<{ videoFile: string; absolutePath: string } | null> {
+  const samplesDir = path.join(process.cwd(), ".full-matches");
+  const candidates: string[] = [];
+
+  if (options.preferredVideoFile?.startsWith("full-matches/")) {
+    candidates.push(path.basename(options.preferredVideoFile));
+  }
+
+  const expected = fullMatchVideoPaths(options);
+  candidates.push(expected.filename);
+
+  try {
+    const files = await readdir(samplesDir);
+    for (const file of files) {
+      if (file.startsWith(`${options.gameId}-`) && file.endsWith(".mp4")) {
+        candidates.push(file);
+      }
+    }
+  } catch {
+    // Directory may not exist yet.
+  }
+
+  for (const filename of [...new Set(candidates)]) {
+    const absolutePath = path.join(samplesDir, filename);
+    if (!(await localVideoFileExists(absolutePath))) continue;
+    try {
+      await probeVideo(absolutePath);
+      return {
+        videoFile: `full-matches/${filename}`,
+        absolutePath,
+      };
+    } catch {
+      // Ignore corrupt partial downloads and keep searching.
+    }
+  }
+
+  return null;
 }
 
 async function downloadVideo(options: {
@@ -358,8 +678,7 @@ async function downloadVideo(options: {
   const samplesDir = path.join(process.cwd(), ".full-matches");
   await mkdir(samplesDir, { recursive: true });
 
-  const filename = `${options.gameId}-${slugify(options.title)}.mp4`;
-  const absolutePath = path.join(samplesDir, filename);
+  const { absolutePath, videoFile } = fullMatchVideoPaths(options);
 
   await runTool(
     "yt-dlp",
@@ -376,9 +695,28 @@ async function downloadVideo(options: {
   );
 
   return {
-    videoFile: `full-matches/${filename}`,
+    videoFile,
     absolutePath,
   };
+}
+
+async function resolveOrDownloadVideo(options: {
+  sourceUrl: string;
+  gameId: string;
+  title: string;
+  preferredVideoFile?: string;
+}): Promise<{ videoFile: string; absolutePath: string; reused: boolean }> {
+  const existing = await findExistingLocalVideo({
+    gameId: options.gameId,
+    title: options.title,
+    preferredVideoFile: options.preferredVideoFile,
+  });
+  if (existing) {
+    return { ...existing, reused: true };
+  }
+
+  const downloaded = await downloadVideo(options);
+  return { ...downloaded, reused: false };
 }
 
 async function probeVideo(absolutePath: string): Promise<VideoProbe> {
@@ -527,21 +865,26 @@ async function extractCrop(options: {
   roi: Roi;
   filterProfile?: ClockCropFilterProfile;
 }): Promise<void> {
-  const { roi } = options;
-  const filterProfile = options.filterProfile ?? roi.filter ?? "default";
-  const filterChain = CLOCK_CROP_FILTERS[filterProfile];
-  await runTool("ffmpeg", [
-    "-y",
-    "-ss",
-    String(Math.max(0, options.videoAt)),
-    "-i",
-    options.videoPath,
-    "-frames:v",
-    "1",
-    "-vf",
-    `crop=${roi.width}:${roi.height}:${roi.x}:${roi.y},${filterChain}`,
-    options.outputPath,
-  ]);
+  await runTool(
+    "ffmpeg",
+    [
+      ...ffmpegDecodeArgs(),
+      "-ss",
+      String(Math.max(0, options.videoAt)),
+      "-i",
+      options.videoPath,
+      "-an",
+      "-sn",
+      "-dn",
+      "-frames:v",
+      "1",
+      "-vf",
+      ffmpegCropFilter(options.roi, options.filterProfile),
+      "-y",
+      options.outputPath,
+    ],
+    { timeoutMs: 30_000 },
+  );
 }
 
 async function runTesseractPsm(imagePath: string, psm: string): Promise<string> {
@@ -713,33 +1056,163 @@ async function detectClockRoi(options: {
   return best.roi;
 }
 
+async function extractClockCropsAtFps(options: {
+  videoPath: string;
+  roi: Roi;
+  workDir: string;
+  everySeconds: number;
+  durationSeconds: number;
+  maxSamples: number;
+}): Promise<Array<{ index: number; videoAt: number; cropPath: string }>> {
+  const fps = 1 / options.everySeconds;
+  const frameCount = Math.min(
+    options.maxSamples,
+    Math.max(1, Math.ceil(options.durationSeconds / options.everySeconds) + 1),
+  );
+  const outputPattern = path.join(options.workDir, "clock-%06d.png");
+
+  await runTool(
+    "ffmpeg",
+    [
+      ...ffmpegDecodeArgs(),
+      "-i",
+      options.videoPath,
+      "-an",
+      "-sn",
+      "-dn",
+      "-vf",
+      `fps=${fps},${ffmpegCropFilter(options.roi)}`,
+      "-vsync",
+      "vfr",
+      "-frames:v",
+      String(frameCount),
+      "-y",
+      outputPattern,
+    ],
+    {
+      timeoutMs: Math.max(
+        FFMPEG_EXTRACT_TIMEOUT_MS,
+        Math.ceil(options.durationSeconds * 250),
+      ),
+    },
+  );
+
+  const files = (await readdir(options.workDir))
+    .filter((file) => file.startsWith("clock-") && file.endsWith(".png"))
+    .sort();
+
+  return files.map((file, index) => ({
+    index,
+    videoAt: Math.round(index * options.everySeconds * 10) / 10,
+    cropPath: path.join(options.workDir, file),
+  }));
+}
+
+function buildSelectFilterExpression(sampleTimes: number[], windowSeconds = 0.08): string {
+  return sampleTimes
+    .map((sampleAt) => {
+      const start = Math.max(0, sampleAt - windowSeconds).toFixed(3);
+      const end = (sampleAt + windowSeconds).toFixed(3);
+      return `between(t\\,${start}\\,${end})`;
+    })
+    .join("+");
+}
+
+async function extractClockCropsBatchSelect(options: {
+  videoPath: string;
+  roi: Roi;
+  workDir: string;
+  sampleTimes: number[];
+  batchIndex: number;
+}): Promise<Array<{ videoAt: number; cropPath: string }>> {
+  const selectExpr = buildSelectFilterExpression(options.sampleTimes);
+  const outputPattern = path.join(
+    options.workDir,
+    `clock-b${String(options.batchIndex).padStart(3, "0")}-%06d.png`,
+  );
+
+  await runTool(
+    "ffmpeg",
+    [
+      ...ffmpegDecodeArgs(),
+      "-i",
+      options.videoPath,
+      "-an",
+      "-sn",
+      "-dn",
+      "-vf",
+      `select='${selectExpr}',${ffmpegCropFilter(options.roi)}`,
+      "-vsync",
+      "vfr",
+      "-frames:v",
+      String(options.sampleTimes.length),
+      "-y",
+      outputPattern,
+    ],
+    { timeoutMs: FFMPEG_EXTRACT_TIMEOUT_MS },
+  );
+
+  const prefix = `clock-b${String(options.batchIndex).padStart(3, "0")}-`;
+  const files = (await readdir(options.workDir))
+    .filter((file) => file.startsWith(prefix) && file.endsWith(".png"))
+    .sort();
+
+  return files.map((file, index) => ({
+    videoAt: options.sampleTimes[index] ?? index,
+    cropPath: path.join(options.workDir, file),
+  }));
+}
+
 async function extractClockCropsAtTimes(options: {
   videoPath: string;
   roi: Roi;
   workDir: string;
   sampleTimes: number[];
+  everySeconds?: number;
+  durationSeconds?: number;
+  maxSamples?: number;
 }): Promise<Array<{ index: number; videoAt: number; cropPath: string }>> {
-  const crops = await mapWithConcurrency(
-    options.sampleTimes,
-    Math.min(8, ocrConcurrency() + 2),
-    async (videoAt, index) => {
-      const cropPath = path.join(options.workDir, `clock-${String(index).padStart(6, "0")}.png`);
-      await extractCrop({
-        videoPath: options.videoPath,
-        outputPath: cropPath,
-        videoAt,
-        roi: options.roi,
-        filterProfile: options.roi.filter,
-      });
-      return {
-        index,
-        videoAt,
-        cropPath,
-      };
-    },
+  if (
+    options.everySeconds &&
+    options.everySeconds > 0 &&
+    options.durationSeconds &&
+    options.maxSamples
+  ) {
+    return extractClockCropsAtFps({
+      videoPath: options.videoPath,
+      roi: options.roi,
+      workDir: options.workDir,
+      everySeconds: options.everySeconds,
+      durationSeconds: options.durationSeconds,
+      maxSamples: options.maxSamples,
+    });
+  }
+
+  if (options.sampleTimes.length === 0) return [];
+
+  const batches: number[][] = [];
+  for (let index = 0; index < options.sampleTimes.length; index += FFMPEG_BATCH_SELECT_CHUNK) {
+    batches.push(options.sampleTimes.slice(index, index + FFMPEG_BATCH_SELECT_CHUNK));
+  }
+
+  const batchResults = await mapWithConcurrency(batches, 1, async (sampleTimes, batchIndex) =>
+    extractClockCropsBatchSelect({
+      videoPath: options.videoPath,
+      roi: options.roi,
+      workDir: options.workDir,
+      sampleTimes,
+      batchIndex,
+    }),
   );
 
-  return crops.sort((a, b) => a.videoAt - b.videoAt);
+  return batchResults
+    .flat()
+    .sort((a, b) => a.videoAt - b.videoAt)
+    .map((crop, index) => ({
+      index,
+      videoAt: crop.videoAt,
+      cropPath: crop.cropPath,
+    }));
 }
 
 function shouldEmitChangeOnlyAnchor(
@@ -853,30 +1326,33 @@ async function refineAnchorsNearSegmentBoundaries(options: {
 
   const sampleTimes = new Set<number>();
   for (const boundary of boundaries) {
-    for (let offset = -3; offset <= 3; offset += 0.5) {
-      sampleTimes.add(Math.max(0, Math.round((boundary + offset) * 2) / 2));
+    for (let offset = -2; offset <= 2; offset += 1) {
+      sampleTimes.add(Math.max(0, Math.round(boundary + offset)));
     }
   }
 
+  const refineTimes = [...sampleTimes].sort((a, b) => a - b);
+  const refinedCrops =
+    refineTimes.length > 0
+      ? await extractClockCropsAtTimes({
+          videoPath: options.videoPath,
+          roi: options.roi,
+          workDir: options.workDir,
+          sampleTimes: refineTimes,
+        })
+      : [];
+
   const refined = await mapWithConcurrency(
-    [...sampleTimes],
+    refinedCrops,
     ocrConcurrency(),
-    async (videoAt, index) => {
-      const cropPath = path.join(options.workDir, `refine-${index}.png`);
-      await extractCrop({
-        videoPath: options.videoPath,
-        outputPath: cropPath,
-        videoAt,
-        roi: options.roi,
-        filterProfile: options.roi.filter,
-      });
-      const rawText = await ocrImage(cropPath).catch(() => "");
+    async (crop) => {
+      const rawText = await ocrImage(crop.cropPath).catch(() => "");
       const parsed = parseClockText(rawText);
       if (!parsed) return null;
       return {
         period: parsed.period,
         gameElapsed: parsed.gameElapsed,
-        videoAt,
+        videoAt: crop.videoAt,
         rawText: rawText.trim(),
         confidence: parsed.confidence,
       };
@@ -906,11 +1382,16 @@ async function readOcrAnchors(options: {
   const sceneCuts = await detectSceneCutTimes(
     options.videoPath,
     options.probe.durationSeconds,
-    (args) => runToolCapture("ffmpeg", args, { timeoutMs: Math.max(180_000, options.probe.durationSeconds * 1000) }),
+    (args) =>
+      runToolCapture("ffmpeg", args, {
+        timeoutMs: Math.max(180_000, options.probe.durationSeconds * 500),
+      }),
   );
   const sampleTimes = buildCandidateSampleTimes({
     sceneCuts,
     durationSeconds: options.probe.durationSeconds,
+    denseEverySeconds: options.sampleEverySeconds,
+    maxCandidates: options.maxSamples,
   }).slice(0, options.maxSamples);
   const sampleIntervalSeconds = estimateSampleIntervalSeconds(sampleTimes);
 
@@ -926,6 +1407,9 @@ async function readOcrAnchors(options: {
     roi: options.roi,
     workDir: options.workDir,
     sampleTimes,
+    everySeconds: options.sampleEverySeconds,
+    durationSeconds: options.probe.durationSeconds,
+    maxSamples: options.maxSamples,
   });
 
   const anchors = await ocrCropsToAnchors(crops, options.onProgress);
@@ -1010,21 +1494,23 @@ export async function getFullMatchTimeline(gameId: string): Promise<{
   if (!importJob) return null;
 
   const stored = await client.query(api.matches.getFullMatchAlignedEvents, { gameId });
-  const events = stored
-    .map((event) =>
-      toTimelineEvent({
-        id: event.eventKey,
-        videoAt: event.videoAt,
-        gameElapsed: event.gameElapsed,
-        scoreHome: event.scoreHome,
-        scoreAway: event.scoreAway,
-        description: event.description,
-        periodLabel: event.periodLabel,
-        kind: event.kind,
-        context: event.context,
-      }),
-    )
-    .sort((a, b) => a.videoAt - b.videoAt);
+  const events = filterMajorTimelineEvents(
+    stored
+      .map((event) =>
+        toTimelineEvent({
+          id: event.eventKey,
+          videoAt: event.videoAt,
+          gameElapsed: event.gameElapsed,
+          scoreHome: event.scoreHome,
+          scoreAway: event.scoreAway,
+          description: event.description,
+          periodLabel: event.periodLabel,
+          kind: event.kind,
+          context: event.context,
+        }),
+      )
+      .sort((a, b) => a.videoAt - b.videoAt),
+  );
 
   return { importJob, events };
 }
@@ -1034,27 +1520,36 @@ export async function processFullMatchImport(
 ): Promise<FullMatchImportResult> {
   await assertLocalTools();
 
-  const match = await findLiveScoreMatch(request.liveScoreMatchId);
-  const gameId = request.gameId?.trim() || fullMatchGameId(request.liveScoreMatchId);
+  const importContext = await buildImportMatchContext(request);
+  const { fotmobMatchId, flashscoreMatchId, sofaScoreEventId, explicitLiveScoreMatchId, liveScoreMatchId, match, eventSourceLabel } =
+    importContext;
+  const gameId = request.gameId?.trim() || fullMatchGameId(liveScoreMatchId);
   const title = request.title?.trim() || matchTitle(match);
   const subtitle = request.subtitle?.trim() || `Full match · ${matchSubtitle(match)}`;
+
+  const client = getConvexClient();
+  const existingImport = await client.query(api.matches.getFullMatchImport, { gameId }).catch(() => null);
 
   await upsertImport({
     gameId,
     title,
     subtitle,
     sourceUrl: request.sourceUrl,
-    liveScoreMatchId: request.liveScoreMatchId,
+    liveScoreMatchId,
+    fotmobMatchId,
+    flashscoreMatchId,
+    sofaScoreEventId,
     status: "importing",
-    statusMessage: "Downloading video with yt-dlp",
+    statusMessage: "Checking for existing local video",
   });
 
   const workDir = await mkdtemp(path.join(tmpdir(), "sportscaster-full-match-"));
   try {
-    const downloaded = await downloadVideo({
+    const downloaded = await resolveOrDownloadVideo({
       sourceUrl: request.sourceUrl,
       gameId,
       title,
+      preferredVideoFile: existingImport?.videoFile,
     });
     const probe = await probeVideo(downloaded.absolutePath);
 
@@ -1063,9 +1558,14 @@ export async function processFullMatchImport(
       title,
       subtitle,
       sourceUrl: request.sourceUrl,
-      liveScoreMatchId: request.liveScoreMatchId,
+      liveScoreMatchId,
+      fotmobMatchId,
+      flashscoreMatchId,
+      sofaScoreEventId,
       status: "ocr",
-      statusMessage: "Detecting scoreboard ROI and smart-sampling clock frames",
+      statusMessage: downloaded.reused
+        ? `Reusing local video ${path.basename(downloaded.absolutePath)}; detecting scoreboard ROI`
+        : "Detecting scoreboard ROI and smart-sampling clock frames",
       videoFile: downloaded.videoFile,
       durationSeconds: probe.durationSeconds,
     });
@@ -1098,14 +1598,17 @@ export async function processFullMatchImport(
           progress.phase === "scene_detect"
             ? "Detecting highlight scene cuts for smart OCR sampling"
             : progress.phase === "extracting"
-              ? `Extracting ${progress.total} smart-sampled scoreboard crops (${progress.anchors} scene cuts)`
-              : `Smart OCR ${progress.processed}/${progress.total} candidate frames; ${progress.anchors} clock anchors found`;
+              ? `Extracting ${progress.total} scoreboard crops every ${sampleEverySeconds}s (${progress.anchors} scene cuts)`
+              : `OCR ${progress.processed}/${progress.total} frames; ${progress.anchors} clock anchors found`;
         await upsertImport({
           gameId,
           title,
           subtitle,
           sourceUrl: request.sourceUrl,
-          liveScoreMatchId: request.liveScoreMatchId,
+          liveScoreMatchId,
+          fotmobMatchId,
+          flashscoreMatchId,
+          sofaScoreEventId,
           status: "ocr",
           statusMessage,
           videoFile: downloaded.videoFile,
@@ -1119,14 +1622,23 @@ export async function processFullMatchImport(
       title,
       subtitle,
       sourceUrl: request.sourceUrl,
-      liveScoreMatchId: request.liveScoreMatchId,
+      liveScoreMatchId,
+      fotmobMatchId,
+      flashscoreMatchId,
+      sofaScoreEventId,
       status: "aligning",
-      statusMessage: `Read ${anchors.length} OCR anchors; fetching LiveScore events and aligning`,
+      statusMessage: `Read ${anchors.length} OCR anchors; fetching ${eventSourceLabel} events and aligning`,
       videoFile: downloaded.videoFile,
       durationSeconds: probe.durationSeconds,
     });
 
-    const rawLines = await fetchRawLines(match);
+    const rawLines = await fetchRawLines({
+      match,
+      liveScoreMatchId: explicitLiveScoreMatchId,
+      fotmobMatchId,
+      flashscoreMatchId,
+      sofaScoreEventId,
+    });
     const aligned = alignLiveScoreLinesToAnchors(match, rawLines, anchors, {
       alignmentMode,
       sampleIntervalSeconds: sampleEverySeconds,
@@ -1165,9 +1677,12 @@ export async function processFullMatchImport(
       title,
       subtitle,
       sourceUrl: request.sourceUrl,
-      liveScoreMatchId: request.liveScoreMatchId,
+      liveScoreMatchId,
+      fotmobMatchId,
+      flashscoreMatchId,
+      sofaScoreEventId,
       status: "aligned",
-      statusMessage: `Aligned ${aligned.length} LiveScore events from ${anchors.length} OCR anchors (${alignmentStats.segmentCount} clip segments, ${alignmentStats.alignmentMode} mode)`,
+      statusMessage: `Aligned ${aligned.length} ${eventSourceLabel} events from ${anchors.length} OCR anchors (${alignmentStats.segmentCount} clip segments, ${alignmentStats.alignmentMode} mode)`,
       videoFile: downloaded.videoFile,
       durationSeconds: probe.durationSeconds,
       confidence,
@@ -1193,7 +1708,10 @@ export async function processFullMatchImport(
       title,
       subtitle,
       sourceUrl: request.sourceUrl,
-      liveScoreMatchId: request.liveScoreMatchId,
+      liveScoreMatchId,
+      fotmobMatchId,
+      flashscoreMatchId,
+      sofaScoreEventId,
       status: "error",
       statusMessage: message,
     }).catch(() => undefined);
@@ -1220,7 +1738,8 @@ export async function manualAlignFullMatch(options: {
     throw new Error("Full-match import not found");
   }
 
-  const match = await findLiveScoreMatch(importJob.liveScoreMatchId);
+  const importContext = await buildStoredImportMatchContext(importJob);
+  const { fotmobMatchId, flashscoreMatchId, sofaScoreEventId, explicitLiveScoreMatchId, match, eventSourceLabel } = importContext;
   const secondHalfVideoAt =
     options.secondHalfVideoAt ?? options.firstHalfVideoAt + 45 * 60 + 15 * 60;
   const anchors: FullMatchOcrAnchor[] = [
@@ -1254,12 +1773,18 @@ export async function manualAlignFullMatch(options: {
     },
   ];
 
-  const rawLines = await fetchRawLines(match);
+  const rawLines = await fetchRawLines({
+    match,
+    liveScoreMatchId: explicitLiveScoreMatchId,
+    fotmobMatchId,
+    flashscoreMatchId,
+    sofaScoreEventId,
+  });
   const aligned = alignLiveScoreLinesToAnchors(match, rawLines, anchors, {
     alignmentMode: "full_match",
   });
   if (aligned.length === 0) {
-    throw new Error("No LiveScore lines could be mapped onto manual offsets.");
+    throw new Error(`No ${eventSourceLabel} lines could be mapped onto manual offsets.`);
   }
 
   const alignmentStats = getAlignmentStats(anchors, { alignmentMode: "full_match" });
@@ -1292,8 +1817,11 @@ export async function manualAlignFullMatch(options: {
     subtitle: importJob.subtitle,
     sourceUrl: importJob.sourceUrl,
     liveScoreMatchId: importJob.liveScoreMatchId,
+    fotmobMatchId: importJob.fotmobMatchId,
+    flashscoreMatchId: importJob.flashscoreMatchId,
+    sofaScoreEventId: importJob.sofaScoreEventId,
     status: "aligned",
-    statusMessage: `Aligned ${aligned.length} LiveScore events from manual offsets`,
+    statusMessage: `Aligned ${aligned.length} ${eventSourceLabel} events from manual offsets`,
     videoFile: importJob.videoFile,
     durationSeconds: importJob.durationSeconds,
     confidence,
@@ -1331,7 +1859,8 @@ export async function realignFullMatchImport(options: {
     throw new Error("Imported video file is missing; re-import the highlight first.");
   }
 
-  const match = await findLiveScoreMatch(importJob.liveScoreMatchId);
+  const importContext = await buildStoredImportMatchContext(importJob);
+  const { fotmobMatchId, flashscoreMatchId, sofaScoreEventId, explicitLiveScoreMatchId, match, eventSourceLabel } = importContext;
   const alignmentMode = options.alignmentMode ?? "highlight";
   const videoPath = path.join(
     process.cwd(),
@@ -1347,10 +1876,13 @@ export async function realignFullMatchImport(options: {
     subtitle: importJob.subtitle,
     sourceUrl: importJob.sourceUrl,
     liveScoreMatchId: importJob.liveScoreMatchId,
+    fotmobMatchId: importJob.fotmobMatchId,
+    flashscoreMatchId: importJob.flashscoreMatchId,
+    sofaScoreEventId: importJob.sofaScoreEventId,
     status: options.reOcr ? "ocr" : "aligning",
     statusMessage: options.reOcr
       ? "Re-reading scoreboard clock from stored video"
-      : "Re-aligning LiveScore events from stored OCR anchors",
+      : `Re-aligning ${eventSourceLabel} events from stored OCR anchors`,
     videoFile: importJob.videoFile,
     durationSeconds,
   });
@@ -1395,13 +1927,19 @@ export async function realignFullMatchImport(options: {
       }));
     }
 
-    const rawLines = await fetchRawLines(match);
+    const rawLines = await fetchRawLines({
+      match,
+      liveScoreMatchId: explicitLiveScoreMatchId,
+      fotmobMatchId,
+      flashscoreMatchId,
+      sofaScoreEventId,
+    });
     const aligned = alignLiveScoreLinesToAnchors(match, rawLines, anchors, {
       alignmentMode,
       sampleIntervalSeconds: sampleEverySeconds,
     });
     if (aligned.length === 0) {
-      throw new Error("No LiveScore lines could be mapped onto OCR anchors.");
+      throw new Error(`No ${eventSourceLabel} lines could be mapped onto OCR anchors.`);
     }
 
     const alignmentStats = getAlignmentStats(anchors, {
@@ -1433,8 +1971,11 @@ export async function realignFullMatchImport(options: {
       subtitle: importJob.subtitle,
       sourceUrl: importJob.sourceUrl,
       liveScoreMatchId: importJob.liveScoreMatchId,
+      fotmobMatchId: importJob.fotmobMatchId,
+      flashscoreMatchId: importJob.flashscoreMatchId,
+      sofaScoreEventId: importJob.sofaScoreEventId,
       status: "aligned",
-      statusMessage: `Re-aligned ${aligned.length} events from ${anchors.length} anchors (${alignmentStats.segmentCount} clip segments, ${alignmentStats.alignmentMode} mode)`,
+      statusMessage: `Re-aligned ${aligned.length} ${eventSourceLabel} events from ${anchors.length} anchors (${alignmentStats.segmentCount} clip segments, ${alignmentStats.alignmentMode} mode)`,
       videoFile: importJob.videoFile,
       durationSeconds,
       confidence,

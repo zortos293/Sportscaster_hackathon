@@ -34,6 +34,10 @@ export type LiveScoreLine = {
   text: string;
   timestamp: string;
   minute?: string;
+  /** Authoritative match-clock seconds from the upstream feed when available. */
+  gameElapsed?: number;
+  /** Whether upstream timing is only minute-level and should be refined with OCR seconds. */
+  gameElapsedPrecision?: "minute" | "second";
   sortKey: number;
   eventType?: string;
   eventCategory?: EventCategory;
@@ -404,6 +408,7 @@ export function extractLiveScoreIncidentLines(
       dedupeKey: `livescore-event:${eventId}:${index}:${timestamp}:${incident.IT}:${body.slice(0, 40)}`,
       timestamp,
       minute: typeof incident.Min === "number" ? String(incident.Min) : undefined,
+      gameElapsedPrecision: typeof incident.MinEx === "number" && incident.MinEx > 0 ? "second" : "minute",
       sortKey,
       text: buildCommentaryText(body, timestamp),
       eventType,
@@ -448,6 +453,7 @@ export function extractLiveScoreCommentaryLines(
       dedupeKey: `livescore:${eventId}:${index}:${timestamp}:${rawText.slice(0, 40)}`,
       timestamp,
       minute: typeof comment.Min === "number" ? String(comment.Min) : undefined,
+      gameElapsedPrecision: typeof comment.MinEx === "number" && comment.MinEx > 0 ? "second" : "minute",
       sortKey,
       text: buildCommentaryText(rawText, timestamp),
       eventType,

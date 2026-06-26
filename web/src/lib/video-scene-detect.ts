@@ -3,8 +3,10 @@ const MAX_SCENE_CUTS = 200;
 const MIN_CUT_GAP_SECONDS = 1;
 const MIN_SCENE_CUTS_FOR_FALLBACK = 8;
 const FALLBACK_SAMPLE_EVERY_SECONDS = 5;
+const DENSE_SAMPLE_EVERY_SECONDS = 1;
 const CUT_PADDING_SECONDS = 1;
 const MAX_CANDIDATE_TIMES = 300;
+const SCENE_DETECT_SCALE_HEIGHT = 240;
 
 export function parseSceneCutTimesFromFfmpegOutput(output: string): number[] {
   const times: number[] = [];
@@ -44,9 +46,24 @@ export function mergeNearbySceneCuts(
   return merged.slice(0, MAX_SCENE_CUTS);
 }
 
+export function buildDenseSampleTimes(
+  durationSeconds: number,
+  everySeconds = DENSE_SAMPLE_EVERY_SECONDS,
+): number[] {
+  if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) return [0];
+  if (!Number.isFinite(everySeconds) || everySeconds <= 0) return [0];
+
+  const times: number[] = [];
+  for (let sampleAt = 0; sampleAt < durationSeconds; sampleAt += everySeconds) {
+    times.push(Math.round(sampleAt * 10) / 10);
+  }
+  return times;
+}
+
 export function buildCandidateSampleTimes(options: {
   sceneCuts: number[];
   durationSeconds: number;
+  denseEverySeconds?: number;
   minCutsForFallback?: number;
   fallbackEverySeconds?: number;
   cutPaddingSeconds?: number;
@@ -55,6 +72,7 @@ export function buildCandidateSampleTimes(options: {
   const {
     sceneCuts,
     durationSeconds,
+    denseEverySeconds,
     minCutsForFallback = MIN_SCENE_CUTS_FOR_FALLBACK,
     fallbackEverySeconds = FALLBACK_SAMPLE_EVERY_SECONDS,
     cutPaddingSeconds = CUT_PADDING_SECONDS,
@@ -84,7 +102,11 @@ export function buildCandidateSampleTimes(options: {
     }
   }
 
-  if (sceneCuts.length < minCutsForFallback) {
+  if (denseEverySeconds && denseEverySeconds > 0) {
+    for (const sampleAt of buildDenseSampleTimes(durationSeconds, denseEverySeconds)) {
+      times.add(sampleAt);
+    }
+  } else if (sceneCuts.length < minCutsForFallback) {
     for (let sampleAt = 0; sampleAt < durationSeconds; sampleAt += fallbackEverySeconds) {
       times.add(Math.round(sampleAt * 10) / 10);
     }
@@ -100,15 +122,24 @@ export async function detectSceneCutTimes(
   videoPath: string,
   durationSeconds: number,
   runFfmpeg: (args: string[]) => Promise<{ stdout: string; stderr: string }>,
+  options?: { scaleHeight?: number },
 ): Promise<number[]> {
+  const scaleHeight = options?.scaleHeight ?? SCENE_DETECT_SCALE_HEIGHT;
+  const decodeArgs =
+    process.platform === "darwin"
+      ? ["-hide_banner", "-loglevel", "error", "-nostats", "-threads", "0", "-hwaccel", "videotoolbox"]
+      : ["-hide_banner", "-loglevel", "error", "-nostats", "-threads", "0", "-hwaccel", "auto"];
+
   try {
     const { stderr, stdout } = await runFfmpeg([
-      "-hide_banner",
+      ...decodeArgs,
       "-i",
       videoPath,
       "-vf",
-      `scdet=threshold=${DEFAULT_SCENE_THRESHOLD},metadata=print`,
+      `scale=-2:${scaleHeight},scdet=threshold=${DEFAULT_SCENE_THRESHOLD},metadata=print`,
       "-an",
+      "-sn",
+      "-dn",
       "-f",
       "null",
       "-",

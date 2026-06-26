@@ -12,6 +12,7 @@
   "dependencies": {
     "@auth/core": "^0.41.1",
     "@convex-dev/auth": "^0.0.94",
+    "apify-client": "^2.23.4",
     "convex": "^1.42.0",
     "jose": "^6.2.3",
     "next": "16.2.9",

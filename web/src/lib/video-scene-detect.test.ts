@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildCandidateSampleTimes,
+  buildDenseSampleTimes,
   mergeNearbySceneCuts,
   parseSceneCutTimesFromFfmpegOutput,
 } from "@/lib/video-scene-detect";
@@ -38,5 +39,20 @@ describe("buildCandidateSampleTimes", () => {
       durationSeconds: 60,
     });
     expect(times.filter((time) => time % 5 === 0).length).toBeGreaterThan(5);
+  });
+
+  it("samples every 500ms when denseEverySeconds is provided", () => {
+    const times = buildCandidateSampleTimes({
+      sceneCuts: [],
+      durationSeconds: 2,
+      denseEverySeconds: 0.5,
+    });
+    expect(times).toEqual([0, 0.5, 1, 1.5]);
+  });
+});
+
+describe("buildDenseSampleTimes", () => {
+  it("builds evenly spaced sample times", () => {
+    expect(buildDenseSampleTimes(3, 0.5)).toEqual([0, 0.5, 1, 1.5, 2, 2.5]);
   });
 });

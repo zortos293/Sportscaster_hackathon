@@ -42,7 +42,8 @@ const FIRST_HALF_SECONDS = 45 * MINUTE_SECONDS;
 const SEGMENT_BACKWARD_JUMP_SECONDS = 3 * MINUTE_SECONDS;
 const HIGHLIGHT_MATCH_TOLERANCE_SECONDS = 90;
 const EXACT_ANCHOR_SNAP_SECONDS = 20;
-const DEFAULT_SAMPLE_INTERVAL_SECONDS = 2;
+const DEFAULT_SAMPLE_INTERVAL_SECONDS = 1;
+const OCR_REFINE_TOLERANCE_SECONDS = 90;
 
 export function parseClockText(rawText: string): {
   gameElapsed: number;
@@ -273,6 +274,26 @@ function isContinuousPlayPair(
   return gameSpan <= videoSpan * 1.6 + 20 && videoSpan <= gameSpan * 2 + 20;
 }
 
+function segmentVideoSpan(segment: HighlightSegment): number {
+  return Math.max(0, segment.videoAtEnd - segment.videoAtStart);
+}
+
+function compareHighlightSegments(
+  a: HighlightSegment,
+  b: HighlightSegment,
+  gameElapsed: number,
+): number {
+  const spanDiff = segmentVideoSpan(b) - segmentVideoSpan(a);
+  if (spanDiff !== 0) return spanDiff;
+
+  const anchorDiff = b.anchors.length - a.anchors.length;
+  if (anchorDiff !== 0) return anchorDiff;
+
+  const aCenter = (a.minGameElapsed + a.maxGameElapsed) / 2;
+  const bCenter = (b.minGameElapsed + b.maxGameElapsed) / 2;
+  return Math.abs(aCenter - gameElapsed) - Math.abs(bCenter - gameElapsed);
+}
+
 function findBestSegment(
   gameElapsed: number,
   segments: HighlightSegment[],
@@ -286,11 +307,7 @@ function findBestSegment(
   );
   if (containing.length === 1) return containing[0]!;
   if (containing.length > 1) {
-    return containing.sort((a, b) => {
-      const aCenter = (a.minGameElapsed + a.maxGameElapsed) / 2;
-      const bCenter = (b.minGameElapsed + b.maxGameElapsed) / 2;
-      return Math.abs(aCenter - gameElapsed) - Math.abs(bCenter - gameElapsed);
-    })[0]!;
+    return containing.sort((a, b) => compareHighlightSegments(a, b, gameElapsed))[0]!;
   }
 
   return segments.sort((a, b) => {
@@ -313,6 +330,7 @@ function findBestSegment(
 export function mapHighlightEventToVideoAt(
   gameElapsed: number,
   segments: HighlightSegment[],
+  options?: { minuteOnlyWindow?: { min: number; max: number } },
 ): { videoAt: number; confidence: number } | null {
   if (segments.length === 0) return null;
 
@@ -320,16 +338,26 @@ export function mapHighlightEventToVideoAt(
   if (!segment || segment.anchors.length === 0) return null;
 
   const sorted = [...segment.anchors].sort((a, b) => a.gameElapsed - b.gameElapsed);
+  const withinLookupWindow = (anchor: FullMatchOcrAnchor) => {
+    if (!options?.minuteOnlyWindow) return true;
+    return (
+      anchor.gameElapsed >= options.minuteOnlyWindow.min &&
+      anchor.gameElapsed <= options.minuteOnlyWindow.max
+    );
+  };
 
   const exactMatches = sorted.filter(
-    (anchor) => Math.abs(anchor.gameElapsed - gameElapsed) <= EXACT_ANCHOR_SNAP_SECONDS,
+    (anchor) =>
+      withinLookupWindow(anchor) &&
+      Math.abs(anchor.gameElapsed - gameElapsed) <= EXACT_ANCHOR_SNAP_SECONDS,
   );
   if (exactMatches.length > 0) {
     const best = exactMatches.sort((a, b) => {
       const gameDiff =
         Math.abs(a.gameElapsed - gameElapsed) - Math.abs(b.gameElapsed - gameElapsed);
       if (gameDiff !== 0) return gameDiff;
-      return a.videoAt - b.videoAt;
+      // Main broadcast footage usually follows replay inserts in highlight reels.
+      return b.videoAt - a.videoAt;
     })[0]!;
     const distance = Math.abs(best.gameElapsed - gameElapsed);
     return {
@@ -349,7 +377,11 @@ export function mapHighlightEventToVideoAt(
 
     const leftDistance = gameElapsed - left.gameElapsed;
     const rightDistance = right.gameElapsed - gameElapsed;
-    const pick = leftDistance <= rightDistance ? left : right;
+    const pick = options?.minuteOnlyWindow
+      ? left
+      : leftDistance <= rightDistance
+        ? left
+        : right;
     return {
       videoAt: Math.max(0, pick.videoAt),
       confidence: pick.confidence * 0.72,
@@ -361,11 +393,14 @@ export function mapHighlightEventToVideoAt(
     if (interpolated) return interpolated;
   }
 
-  const nearest = [...sorted].sort((a, b) => {
+  const nearestCandidates = sorted.filter(withinLookupWindow);
+  if (nearestCandidates.length === 0) return null;
+
+  const nearest = [...nearestCandidates].sort((a, b) => {
     const distanceDiff =
       Math.abs(a.gameElapsed - gameElapsed) - Math.abs(b.gameElapsed - gameElapsed);
     if (distanceDiff !== 0) return distanceDiff;
-    return a.videoAt - b.videoAt;
+    return b.videoAt - a.videoAt;
   })[0]!;
 
   if (Math.abs(nearest.gameElapsed - gameElapsed) <= HIGHLIGHT_MATCH_TOLERANCE_SECONDS) {
@@ -501,7 +536,13 @@ export function getAlignmentStats(
   };
 }
 
-export function parseLiveScoreElapsed(line: Pick<LiveScoreLine, "timestamp" | "minute">): number {
+export function parseLiveScoreElapsed(
+  line: Pick<LiveScoreLine, "timestamp" | "minute" | "gameElapsed">,
+): number {
+  if (typeof line.gameElapsed === "number" && Number.isFinite(line.gameElapsed)) {
+    return line.gameElapsed;
+  }
+
   const parsed = parseClockText(line.timestamp);
   if (parsed) return parsed.gameElapsed;
 
@@ -527,6 +568,80 @@ function stripTimestampPrefix(text: string): string {
   return text.replace(/^\d{1,3}(?::\d{2}|\+\d{1,2})\s*[—-]\s*/, "").trim();
 }
 
+function lineTimingPrecision(
+  line: Pick<LiveScoreLine, "timestamp" | "gameElapsed" | "gameElapsedPrecision">,
+): "minute" | "second" {
+  if (line.gameElapsedPrecision) return line.gameElapsedPrecision;
+  if (/\d{1,2}\s*\+\s*\d{1,2}/.test(line.timestamp)) return "second";
+
+  const mmss = line.timestamp.match(/(\d{1,3}):(\d{2})/);
+  if (mmss) {
+    const seconds = Number.parseInt(mmss[2]!, 10);
+    return seconds > 0 ? "second" : "minute";
+  }
+
+  return "minute";
+}
+
+function minuteOnlySearchWindows(approximateGameElapsed: number): Array<{ min: number; max: number }> {
+  return [
+    { min: approximateGameElapsed, max: approximateGameElapsed + 59 },
+    { min: Math.max(0, approximateGameElapsed - 60), max: approximateGameElapsed },
+  ];
+}
+
+export function refineEventTimingFromOcrAnchors(
+  approximateGameElapsed: number,
+  anchors: FullMatchOcrAnchor[],
+  segments: HighlightSegment[] = splitHighlightSegments(anchors),
+  searchWindows: Array<{ min: number; max: number }> = minuteOnlySearchWindows(
+    approximateGameElapsed,
+  ),
+): { gameElapsed: number; confidence: number } | null {
+  const primarySegment = [...segments].sort((a, b) =>
+    compareHighlightSegments(a, b, approximateGameElapsed),
+  )[0];
+  const sorted = [...(primarySegment?.anchors ?? anchors)]
+    .filter((anchor) => Number.isFinite(anchor.gameElapsed) && Number.isFinite(anchor.videoAt))
+    .sort((a, b) => a.videoAt - b.videoAt);
+
+  if (sorted.length === 0) return null;
+
+  const withinAnyWindow = (anchor: FullMatchOcrAnchor) =>
+    searchWindows.some(
+      (window) => anchor.gameElapsed >= window.min && anchor.gameElapsed <= window.max,
+    );
+
+  let candidates = sorted.filter(
+    (anchor) =>
+      withinAnyWindow(anchor) &&
+      Math.abs(anchor.gameElapsed - approximateGameElapsed) <= OCR_REFINE_TOLERANCE_SECONDS,
+  );
+
+  if (candidates.length === 0) return null;
+
+  const withSeconds = candidates.filter((anchor) => anchor.gameElapsed % 60 !== 0);
+  const pool = withSeconds.length > 0 ? withSeconds : candidates;
+
+  const best = [...pool].sort((a, b) => {
+    const aBefore = a.gameElapsed <= approximateGameElapsed;
+    const bBefore = b.gameElapsed <= approximateGameElapsed;
+    if (aBefore !== bBefore) return aBefore ? -1 : 1;
+
+    const distanceDiff =
+      Math.abs(a.gameElapsed - approximateGameElapsed) -
+      Math.abs(b.gameElapsed - approximateGameElapsed);
+    if (distanceDiff !== 0) return distanceDiff;
+    return b.videoAt - a.videoAt;
+  })[0]!;
+
+  const hasSeconds = best.gameElapsed % 60 !== 0;
+  return {
+    gameElapsed: best.gameElapsed,
+    confidence: best.confidence * (hasSeconds ? 1 : 0.82),
+  };
+}
+
 export function alignLiveScoreLinesToAnchors(
   match: LiveMatch,
   lines: LiveScoreLine[],
@@ -538,11 +653,34 @@ export function alignLiveScoreLinesToAnchors(
 
   return lines
     .map((line, index) => {
-      const gameElapsed = parseLiveScoreElapsed(line);
+      const approximateElapsed = parseLiveScoreElapsed(line);
+      const needsOcrSeconds = lineTimingPrecision(line) === "minute";
+      const minuteOnlyWindows = needsOcrSeconds
+        ? minuteOnlySearchWindows(approximateElapsed)
+        : undefined;
+      const ocrRefined = needsOcrSeconds
+        ? refineEventTimingFromOcrAnchors(
+            approximateElapsed,
+            prepared.anchors,
+            prepared.segments,
+            minuteOnlyWindows,
+          )
+        : null;
+
+      const gameElapsed = ocrRefined?.gameElapsed ?? approximateElapsed;
+      const lookupElapsed = ocrRefined?.gameElapsed ?? approximateElapsed;
       const mapped = useHighlight
-        ? mapHighlightEventToVideoAt(gameElapsed, prepared.segments)
+        ? mapHighlightEventToVideoAt(lookupElapsed, prepared.segments, {
+            minuteOnlyWindow: needsOcrSeconds && !ocrRefined
+              ? minuteOnlyWindows?.[1]
+              : undefined,
+          })
         : interpolateVideoAt(gameElapsed, prepared.smoothedAnchors);
       if (!mapped) return undefined;
+
+      const confidence = ocrRefined
+        ? Math.min(mapped.confidence, ocrRefined.confidence)
+        : mapped.confidence;
 
       const minute = Math.floor(gameElapsed / MINUTE_SECONDS);
       const event: TimelineEvent = {
@@ -561,7 +699,7 @@ export function alignLiveScoreLinesToAnchors(
         ...event,
         eventKey: eventCacheKey(event),
         eventId: match.matchId,
-        confidence: mapped.confidence,
+        confidence,
       };
     })
     .filter((event): event is FullMatchAlignedEvent => Boolean(event));

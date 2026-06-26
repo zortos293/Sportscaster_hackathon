@@ -6,6 +6,7 @@ import {
   mapHighlightEventToVideoAt,
   parseClockText,
   parseLiveScoreElapsed,
+  refineEventTimingFromOcrAnchors,
   splitHighlightSegments,
   type FullMatchOcrAnchor,
 } from "@/lib/full-match-align";
@@ -82,13 +83,17 @@ describe("splitHighlightSegments", () => {
 });
 
 describe("mapHighlightEventToVideoAt", () => {
-  it("snaps to the earliest matching clip for replayed minutes", () => {
+  it("prefers main broadcast footage over replay inserts for replayed minutes", () => {
     const segments = splitHighlightSegments([
-      anchor(134, 67 * 60 + 12),
-      anchor(520, 67 * 60 + 5),
+      anchor(145, 7 * 60 + 1),
+      anchor(180, 2 * 60),
+      anchor(295, 6 * 60 + 25),
+      anchor(400, 7 * 60 + 5),
     ]);
-    const mapped = mapHighlightEventToVideoAt(67 * 60 + 10, segments);
-    expect(mapped?.videoAt).toBe(134);
+    const mapped = mapHighlightEventToVideoAt(7 * 60, segments, {
+      minuteOnlyWindow: { min: 6 * 60, max: 7 * 60 },
+    });
+    expect(mapped?.videoAt).toBeCloseTo(295, 0);
   });
 
   it("uses the OCR video timestamp when the scoreboard clock matches", () => {
@@ -104,6 +109,15 @@ describe("mapHighlightEventToVideoAt", () => {
     ]);
     const mapped = mapHighlightEventToVideoAt(2 * 60 + 30, segments);
     expect(mapped?.videoAt).toBeCloseTo(191, 0);
+  });
+});
+
+describe("refineEventTimingFromOcrAnchors", () => {
+  it("snaps minute-only feed events to OCR scoreboard seconds", () => {
+    const refined = refineEventTimingFromOcrAnchors(2 * 60, [
+      anchor(164, 2 * 60 + 3, 0.9),
+    ]);
+    expect(refined?.gameElapsed).toBe(123);
   });
 });
 
@@ -139,10 +153,12 @@ describe("alignLiveScoreLinesToAnchors", () => {
 
     expect(aligned).toHaveLength(2);
 
-    const firstGoal = aligned.find((event) => event.gameElapsed === 23 * 60);
-    const secondGoal = aligned.find((event) => event.gameElapsed === 67 * 60);
+    const firstGoal = aligned.find((event) => Math.floor(event.gameElapsed / 60) === 23);
+    const secondGoal = aligned.find((event) => Math.floor(event.gameElapsed / 60) === 67);
 
+    expect(firstGoal?.gameElapsed).toBe(23 * 60 + 10);
     expect(firstGoal?.videoAt).toBeCloseTo(40, 0);
+    expect(secondGoal?.gameElapsed).toBe(67 * 60 + 12);
     expect(secondGoal?.videoAt).toBeCloseTo(134, 0);
     expect(secondGoal?.videoAt).toBeLessThan(200);
   });
@@ -165,7 +181,87 @@ describe("alignLiveScoreLinesToAnchors", () => {
     });
 
     expect(aligned).toHaveLength(1);
+    expect(aligned[0]?.gameElapsed).toBe(123);
     expect(aligned[0]?.videoAt).toBe(164);
+  });
+
+  it("refines FotMob minute-only goals to OCR seconds in the video", () => {
+    const anchors = [anchor(164, 2 * 60 + 3)];
+    const lines: LiveScoreLine[] = [
+      {
+        dedupeKey: "fotmob-goal",
+        text: "2' — Goal",
+        timestamp: "2'",
+        minute: "2",
+        gameElapsedPrecision: "minute",
+        sortKey: 1,
+        eventCategory: "goal",
+      },
+    ];
+
+    const aligned = alignLiveScoreLinesToAnchors(sampleMatch, lines, anchors, {
+      alignmentMode: "highlight",
+    });
+
+    expect(aligned[0]?.gameElapsed).toBe(123);
+    expect(aligned[0]?.videoAt).toBe(164);
+  });
+
+  it("maps minute-only feed goals to main footage instead of replay inserts", () => {
+    const aligned = alignLiveScoreLinesToAnchors(
+      sampleMatch,
+      [
+        {
+          dedupeKey: "brobbey-goal",
+          text: "07:00 — Goal! B. Brobbey scores",
+          timestamp: "7'",
+          minute: "7",
+          gameElapsedPrecision: "minute",
+          sortKey: 1,
+          eventCategory: "goal",
+        },
+      ],
+      [
+        anchor(145, 7 * 60 + 1),
+        anchor(180, 2 * 60),
+        anchor(295, 6 * 60 + 25),
+        anchor(400, 7 * 60 + 5),
+      ],
+      { alignmentMode: "highlight" },
+    );
+
+    expect(aligned).toHaveLength(1);
+    expect(aligned[0]?.videoAt).toBeCloseTo(295, 0);
+    expect(aligned[0]?.videoAt).toBeGreaterThan(200);
+  });
+
+  it("maps second-precision SofaScore goals directly without minute-only OCR window", () => {
+    const aligned = alignLiveScoreLinesToAnchors(
+      sampleMatch,
+      [
+        {
+          dedupeKey: "sofascore-goal",
+          text: "06:25 — Goal! Brian Brobbey scores",
+          timestamp: "06:25",
+          minute: "6",
+          gameElapsed: 385,
+          gameElapsedPrecision: "second",
+          sortKey: 385,
+          eventCategory: "goal",
+        },
+      ],
+      [
+        anchor(145, 7 * 60 + 1),
+        anchor(180, 2 * 60),
+        anchor(295, 6 * 60 + 25),
+        anchor(400, 7 * 60 + 5),
+      ],
+      { alignmentMode: "highlight" },
+    );
+
+    expect(aligned).toHaveLength(1);
+    expect(aligned[0]?.gameElapsed).toBe(385);
+    expect(aligned[0]?.videoAt).toBeCloseTo(295, 0);
   });
 
   it("maps stoppage-time LiveScore events using timestamp parsing", () => {

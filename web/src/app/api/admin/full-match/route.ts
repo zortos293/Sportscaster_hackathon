@@ -71,9 +71,17 @@ export async function POST(request: Request) {
     }
   }
 
-  if (!body.sourceUrl?.trim() || !body.liveScoreMatchId?.trim()) {
+  if (!body.sourceUrl?.trim()) {
+    return Response.json({ error: "sourceUrl is required" }, { status: 400 });
+  }
+  if (
+    !body.liveScoreMatchId?.trim() &&
+    !body.fotmobMatchId?.trim() &&
+    !body.flashscoreMatchId?.trim() &&
+    !body.sofaScoreEventId?.trim()
+  ) {
     return Response.json(
-      { error: "sourceUrl and liveScoreMatchId are required" },
+      { error: "sofaScoreEventId, flashscoreMatchId, fotmobMatchId, or liveScoreMatchId is required" },
       { status: 400 },
     );
   }
@@ -82,6 +90,9 @@ export async function POST(request: Request) {
     const result = await processFullMatchImport({
       sourceUrl: body.sourceUrl,
       liveScoreMatchId: body.liveScoreMatchId,
+      fotmobMatchId: body.fotmobMatchId,
+      flashscoreMatchId: body.flashscoreMatchId,
+      sofaScoreEventId: body.sofaScoreEventId,
       title: body.title,
       subtitle: body.subtitle,
       gameId: body.gameId,

@@ -6,6 +6,7 @@ import { type BroadcastGame, videoUrl } from "@/lib/broadcast-game";
 import { templateCommentary } from "@/lib/commentary-prompts";
 import type { CommentaryDebugEntry, TimelineDebugInfo } from "@/lib/debug-types";
 import type { GameBroadcastContext } from "@/lib/game-context";
+import { filterMajorTimelineEvents, isMajorTimelineEvent } from "@/lib/match-event-filter";
 import { type TimelineEvent } from "@/lib/timeline";
 
 type CommentaryLine = {
@@ -269,7 +270,7 @@ function markerClass(event: TimelineEvent): string {
 function buildTimelineMarkers(events: TimelineEvent[]): TimelineMarker[] {
   const seen = new Set<string>();
   return events
-    .filter((event) => event.kind === "score" || event.kind === "key_play" || event.kind === "period")
+    .filter(isMajorTimelineEvent)
     .filter((event) => {
       const key = eventCacheKey(event);
       if (seen.has(key)) return false;
@@ -766,8 +767,9 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
           gameContext?: GameBroadcastContext;
           debug?: TimelineDebugInfo;
         };
-        timelineRef.current = data.events;
-        setTimelineEvents(data.events);
+        const events = filterMajorTimelineEvents(data.events);
+        timelineRef.current = events;
+        setTimelineEvents(events);
         gameContextRef.current = data.gameContext ?? data.debug?.gameContext ?? null;
         setTimelineDebug(data.debug ?? null);
         firedRef.current.clear();

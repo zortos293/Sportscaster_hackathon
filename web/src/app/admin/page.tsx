@@ -125,6 +125,9 @@ export default function AdminPage() {
   const [commentaryConfigured, setCommentaryConfigured] = useState(false);
   const [fullMatchUrl, setFullMatchUrl] = useState("");
   const [fullMatchLiveScoreId, setFullMatchLiveScoreId] = useState("");
+  const [fullMatchFlashscoreId, setFullMatchFlashscoreId] = useState("");
+  const [fullMatchFotmobId, setFullMatchFotmobId] = useState("");
+  const [fullMatchSofaScoreId, setFullMatchSofaScoreId] = useState("");
   const [fullMatchTitle, setFullMatchTitle] = useState("");
   const [importingFullMatch, setImportingFullMatch] = useState(false);
   const [importProgress, setImportProgress] = useState<FullMatchImportProgress | null>(null);
@@ -271,8 +274,20 @@ export default function AdminPage() {
 
   async function importFullMatch() {
     const liveScoreMatchId = fullMatchLiveScoreId.trim();
-    const gameId = fullMatchGameId(liveScoreMatchId);
-    const title = fullMatchTitle.trim() || `LiveScore ${liveScoreMatchId}`;
+    const flashscoreMatchId = fullMatchFlashscoreId.trim();
+    const fotmobMatchId = fullMatchFotmobId.trim();
+    const sofaScoreEventId = fullMatchSofaScoreId.trim();
+    const matchId = liveScoreMatchId || sofaScoreEventId || flashscoreMatchId || fotmobMatchId;
+    const gameId = fullMatchGameId(matchId);
+    const title =
+      fullMatchTitle.trim() ||
+      (liveScoreMatchId
+        ? `LiveScore ${liveScoreMatchId}`
+        : sofaScoreEventId
+          ? `SofaScore ${sofaScoreEventId}`
+          : flashscoreMatchId
+            ? `Flashscore ${flashscoreMatchId}`
+            : `FotMob ${fotmobMatchId}`);
     let progressTimer: number | undefined;
 
     setImportingFullMatch(true);
@@ -280,7 +295,13 @@ export default function AdminPage() {
       gameId,
       title,
       status: "starting",
-      statusMessage: "Checking local tools and finding the LiveScore match",
+      statusMessage: liveScoreMatchId
+        ? "Checking local tools and finding the LiveScore match"
+        : sofaScoreEventId
+          ? "Checking local tools and fetching SofaScore shotmap times"
+          : flashscoreMatchId
+            ? "Checking local tools and fetching Flashscore event times via Apify"
+            : "Checking local tools and fetching FotMob event times via Apify",
     });
     setMessage(null);
     setError(null);
@@ -295,7 +316,10 @@ export default function AdminPage() {
         body: JSON.stringify({
           gameId,
           sourceUrl: fullMatchUrl,
-          liveScoreMatchId,
+          liveScoreMatchId: liveScoreMatchId || undefined,
+          flashscoreMatchId: flashscoreMatchId || undefined,
+          fotmobMatchId: fotmobMatchId || undefined,
+          sofaScoreEventId: sofaScoreEventId || undefined,
           title: fullMatchTitle || undefined,
         }),
       });
@@ -322,6 +346,7 @@ export default function AdminPage() {
       );
       setFullMatchUrl("");
       setFullMatchLiveScoreId("");
+      setFullMatchFotmobId("");
       setFullMatchTitle("");
       await refreshStatus();
     } catch (err) {
@@ -565,8 +590,8 @@ export default function AdminPage() {
             Imported highlights
           </h1>
           <p className="mt-4 max-w-[48ch] text-base/7 text-pretty text-neutral-600 sm:text-sm/6">
-            Import your own highlight videos, align them by OCR clock and LiveScore match ID,
-            then cache Cursor commentary for playback.
+            Import your own highlight videos, OCR the scoreboard clock to the second, and align
+            goal/event times from LiveScore, SofaScore shotmap (second-level), Flashscore/FotMob via Apify.
           </p>
         </div>
 
@@ -592,8 +617,12 @@ export default function AdminPage() {
         <section className="mt-8 rounded-xl p-5 ring-1 ring-black/10 sm:p-6">
           <h2 className="text-lg font-semibold text-neutral-950">Import highlight video</h2>
           <p className="mt-1 text-sm/6 text-neutral-600">
-            Download a YouTube/VOD highlight video locally, OCR the scoreboard clock, and align
-            LiveScore events by minute. Requires <code className="font-mono text-xs">yt-dlp</code>,{" "}
+            Download a YouTube/VOD highlight video locally, OCR the scoreboard clock every 1s to
+            MM:SS, and place markers on the exact video second. LiveScore is the default event source.
+            SofaScore shotmap can supply goal times to the second via{" "}
+            <code className="font-mono text-xs">timeSeconds</code>. Flashscore and FotMob via Apify
+            provide minute-level times; OCR supplies the seconds. Requires{" "}
+            <code className="font-mono text-xs">yt-dlp</code>,{" "}
             <code className="font-mono text-xs">ffmpeg</code>, and{" "}
             <code className="font-mono text-xs">tesseract</code>.
           </p>
@@ -609,7 +638,7 @@ export default function AdminPage() {
               />
             </label>
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className="grid gap-1 text-sm/6 font-medium text-neutral-700">
+              <label className="grid gap-1 text-sm/6 font-medium text-neutral-700 sm:col-span-2">
                 LiveScore match ID
                 <input
                   value={fullMatchLiveScoreId}
@@ -619,15 +648,42 @@ export default function AdminPage() {
                 />
               </label>
               <label className="grid gap-1 text-sm/6 font-medium text-neutral-700">
-                Title (optional)
+                SofaScore event ID (second-precision goals)
                 <input
-                  value={fullMatchTitle}
-                  onChange={(event) => setFullMatchTitle(event.target.value)}
-                  placeholder="Team A vs Team B"
+                  value={fullMatchSofaScoreId}
+                  onChange={(event) => setFullMatchSofaScoreId(event.target.value)}
+                  placeholder="14179430 — from /event/{id}/shotmap"
+                  className="rounded-lg px-3 py-2 text-base/7 font-normal text-neutral-950 ring-1 ring-black/10 outline-none focus:ring-2 focus:ring-emerald-600 sm:text-sm/6"
+                />
+              </label>
+              <label className="grid gap-1 text-sm/6 font-medium text-neutral-700">
+                Flashscore match ID or URL (Apify)
+                <input
+                  value={fullMatchFlashscoreId}
+                  onChange={(event) => setFullMatchFlashscoreId(event.target.value)}
+                  placeholder="Kx4mP2nQ or flashscore.com/match/... URL"
+                  className="rounded-lg px-3 py-2 text-base/7 font-normal text-neutral-950 ring-1 ring-black/10 outline-none focus:ring-2 focus:ring-emerald-600 sm:text-sm/6"
+                />
+              </label>
+              <label className="grid gap-1 text-sm/6 font-medium text-neutral-700 sm:col-span-2">
+                FotMob match ID
+                <input
+                  value={fullMatchFotmobId}
+                  onChange={(event) => setFullMatchFotmobId(event.target.value)}
+                  placeholder="4506324 or fotmob.com/match URL"
                   className="rounded-lg px-3 py-2 text-base/7 font-normal text-neutral-950 ring-1 ring-black/10 outline-none focus:ring-2 focus:ring-emerald-600 sm:text-sm/6"
                 />
               </label>
             </div>
+            <label className="grid gap-1 text-sm/6 font-medium text-neutral-700">
+              Title (optional)
+              <input
+                value={fullMatchTitle}
+                onChange={(event) => setFullMatchTitle(event.target.value)}
+                placeholder="Team A vs Team B"
+                className="rounded-lg px-3 py-2 text-base/7 font-normal text-neutral-950 ring-1 ring-black/10 outline-none focus:ring-2 focus:ring-emerald-600 sm:text-sm/6"
+              />
+            </label>
             <button
               type="button"
               onClick={() => void importFullMatch()}
@@ -635,7 +691,10 @@ export default function AdminPage() {
                 importingFullMatch ||
                 !isConvexEnabled() ||
                 !fullMatchUrl.trim() ||
-                !fullMatchLiveScoreId.trim()
+                (!fullMatchLiveScoreId.trim() &&
+                  !fullMatchSofaScoreId.trim() &&
+                  !fullMatchFlashscoreId.trim() &&
+                  !fullMatchFotmobId.trim())
               }
               className="w-fit rounded-lg bg-neutral-950 px-4 py-2.5 text-base/7 font-medium text-white disabled:opacity-50 sm:text-sm/6"
             >
