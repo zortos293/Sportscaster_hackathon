@@ -84,6 +84,32 @@ ${recent}
 Deliver the next live on-air line. Keep talking — the booth stays hot.`;
 }
 
+/** Warm-up prompt for the single cloud agent that covers an entire broadcast stream. */
+export function buildStreamBootstrapPrompt(options: {
+  persona: string;
+  gameTitle: string;
+  gameContext?: GameBroadcastContext;
+}): string {
+  const { persona, gameTitle, gameContext } = options;
+  const contextBlock = [
+    gameContext?.narrative ? `Matchup notes: ${gameContext.narrative}` : null,
+    gameContext?.facts?.length
+      ? `Facts you may weave in:\n${gameContext.facts
+          .slice(0, 8)
+          .map((f) => `- ${f}`)
+          .join("\n")}`
+      : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  return `Persona: ${persona}
+Game: ${gameTitle}
+${contextBlock}
+
+You will receive play-by-play moments throughout this broadcast. Reply with ONLY the word READY to confirm you are on air.`;
+}
+
 function buildScoreTriggerGuide(event: TimelineEvent): string {
   const total = event.scoreHome + event.scoreAway;
   const diff = Math.abs(event.scoreHome - event.scoreAway);

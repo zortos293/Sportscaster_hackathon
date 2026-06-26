@@ -52,12 +52,72 @@ export function normalizeCursorAutomationToken(raw: string | undefined): string 
   return token || undefined;
 }
 
+type CursorModelSelection = {
+  id: string;
+  params?: Array<{ id: string; value: string }>;
+};
+
+/** Resolve model for Cloud Agents API — supports `composer-2.5-fast` shorthand. */
+export function resolveCursorCommentaryModel(
+  raw = process.env.CURSOR_COMMENTARY_MODEL ?? "composer-2.5-fast",
+): CursorModelSelection {
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    return { id: "composer-2.5", params: [{ id: "fast", value: "true" }] };
+  }
+
+  if (trimmed.endsWith("-fast")) {
+    return {
+      id: trimmed.replace(/-fast$/, ""),
+      params: [{ id: "fast", value: "true" }],
+    };
+  }
+
+  const fastEnv = process.env.CURSOR_COMMENTARY_FAST?.trim().toLowerCase();
+  if (fastEnv === "false" || fastEnv === "0") {
+    return { id: trimmed, params: [{ id: "fast", value: "false" }] };
+  }
+  if (fastEnv === "true" || fastEnv === "1") {
+    return { id: trimmed, params: [{ id: "fast", value: "true" }] };
+  }
+
+  return { id: trimmed };
+}
+
+function modelSelectionKey(model: CursorModelSelection): string {
+  const params = (model.params ?? [])
+    .map((param) => `${param.id}=${param.value}`)
+    .sort()
+    .join(",");
+  return `${model.id}|${params}`;
+}
+
+function streamAgentName(gameId: string, modelKey: string): string {
+  return `Sportscaster · ${gameId} (${modelKey})`;
+}
+
+export type BootstrapStreamAgentOptions = {
+  apiKey: string;
+  gameId: string;
+  bootstrapPrompt: string;
+  existingAgentId?: string;
+  model?: string | CursorModelSelection;
+  timeoutMs?: number;
+};
+
+export type BootstrapStreamAgentResult = {
+  agentId: string;
+  source: "cursor";
+  reused: boolean;
+};
+
 export type CursorCommentaryOptions = {
   apiKey: string;
   systemPrompt: string;
   userPrompt: string;
-  model?: string;
-  agentId?: string;
+  /** Required — one agent per stream, created via bootstrapStreamAgent. */
+  agentId: string;
+  model?: string | CursorModelSelection;
   timeoutMs?: number;
 };
 
@@ -75,10 +135,23 @@ type CursorRun = {
   result?: string;
 };
 
+type CursorAgentSummary = {
+  id: string;
+  name?: string;
+  status?: string;
+};
+
+type CursorAgentListResponse = {
+  items: CursorAgentSummary[];
+};
+
 type CursorAgentResponse = {
   agent: { id: string };
   run: CursorRun;
 };
+
+/** Per-process cache — client also holds agentId for the active stream. */
+const streamAgentByGameId = new Map<string, string>();
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => {
@@ -92,8 +165,8 @@ let lastCursorApiCallAt = 0;
 let cursorApiCooldownUntil = 0;
 
 function cursorMinIntervalMs(): number {
-  const ms = Number.parseInt(process.env.CURSOR_API_MIN_INTERVAL_MS ?? "2000", 10);
-  return Number.isFinite(ms) && ms > 0 ? ms : 2000;
+  const ms = Number.parseInt(process.env.CURSOR_API_MIN_INTERVAL_MS ?? "800", 10);
+  return Number.isFinite(ms) && ms > 0 ? ms : 800;
 }
 
 function cursorRateLimitCooldownMs(): number {
@@ -107,6 +180,140 @@ function isCursorRateLimitError(message: string): boolean {
 
 function isCursorAgentLimitError(message: string): boolean {
   return /validation_error|cloud agents|reached the limit|upgrade to ultra/i.test(message);
+}
+
+function isCursorAgentBusyError(message: string): boolean {
+  return /409|agent_busy|already running/i.test(message);
+}
+
+function normalizeRunStatus(status: string | undefined): string {
+  return (status ?? "").toUpperCase();
+}
+
+function isTerminalRunStatus(status: string): boolean {
+  return ["FINISHED", "ERROR", "CANCELLED", "EXPIRED"].includes(status);
+}
+
+async function waitForAgentIdle(
+  apiKey: string,
+  agentId: string,
+  timeoutMs = 30_000,
+): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+
+  while (Date.now() < deadline) {
+    const agent = await cursorFetch<{ latestRunId?: string }>(apiKey, `/agents/${agentId}`);
+    if (!agent.latestRunId) return;
+
+    const run = await cursorFetch<CursorRun>(
+      apiKey,
+      `/agents/${agentId}/runs/${agent.latestRunId}`,
+    );
+    if (isTerminalRunStatus(normalizeRunStatus(run.status))) return;
+
+    await sleep(400);
+  }
+
+  throw new Error("Cursor agent busy — prior run did not finish in time");
+}
+
+async function startFollowUpRun(
+  apiKey: string,
+  agentId: string,
+  promptText: string,
+): Promise<CursorRun> {
+  await waitForAgentIdle(apiKey, agentId);
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    try {
+      const followUp = await cursorFetch<{ run: CursorRun }>(
+        apiKey,
+        `/agents/${agentId}/runs`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            prompt: { text: promptText },
+          }),
+        },
+      );
+      return followUp.run;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      if (isCursorAgentBusyError(message) && attempt < 4) {
+        await sleep(500 * (attempt + 1));
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  throw new Error("Cursor agent busy — could not queue follow-up run");
+}
+
+async function findStreamAgent(
+  apiKey: string,
+  gameId: string,
+  modelKey: string,
+): Promise<string | undefined> {
+  try {
+    const list = await cursorFetch<CursorAgentListResponse>(apiKey, "/agents?limit=20");
+    const match = list.items.find(
+      (agent) =>
+        agent.name === streamAgentName(gameId, modelKey) &&
+        normalizeRunStatus(agent.status) === "ACTIVE",
+    );
+    return match?.id;
+  } catch {
+    return undefined;
+  }
+}
+
+async function validateStreamAgent(apiKey: string, agentId: string): Promise<boolean> {
+  try {
+    await cursorFetch<{ id: string }>(apiKey, `/agents/${agentId}`);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function createStreamAgent(
+  apiKey: string,
+  gameId: string,
+  bootstrapPrompt: string,
+  model: CursorModelSelection,
+): Promise<{ agentId: string; run: CursorRun }> {
+  const modelKey = modelSelectionKey(model);
+  try {
+    const created = await cursorFetch<CursorAgentResponse>(apiKey, "/agents", {
+      method: "POST",
+      body: JSON.stringify({
+        prompt: { text: bootstrapPrompt },
+        model,
+        name: streamAgentName(gameId, modelKey),
+      }),
+    });
+    return { agentId: created.agent.id, run: created.run };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    if (isCursorRateLimitError(message)) {
+      cursorApiCooldownUntil = Date.now() + cursorRateLimitCooldownMs();
+      throw new Error(
+        "Cursor rate limit reached (100/min). Commentary will resume shortly — one moment at a time.",
+      );
+    }
+    if (isCursorAgentLimitError(message)) {
+      const existing = await findStreamAgent(apiKey, gameId, modelKey);
+      if (existing) {
+        const run = await startFollowUpRun(apiKey, existing, bootstrapPrompt);
+        return { agentId: existing, run };
+      }
+      throw new Error(
+        "Cursor Cloud Agent limit reached. Close other agents in Cursor, then reload the page.",
+      );
+    }
+    throw error;
+  }
 }
 
 async function withCommentaryQueue<T>(fn: () => Promise<T>): Promise<T> {
@@ -182,25 +389,87 @@ async function waitForRun(
   timeoutMs: number,
 ): Promise<string> {
   const deadline = Date.now() + timeoutMs;
+  let emptyFinishPolls = 0;
 
   while (Date.now() < deadline) {
     const run = await cursorFetch<CursorRun>(
       apiKey,
       `/agents/${agentId}/runs/${runId}`,
     );
+    const status = normalizeRunStatus(run.status);
 
-    if (run.status === "FINISHED" && run.result?.trim()) {
-      return run.result.trim();
+    if (status === "FINISHED") {
+      if (run.result?.trim()) {
+        return run.result.trim();
+      }
+      emptyFinishPolls += 1;
+      if (emptyFinishPolls >= 8) {
+        throw new Error("Cursor run finished without commentary text");
+      }
+      await sleep(600);
+      continue;
     }
 
-    if (run.status === "ERROR" || run.status === "CANCELLED" || run.status === "EXPIRED") {
-      throw new Error(`Cursor run ${run.status.toLowerCase()}`);
+    if (status === "ERROR" || status === "CANCELLED" || status === "EXPIRED") {
+      throw new Error(`Cursor run ${status.toLowerCase()}`);
     }
 
-    await sleep(800);
+    await sleep(300);
   }
 
   throw new Error("Cursor commentary timed out");
+}
+
+export async function bootstrapStreamAgent(
+  options: BootstrapStreamAgentOptions,
+): Promise<BootstrapStreamAgentResult> {
+  return withCommentaryQueue(() => bootstrapStreamAgentInner(options));
+}
+
+async function bootstrapStreamAgentInner(
+  options: BootstrapStreamAgentOptions,
+): Promise<BootstrapStreamAgentResult> {
+  const {
+    apiKey,
+    gameId,
+    bootstrapPrompt,
+    existingAgentId,
+    timeoutMs = 45_000,
+    model: modelOverride,
+  } = options;
+
+  let model: CursorModelSelection;
+  if (modelOverride) {
+    model =
+      typeof modelOverride === "string"
+        ? resolveCursorCommentaryModel(modelOverride)
+        : modelOverride;
+  } else {
+    model = resolveCursorCommentaryModel();
+  }
+  const modelKey = modelSelectionKey(model);
+
+  const cached = streamAgentByGameId.get(gameId);
+  if (cached && (await validateStreamAgent(apiKey, cached))) {
+    return { agentId: cached, source: "cursor", reused: true };
+  }
+
+  if (existingAgentId && (await validateStreamAgent(apiKey, existingAgentId))) {
+    streamAgentByGameId.set(gameId, existingAgentId);
+    return { agentId: existingAgentId, source: "cursor", reused: true };
+  }
+
+  const existing = await findStreamAgent(apiKey, gameId, modelKey);
+  if (existing) {
+    streamAgentByGameId.set(gameId, existing);
+    return { agentId: existing, source: "cursor", reused: true };
+  }
+
+  const { agentId, run } = await createStreamAgent(apiKey, gameId, bootstrapPrompt, model);
+  await waitForRun(apiKey, agentId, run.id, timeoutMs);
+  streamAgentByGameId.set(gameId, agentId);
+
+  return { agentId, source: "cursor", reused: false };
 }
 
 export async function generateCursorCommentary(
@@ -216,72 +485,21 @@ async function generateCursorCommentaryInner(
     apiKey,
     systemPrompt,
     userPrompt,
-    model = process.env.CURSOR_COMMENTARY_MODEL ?? "composer-2.5",
     agentId,
     timeoutMs = 45_000,
   } = options;
 
+  if (!agentId) {
+    throw new Error("No stream agent — bootstrap the broadcast session first");
+  }
+
   const promptText = buildPrompt(systemPrompt, userPrompt);
-
-  let activeAgentId = agentId;
-  let run: CursorRun | undefined;
-
-  if (activeAgentId) {
-    try {
-      const followUp = await cursorFetch<{ run: CursorRun }>(
-        apiKey,
-        `/agents/${activeAgentId}/runs`,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            prompt: { text: promptText },
-          }),
-        },
-      );
-      run = followUp.run;
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "";
-      if (!message.includes("409")) {
-        throw error;
-      }
-      activeAgentId = undefined;
-    }
-  }
-
-  if (!activeAgentId || !run) {
-    try {
-      const created = await cursorFetch<CursorAgentResponse>(apiKey, "/agents", {
-        method: "POST",
-        body: JSON.stringify({
-          prompt: { text: promptText },
-          model: { id: model },
-          name: "Sportscaster commentary",
-        }),
-      });
-      activeAgentId = created.agent.id;
-      run = created.run;
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "";
-      if (isCursorRateLimitError(message)) {
-        cursorApiCooldownUntil = Date.now() + cursorRateLimitCooldownMs();
-        throw new Error(
-          "Cursor rate limit reached (100/min). Commentary will resume shortly — one moment at a time.",
-        );
-      }
-      if (isCursorAgentLimitError(message)) {
-        throw new Error(
-          "Cursor Cloud Agent limit reached on your plan. Close other agents or upgrade — only one agent is used per broadcast.",
-        );
-      }
-      throw error;
-    }
-  }
-
-  const text = await waitForRun(apiKey, activeAgentId, run.id, timeoutMs);
+  const run = await startFollowUpRun(apiKey, agentId, promptText);
+  const text = await waitForRun(apiKey, agentId, run.id, timeoutMs);
 
   return {
     text,
-    agentId: activeAgentId,
+    agentId,
     runId: run.id,
     source: "cursor",
   };

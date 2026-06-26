@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useAppAuth } from "@/components/AppAuthProvider";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -11,6 +12,7 @@ import { DEMO_GAMES } from "@/lib/demo-games";
 export default function DashboardPage() {
   const { isAuthenticated, isLoading, signOut } = useAppAuth();
   const router = useRouter();
+  const [liveGameId, setLiveGameId] = useState("");
 
   async function handleSignOut() {
     await signOut();
@@ -51,7 +53,54 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          <div className="mt-10 grid gap-4 sm:grid-cols-2">
+          <div className="mt-10 rounded-xl bg-red-50/50 p-5 ring-1 ring-red-200/50 sm:p-6">
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500" />
+              </span>
+              <h2 className="text-lg font-semibold text-neutral-950">Live Game</h2>
+            </div>
+            <p className="mt-2 text-sm/6 text-neutral-600">
+              Enter an ESPN event ID to watch a live game with AI commentary.
+            </p>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (liveGameId.trim()) {
+                  router.push(`/dashboard/live/${liveGameId.trim()}`);
+                }
+              }}
+              className="mt-4 flex gap-3"
+            >
+              <input
+                type="text"
+                value={liveGameId}
+                onChange={(e) => setLiveGameId(e.target.value)}
+                placeholder="football-nfl-401547417"
+                className="flex-1 rounded-lg border-0 px-3 py-2 text-sm text-neutral-900 ring-1 ring-inset ring-neutral-300 placeholder:text-neutral-400 focus:ring-2 focus:ring-red-500"
+              />
+              <button
+                type="submit"
+                disabled={!liveGameId.trim()}
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Go Live
+              </button>
+            </form>
+            <p className="mt-3 text-xs text-neutral-500">
+              Format: sport-league-eventId (e.g., football-nfl-401547417, basketball-nba-401584793)
+            </p>
+          </div>
+
+          <div className="mt-8">
+            <h2 className="text-lg font-semibold text-neutral-950">Replay Demos</h2>
+            <p className="mt-1 text-sm/6 text-neutral-600">
+              Watch pre-recorded highlights with synced AI commentary.
+            </p>
+          </div>
+
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
             {DEMO_GAMES.map((game) => (
               <Link
                 key={game.id}
