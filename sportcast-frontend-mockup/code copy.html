@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Sportcast - Live Insights</title>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=Montserrat:wght@700;800&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Theme Config -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "tertiary-fixed-dim": "#c6c6c7",
+                        "surface-container-high": "#e8e8ea",
+                        "secondary-fixed": "#e2e2e2",
+                        "outline-variant": "#e3beba",
+                        "outline": "#8e706c",
+                        "on-tertiary-fixed-variant": "#454747",
+                        "primary": "#b52420",
+                        "surface-container-lowest": "#ffffff",
+                        "on-background": "#1a1c1d",
+                        "surface": "#f9f9fb",
+                        "tertiary-fixed": "#e2e2e2",
+                        "secondary-container": "#e2e2e2",
+                        "primary-fixed": "#ffdad6",
+                        "on-secondary-fixed": "#1b1b1b",
+                        "surface-bright": "#f9f9fb",
+                        "secondary-fixed-dim": "#c6c6c6",
+                        "on-primary": "#ffffff",
+                        "inverse-surface": "#2f3132",
+                        "surface-container": "#eeeef0",
+                        "on-error": "#ffffff",
+                        "on-tertiary-container": "#2a2c2c",
+                        "surface-container-low": "#f3f3f5",
+                        "on-secondary-container": "#646464",
+                        "on-error-container": "#93000a",
+                        "on-surface": "#1a1c1d",
+                        "primary-fixed-dim": "#ffb4ab",
+                        "on-tertiary-fixed": "#1a1c1c",
+                        "error": "#ba1a1a",
+                        "on-primary-container": "#600004",
+                        "background": "#f9f9fb",
+                        "surface-tint": "#b52420",
+                        "primary-container": "#ff5a4e",
+                        "inverse-on-surface": "#f0f0f2",
+                        "secondary": "#5e5e5e",
+                        "on-primary-fixed": "#410002",
+                        "surface-variant": "#e2e2e4",
+                        "surface-container-highest": "#e2e2e4",
+                        "on-primary-fixed-variant": "#92030b",
+                        "error-container": "#ffdad6",
+                        "on-tertiary": "#ffffff",
+                        "on-secondary-fixed-variant": "#474747",
+                        "on-surface-variant": "#5a403d",
+                        "tertiary-container": "#929393",
+                        "inverse-primary": "#ffb4ab",
+                        "tertiary": "#5d5f5f",
+                        "surface-dim": "#d9dadc",
+                        "on-secondary": "#ffffff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "24px",
+                        "container-max": "1280px",
+                        "unit": "8px",
+                        "margin-desktop": "48px",
+                        "margin-mobile": "16px"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Inter"],
+                        "headline-lg": ["Montserrat"],
+                        "body-md": ["Inter"],
+                        "display-lg": ["Montserrat"],
+                        "headline-lg-mobile": ["Montserrat"],
+                        "label-sm": ["Inter"],
+                        "headline-md": ["Montserrat"],
+                        "display-lg-mobile": ["Montserrat"],
+                        "label-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "800"}],
+                        "headline-lg-mobile": ["24px", {"lineHeight": "30px", "fontWeight": "700"}],
+                        "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                        "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "700"}],
+                        "display-lg-mobile": ["32px", {"lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "800"}],
+                        "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .pulse-live {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #e2e2e4;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body-md overflow-hidden h-screen flex flex-col">
+<!-- TopNavBar -->
+<header class="bg-surface shadow-sm h-20 flex-none z-50">
+<div class="flex justify-between items-center px-margin-desktop w-full max-w-container-max mx-auto h-full">
+<div class="flex items-center gap-12">
+<span class="font-display-lg text-display-lg font-extrabold text-primary">Sportcast</span>
+<nav class="hidden md:flex gap-8">
+<a class="text-primary font-bold border-b-2 border-primary py-2 transition-colors" href="#">Live</a>
+<a class="text-secondary hover:text-primary transition-colors py-2" href="#">Schedule</a>
+<a class="text-secondary hover:text-primary transition-colors py-2" href="#">Leagues</a>
+<a class="text-secondary hover:text-primary transition-colors py-2" href="#">News</a>
+</nav>
+</div>
+<div class="flex items-center gap-6">
+<div class="relative group">
+<span class="material-symbols-outlined text-secondary cursor-pointer hover:text-primary transition-colors">search</span>
+</div>
+<span class="material-symbols-outlined text-secondary cursor-pointer hover:text-primary transition-colors">notifications</span>
+<div class="w-10 h-10 rounded-full overflow-hidden bg-surface-variant cursor-pointer active:scale-95 transition-transform border border-outline-variant">
+<img class="w-full h-full object-cover" data-alt="A high-quality studio portrait of a modern sports enthusiast, soft cinematic lighting, professional headshot style, blurred stadium background with subtle primary red highlights, sharp focus on facial features, minimalist aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCsJ4qm4hYxs2jtapVry9piTx_06gfg6LlSE0KZh9Rk0PQAo3BWc3T2jZ5iInECumLb9bAGTDZucxfHsEwngECExdb3IlOUKKVJTRJMrDgxp7XADdn20GaS5w4P_YrJCEfxe_RkN2AZheIHxo9exI-cYtaGNb7BkpZzZ2dbShvi7nnxQKsAfUs1zRQQw-XDjOv5xWY6KGcHUqKsww5e6pgG7b3nKS5YDl3jOTerAJdjNMNtatveMnssZv9ezeLbxgfT94gG5GnE-vEN"/>
+</div>
+</div>
+</div>
+</header>
+<main class="flex-grow flex overflow-hidden relative">
+<!-- Main Content Area (Video Player) -->
+<div class="flex-grow h-full bg-black relative flex items-center justify-center transition-all duration-500 ease-in-out overflow-hidden w-full">
+<div class="w-full h-full relative">
+<!-- Video Image Placeholder -->
+<img class="w-full h-full object-cover opacity-90" src="https://lh3.googleusercontent.com/aida/AP1WRLtQLG1a7y1QGyTHhdpY3Sm4AQK5XbbL6Sg08clPnjNjgu7X_3JHrQbsb-9lLXMo2UrdoI924wFzvTICzTtgFa1YzPo6NBwO25Nn4ZRbqqccGhekplQPHoJWGZI8ZpT_VOYbBMPmyGjdVm6pw5nm3G2pCTGLax6XK7bM-UdpeKyOmzDLFaU7YPTPtK8fjzCCNfV7sajTgOcH0GICq7cDRnWUCV_wqX26crVbnRDY2JTOx6sdv7D2nI3C1S8"/>
+<!-- Video Overlays -->
+<div class="absolute top-8 left-8 flex flex-col gap-4">
+<div class="flex items-center gap-3">
+<span class="bg-primary px-3 py-1 rounded-full text-white font-bold text-[10px] tracking-wider uppercase pulse-live flex items-center gap-1">
+<span class="w-2 h-2 bg-white rounded-full"></span>
+                            Live
+                        </span>
+<span class="bg-black/40 backdrop-blur-md px-3 py-1 rounded-full text-white text-label-sm">UEFA Champions League • Group Stage</span>
+</div>
+<div class="flex items-center gap-6 bg-black/60 backdrop-blur-xl p-4 rounded-xl border border-white/10">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-sm">shield</span>
+</div>
+<span class="font-bold text-white uppercase tracking-tight">MNU</span>
+</div>
+<div class="flex flex-col items-center">
+<span class="font-display-lg text-white leading-none">2 - 1</span>
+<span class="text-[10px] text-white/60 font-bold mt-1 tracking-widest">74'</span>
+</div>
+<div class="flex items-center gap-3">
+<span class="font-bold text-white uppercase tracking-tight">BVB</span>
+<div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-sm">shield</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Playback Controls (Ghosted) -->
+<div class="absolute bottom-8 left-8 right-8 flex items-center justify-between">
+<div class="flex items-center gap-6">
+<button class="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 flex items-center justify-center transition-all">
+<span class="material-symbols-outlined text-white">pause</span>
+</button>
+<div class="flex flex-col">
+<span class="text-white font-bold text-label-md">Manchester United vs Borussia Dortmund</span>
+<span class="text-white/60 text-label-sm">Old Trafford • Manchester, UK</span>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-xl">settings</span>
+</button>
+<button class="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-xl">fullscreen</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Insights Sidebar -->
+<aside class="w-[420px] h-full bg-surface border-l border-outline-variant flex flex-col shadow-2xl transition-all duration-500 ease-in-out z-40 flex-none">
+<!-- Sidebar Header -->
+<div class="p-6 border-b border-outline-variant flex justify-between items-center">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">analytics</span>
+<h2 class="font-headline-md text-headline-md">Live Insights</h2>
+</div>
+<button class="text-secondary hover:text-on-surface transition-colors">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<!-- Scrollable Content -->
+<div class="flex-grow overflow-y-auto custom-scrollbar p-6 space-y-8">
+<!-- Stats Section -->
+<section>
+<h3 class="font-label-md text-label-md text-secondary uppercase tracking-widest mb-6">Real-Time Match Stats</h3>
+<div class="space-y-6">
+<!-- Possession -->
+<div class="space-y-2">
+<div class="flex justify-between text-label-sm font-bold">
+<span class="">MNU</span>
+<span class="">POSSESSION</span>
+<span class="">BVB</span>
+</div>
+<div class="flex h-2 w-full rounded-full overflow-hidden bg-surface-container-high">
+<div class="bg-primary h-full" style="width: 58%"></div>
+<div class="bg-tertiary-container h-full" style="width: 42%"></div>
+</div>
+<div class="flex justify-between font-bold text-body-md mt-1">
+<span class="">58%</span>
+<span class="">42%</span>
+</div>
+</div>
+<!-- Grid Stats -->
+<div class="grid grid-cols-2 gap-4">
+<div class="bg-surface-container-low p-4 rounded-xl border border-outline-variant/50">
+<span class="text-label-sm text-secondary block mb-1">Shots on Target</span>
+<div class="flex items-end gap-2">
+<span class="text-headline-md leading-none">8</span>
+<span class="text-label-sm text-secondary mb-0.5">/ 12 total</span>
+</div>
+</div>
+<div class="bg-surface-container-low p-4 rounded-xl border border-outline-variant/50">
+<span class="text-label-sm text-secondary block mb-1">Pass Accuracy</span>
+<div class="flex items-end gap-2">
+<span class="text-headline-md leading-none">89%</span>
+<span class="text-label-sm text-primary mb-0.5">+4% avg</span>
+</div>
+</div>
+</div>
+</div>
+</section><section>
+<h3 class="font-label-md text-label-md text-secondary uppercase tracking-widest mb-4">Top Performers</h3>
+<div class="space-y-4">
+<!-- Player Card 1 -->
+<div class="group bg-white rounded-2xl p-4 shadow-sm border border-outline-variant/50 hover:shadow-md transition-all cursor-pointer">
+<div class="flex gap-4">
+<div class="w-14 h-14 rounded-xl bg-surface-container-high overflow-hidden">
+<img class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAGq6q8Ut4AcJD_OmntqfBUbn3tcoF4rQUX06m2-2QH5Dxb7pd6RqYM6tfvtENVFFD9u2iZ7V6U3xC_ajR8u22_akXDcarpBSva16E91WKocRlRWUhfVkjmm_b2ROqMLOTMkIxjqUOOBX2UWlqYBYC0YXV-AHX0DXR9lPwKGzoFbarZRHcQ5RaiopqglK4spYDDU6AE6qxmgkcE4v9rcYKWyzuZjbPhXHCEwQkg6oSdXERVwJujzmJmkTT9pS_0BcJlmG-b8adQPCD5"/>
+</div>
+<div class="flex-grow">
+<div class="flex justify-between items-start">
+<div>
+<h4 class="font-bold text-body-md">Marcus Rashford</h4>
+<p class="text-label-sm text-secondary">Forward • Manchester United</p>
+</div>
+<span class="bg-primary/10 text-primary px-2 py-0.5 rounded text-label-sm font-bold">9.2</span>
+</div>
+<div class="grid grid-cols-4 gap-2 mt-3">
+<div class="flex flex-col">
+<span class="text-[10px] text-secondary font-bold uppercase">⚽ Goals</span>
+<span class="font-bold">1</span>
+</div>
+<div class="flex flex-col">
+<span class="text-[10px] text-secondary font-bold uppercase">🎯 Ast</span>
+<span class="font-bold">1</span>
+</div>
+<div class="flex flex-col">
+<span class="text-[10px] text-secondary font-bold uppercase">📈 Acc%</span>
+<span class="font-bold">88%</span>
+</div>
+<div class="flex flex-col">
+<span class="text-[10px] text-secondary font-bold uppercase">🏃 Dist</span>
+<span class="font-bold">10.2km</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Player Card 2 -->
+<div class="group bg-white rounded-2xl p-4 shadow-sm border border-outline-variant/50 hover:shadow-md transition-all cursor-pointer">
+<div class="flex gap-4">
+<div class="w-14 h-14 rounded-xl bg-surface-container-high overflow-hidden">
+<img class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuANzlDqYHCGeLtDWcyc07_5yNvHaqoZws9YlD-d5Kv1kSKH_-RHzbEBwSO0k2m-ebBbGg6ouNyTWR86QRGQiCj8FZYYB7CzJyh3S2egx1jLzYAlvGEE0njQKclu6dIEhFkEbEBCZiicQvDBRX6zvSQHdtTOvu7ZR2J08xkxJChwhUxYweg1PctsVdvQRmd_v_SOA1EeTNfZqaOHlxE3koNWSQbV4H5UOT3-vMOTcK_cNFh7w2_FlBby9EGIBYWLQmT-PjhZt8RZo3qk"/>
+</div>
+<div class="flex-grow">
+<div class="flex justify-between items-start">
+<div>
+<h4 class="font-bold text-body-md">Julian Brandt</h4>
+<p class="text-label-sm text-secondary">Midfield • B. Dortmund</p>
+</div>
+<span class="bg-surface-container-highest text-on-surface px-2 py-0.5 rounded text-label-sm font-bold">7.8</span>
+</div>
+<div class="grid grid-cols-4 gap-2 mt-3">
+<div class="flex flex-col">
+<span class="text-[10px] text-secondary font-bold uppercase">⚽ Goals</span>
+<span class="font-bold">0</span>
+</div>
+<div class="flex flex-col">
+<span class="text-[10px] text-secondary font-bold uppercase">🎯 Ast</span>
+<span class="font-bold">0</span>
+</div>
+<div class="flex flex-col">
+<span class="text-[10px] text-secondary font-bold uppercase">📈 Acc%</span>
+<span class="font-bold">92%</span>
+</div>
+<div class="flex flex-col">
+<span class="text-[10px] text-secondary font-bold uppercase">🏃 Dist</span>
+<span class="font-bold">9.4km</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Players Section -->
+<section class="mb-8">
+<h3 class="font-label-md text-label-md text-secondary uppercase tracking-widest mb-4">Match Highlights</h3>
+<div class="flex gap-4 overflow-x-auto pb-2 custom-scrollbar">
+<div class="flex-none w-32 aspect-[9/16] bg-surface-container-high rounded-xl overflow-hidden relative group cursor-pointer">
+<img class="w-full h-full object-cover opacity-80 group-hover:scale-110 transition-transform duration-500" src="https://lh3.googleusercontent.com/aida/AP1WRLtQLG1a7y1QGyTHhdpY3Sm4AQK5XbbL6Sg08clPnjNjgu7X_3JHrQbsb-9lLXMo2UrdoI924wFzvTICzTtgFa1YzPo6NBwO25Nn4ZRbqqccGhekplQPHoJWGZI8ZpT_VOYbBMPmyGjdVm6pw5nm3G2pCTGLax6XK7bM-UdpeKyOmzDLFaU7YPTPtK8fjzCCNfV7sajTgOcH0GICq7cDRnWUCV_wqX26crVbnRDY2JTOx6sdv7D2nI3C1S8"/>
+<div class="absolute inset-0 flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-3xl drop-shadow-md">play_circle</span>
+</div>
+<div class="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent">
+<p class="text-white text-[10px] font-bold leading-tight">Great Goal</p>
+</div>
+</div>
+<div class="flex-none w-32 aspect-[9/16] bg-surface-container-high rounded-xl overflow-hidden relative group cursor-pointer">
+<img class="w-full h-full object-cover opacity-80 group-hover:scale-110 transition-transform duration-500" src="https://lh3.googleusercontent.com/aida/AP1WRLtQLG1a7y1QGyTHhdpY3Sm4AQK5XbbL6Sg08clPnjNjgu7X_3JHrQbsb-9lLXMo2UrdoI924wFzvTICzTtgFa1YzPo6NBwO25Nn4ZRbqqccGhekplQPHoJWGZI8ZpT_VOYbBMPmyGjdVm6pw5nm3G2pCTGLax6XK7bM-UdpeKyOmzDLFaU7YPTPtK8fjzCCNfV7sajTgOcH0GICq7cDRnWUCV_wqX26crVbnRDY2JTOx6sdv7D2nI3C1S8"/>
+<div class="absolute inset-0 flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-3xl drop-shadow-md">play_circle</span>
+</div>
+<div class="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent">
+<p class="text-white text-[10px] font-bold leading-tight">Amazing Save</p>
+</div>
+</div>
+<div class="flex-none w-32 aspect-[9/16] bg-surface-container-high rounded-xl overflow-hidden relative group cursor-pointer">
+<img class="w-full h-full object-cover opacity-80 group-hover:scale-110 transition-transform duration-500" src="https://lh3.googleusercontent.com/aida/AP1WRLtQLG1a7y1QGyTHhdpY3Sm4AQK5XbbL6Sg08clPnjNjgu7X_3JHrQbsb-9lLXMo2UrdoI924wFzvTICzTtgFa1YzPo6NBwO25Nn4ZRbqqccGhekplQPHoJWGZI8ZpT_VOYbBMPmyGjdVm6pw5nm3G2pCTGLax6XK7bM-UdpeKyOmzDLFaU7YPTPtK8fjzCCNfV7sajTgOcH0GICq7cDRnWUCV_wqX26crVbnRDY2JTOx6sdv7D2nI3C1S8"/>
+<div class="absolute inset-0 flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-3xl drop-shadow-md">play_circle</span>
+</div>
+<div class="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent">
+<p class="text-white text-[10px] font-bold leading-tight">Tactical Foul</p>
+</div>
+</div>
+</div>
+</section><section class="mt-8">
+<h3 class="font-label-md text-label-md text-secondary uppercase tracking-widest mb-4">Match Notes</h3>
+<div class="bg-white rounded-2xl p-4 border border-outline-variant/50 shadow-sm">
+<textarea class="w-full bg-transparent border-none focus:ring-0 text-body-md text-on-surface placeholder:text-secondary/50 resize-none h-24 custom-scrollbar" placeholder="Write your match notes here..."></textarea>
+</div>
+</section>
+<!-- AI Notes Section -->
+<section class="bg-primary/5 rounded-2xl p-5 border border-primary/10">
+<div class="flex items-center gap-2 mb-3">
+<span class="material-symbols-outlined text-primary text-sm">smart_toy</span>
+<h3 class="font-label-md text-label-md text-primary uppercase tracking-wider">AI Tactical Notes</h3>
+</div>
+<ul class="space-y-3">
+<li class="flex gap-3">
+<span class="w-1.5 h-1.5 rounded-full bg-primary mt-2 flex-none"></span>
+<p class="text-label-md leading-relaxed text-on-surface-variant">United are overloading the right flank to exploit space behind Hummels.</p>
+</li>
+<li class="flex gap-3">
+<span class="w-1.5 h-1.5 rounded-full bg-primary mt-2 flex-none"></span>
+<p class="text-label-md leading-relaxed text-on-surface-variant">Dortmund transition speed has dropped 15% since the 60th minute mark.</p>
+</li>
+</ul>
+</section>
+</div>
+<!-- Share Button Footer -->
+<div class="p-6 border-t border-outline-variant bg-surface-container-lowest">
+<button class="w-full bg-primary text-white font-bold py-4 px-6 rounded-full flex items-center justify-center gap-3 active:scale-[0.98] transition-transform shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined">share</span>
+                    Share Insights
+                </button>
+</div>
+</aside>
+</main>
+<!-- Global Footer -->
+<footer class="bg-surface-container-low border-t border-outline-variant/30 flex-none py-6 px-margin-desktop">
+<div class="w-full max-w-container-max mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+<span class="font-headline-md text-headline-md font-bold text-on-surface">Sportcast</span>
+<div class="flex gap-6 text-label-sm text-on-surface-variant">
+<a class="hover:text-primary transition-colors" href="#">Privacy Policy</a>
+<a class="hover:text-primary transition-colors" href="#">Terms of Service</a>
+</div></div></footer>
+</body></html>

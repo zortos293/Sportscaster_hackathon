@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Sportcast | View All Matches</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&amp;family=Inter:wght@400;600;700&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&amp;family=Montserrat:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "secondary": "#5e5e5e",
+                    "surface-tint": "#b52420",
+                    "inverse-on-surface": "#f0f0f2",
+                    "on-tertiary-container": "#2a2c2c",
+                    "tertiary-container": "#929393",
+                    "on-tertiary-fixed-variant": "#454747",
+                    "on-primary-container": "#600004",
+                    "primary": "#b52420",
+                    "on-error-container": "#93000a",
+                    "on-primary-fixed-variant": "#92030b",
+                    "surface-container-lowest": "#ffffff",
+                    "secondary-fixed": "#e2e2e2",
+                    "surface-dim": "#d9dadc",
+                    "on-surface": "#1a1c1d",
+                    "on-surface-variant": "#5a403d",
+                    "surface-variant": "#e2e2e4",
+                    "tertiary-fixed": "#e2e2e2",
+                    "on-secondary-fixed-variant": "#474747",
+                    "surface-container-high": "#e8e8ea",
+                    "surface": "#f9f9fb",
+                    "secondary-fixed-dim": "#c6c6c6",
+                    "primary-fixed": "#ffdad6",
+                    "on-tertiary-fixed": "#1a1c1c",
+                    "tertiary-fixed-dim": "#c6c6c7",
+                    "surface-bright": "#f9f9fb",
+                    "error-container": "#ffdad6",
+                    "on-primary-fixed": "#410002",
+                    "tertiary": "#5d5f5f",
+                    "on-secondary-container": "#646464",
+                    "surface-container-low": "#f3f3f5",
+                    "surface-container": "#eeeef0",
+                    "on-tertiary": "#ffffff",
+                    "on-primary": "#ffffff",
+                    "background": "#f9f9fb",
+                    "surface-container-highest": "#e2e2e4",
+                    "inverse-surface": "#2f3132",
+                    "primary-container": "#ff5a4e",
+                    "on-secondary-fixed": "#1b1b1b",
+                    "primary-fixed-dim": "#ffb4ab",
+                    "on-secondary": "#ffffff",
+                    "outline": "#8e706c",
+                    "on-error": "#ffffff",
+                    "on-background": "#1a1c1d",
+                    "error": "#ba1a1a",
+                    "inverse-primary": "#ffb4ab",
+                    "outline-variant": "#e3beba",
+                    "secondary-container": "#e2e2e2"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "margin-mobile": "16px",
+                    "gutter": "24px",
+                    "container-max": "1280px",
+                    "unit": "8px",
+                    "margin-desktop": "48px"
+            },
+            "fontFamily": {
+                    "display-lg-mobile": ["Montserrat"],
+                    "label-md": ["Inter"],
+                    "headline-lg": ["Montserrat"],
+                    "body-lg": ["Inter"],
+                    "headline-md": ["Montserrat"],
+                    "label-sm": ["Inter"],
+                    "display-lg": ["Montserrat"],
+                    "body-md": ["Inter"],
+                    "headline-lg-mobile": ["Montserrat"]
+            },
+            "fontSize": {
+                    "display-lg-mobile": ["32px", {"lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "800"}],
+                    "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                    "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "700"}],
+                    "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                    "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "800"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "headline-lg-mobile": ["24px", {"lineHeight": "30px", "fontWeight": "700"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .live-pulse {
+            animation: pulse-red 2s infinite;
+        }
+        @keyframes pulse-red {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(181, 36, 32, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(181, 36, 32, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(181, 36, 32, 0); }
+        }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body-md antialiased transition-colors duration-300">
+<!-- TopNavBar -->
+<header class="bg-surface dark:bg-surface-dim shadow-sm docked full-width top-0 z-50 sticky">
+<div class="flex justify-between items-center px-margin-mobile md:px-margin-desktop w-full max-w-container-max mx-auto h-20">
+<div class="flex items-center gap-8">
+<span class="font-display-lg text-display-lg font-extrabold text-primary dark:text-primary-container cursor-pointer select-none">Sportcast</span>
+<nav class="hidden md:flex items-center gap-6">
+<a class="font-body-md text-body-md text-secondary dark:text-secondary-fixed-dim hover:text-primary dark:hover:text-primary-container transition-colors cursor-pointer active:scale-95 transition-transform" href="#">Live</a>
+<a class="font-body-md text-body-md text-primary dark:text-primary-container font-bold border-b-2 border-primary cursor-pointer active:scale-95 transition-transform" href="#">Schedule</a>
+<a class="font-body-md text-body-md text-secondary dark:text-secondary-fixed-dim hover:text-primary dark:hover:text-primary-container transition-colors cursor-pointer active:scale-95 transition-transform" href="#">Leagues</a>
+<a class="font-body-md text-body-md text-secondary dark:text-secondary-fixed-dim hover:text-primary dark:hover:text-primary-container transition-colors cursor-pointer active:scale-95 transition-transform" href="#">News</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative hidden sm:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-secondary">search</span>
+<input class="bg-surface-container-low border-none rounded-full pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-primary w-64 transition-all" placeholder="Search matches..." type="text"/>
+</div>
+<button class="p-2 rounded-full hover:bg-surface-container transition-colors relative">
+<span class="material-symbols-outlined text-secondary">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full"></span>
+</button>
+<div class="w-10 h-10 rounded-full bg-surface-container overflow-hidden border-2 border-transparent hover:border-primary transition-all cursor-pointer">
+<img class="w-full h-full object-cover" data-alt="A professional headshot of a young male sports fan with short hair, wearing a high-quality red athletic polo shirt. The lighting is soft and directional, typical of a modern studio portrait. The background is a clean, neutral gray, emphasizing the premium and sleek aesthetic of the Sportcast brand." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD5hzo7j5_KwZ47HDWp1sk5rzothKERHMMj4thWaF-ZgcRmpGCqEYjIkOKeqRa_YdnB5--l7Jh7EzylfSmI_LV9mcRbLcae0xbeVDdXS43Wfc_M7AcdbL0HtSwV-2efZvexnTm3Tte60lpDljI2w_azz6Y96UA-CkJW3JZbL3-N-Exc-8Ix-7ouoNO2--tGWK3zUFViqmA9bx_APxy4vck2fud1niA68TCAMUBCSJS86cmOCT6ny9dCFLqvM1Tt4jyEu3Y9JQlqNhwP"/>
+</div>
+</div>
+</div>
+</header>
+<main class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-unit * 8">
+<!-- Header & Filter Section -->
+<section class="mb-12">
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
+<div>
+<h1 class="font-headline-lg text-headline-lg mb-2 text-on-surface">Match Schedule</h1>
+<p class="text-secondary font-body-md">Explore all upcoming and live events across the globe.</p>
+</div>
+<div class="flex items-center gap-2 bg-surface-container-low p-1 rounded-lg">
+<button class="px-4 py-2 bg-primary text-on-primary rounded-md text-sm font-bold shadow-sm">Grid View</button>
+<button class="px-4 py-2 text-secondary text-sm font-medium hover:bg-surface-container transition-colors rounded-md">List View</button>
+</div>
+</div>
+<!-- Category Filter Bar -->
+<div class="flex items-center gap-3 overflow-x-auto hide-scrollbar pb-2"><button class="flex-shrink-0 px-6 py-2 bg-on-surface text-surface rounded-full font-bold text-sm transition-all active:scale-95">All Sports</button><button class="flex-shrink-0 px-6 py-2 bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high rounded-full font-semibold text-sm transition-all active:scale-95">Teqball</button><button class="flex-shrink-0 px-6 py-2 bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high rounded-full font-semibold text-sm transition-all active:scale-95">Padel</button><button class="flex-shrink-0 px-6 py-2 bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high rounded-full font-semibold text-sm transition-all active:scale-95">Dodgeball</button><button class="flex-shrink-0 px-6 py-2 bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high rounded-full font-semibold text-sm transition-all active:scale-95">Spikeball</button><button class="flex-shrink-0 px-6 py-2 bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high rounded-full font-semibold text-sm transition-all active:scale-95">Bouldering</button><button class="flex-shrink-0 px-6 py-2 bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high rounded-full font-semibold text-sm transition-all active:scale-95">Extreme</button></div>
+</section>
+<!-- Matches Grid -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-gutter"><!-- Card 1: Teqball --><div class="group bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"><div class="aspect-video relative overflow-hidden"><img alt="Teqball World Series" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBnUwTm1KreFAKYwt6xd5Yfbt-Z7rh-meOlO-Yf1oblKtlgSNvCD1VrcSLYItHrt1JzXxXOO-e-eMN-grmEm4aB3RTwkdr63bcOWINcXQUVvuGXIL1Z7a_3jPV3VLCIYo8204njGiDQDdm_8yi-JK5HhsiEbFVoQ472aEdFbzcNuL5xNIjgdrV4iXH6Scz1uW9DwioFGn4vkdUuV1jF22ZAIUZW7eXDfDwQ19yTLra4kFjnESzQeaNIukQesW0tWULWstenXunmDvdm"/><div class="absolute top-3 left-3"><span class="bg-primary text-white text-[10px] font-extrabold px-2 py-1 rounded-full uppercase flex items-center gap-1 live-pulse"><span class="w-1.5 h-1.5 bg-white rounded-full"></span> LIVE</span></div></div><div class="p-4"><div class="flex justify-between items-start mb-2"><span class="text-primary font-bold text-xs uppercase tracking-wider">Teqball World Series</span></div><h3 class="font-headline-md text-on-surface line-clamp-1 mb-1">Budapest</h3><div class="flex items-center gap-2 text-secondary text-sm"><span>Teqball</span></div></div></div><!-- Card 2: Dodgeball --><div class="group bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"><div class="aspect-video relative overflow-hidden"><img alt="National Dodgeball League" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAXnpvJzw5PcV4oRXA1a46VhfI65KMpKS2ZaMe22-_2vLwkL8wSrkBfn26DwPdAyTmd1U8KNMKHLIMfGwXEzSiHpxbkejUrrJK2UPCwF3fis1UbMdVKCeYyI1UGcY7qAw4oB27I_s000q-ZcqGNT4-8h2Aq9vPP9ci7uaNc-sDA7XKJNokSmbx-DptMPdwkW50D-9W3ScfjRgxqdw8hVQC6kOWTaRnk9Vbe6IkU8vOVdvhyWaVNg0def1ITyWPnyeX7h2OLOlfq1-Wf"/><div class="absolute bottom-3 left-3"><span class="bg-on-surface text-surface text-[10px] font-bold px-2 py-1 rounded-full uppercase">Today, 21:00</span></div></div><div class="p-4"><div class="flex justify-between items-start mb-2"><span class="text-primary font-bold text-xs uppercase tracking-wider">National Dodgeball League</span></div><h3 class="font-headline-md text-on-surface line-clamp-1 mb-1">Las Vegas</h3><div class="flex items-center gap-2 text-secondary text-sm"><span>Dodgeball</span></div></div></div><!-- Card 3: Padel --><div class="group bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"><div class="aspect-video relative overflow-hidden"><img alt="World Padel Tour" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBxDSm53sy-4RECnS5S3unf2P37ywb9rIMa4xLBhaYwF9JrVMrmtkAjp02rb2dAIhm56RS8QdUspLIVVMVeQD_xiJtAln8GIhVyzGY9IWzBdk5o_ctrmgfDgP0Uw6g8M5vmgxmxFCPQHFYdqR-fIi0e8j9F88cNUPtrl63fFoF-wXiohUpKtP2NJ7rMLSQXie9kcicVs3wsG2S7soEtbCNMbZSTK7MDvVdJynAARHr_VAPE6g3E4aac5QtAvEKaK_UFF6LrpCqg8glt"/><div class="absolute top-3 left-3"><span class="bg-primary text-white text-[10px] font-extrabold px-2 py-1 rounded-full uppercase flex items-center gap-1 live-pulse"><span class="w-1.5 h-1.5 bg-white rounded-full"></span> LIVE</span></div></div><div class="p-4"><div class="flex justify-between items-start mb-2"><span class="text-primary font-bold text-xs uppercase tracking-wider">World Padel Tour</span></div><h3 class="font-headline-md text-on-surface line-clamp-1 mb-1">Madrid Arena</h3><div class="flex items-center gap-2 text-secondary text-sm"><span>Padel</span></div></div></div><!-- Card 4: Spikeball --><div class="group bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"><div class="aspect-video relative overflow-hidden"><img alt="Spikeball Pro Tour" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBp21ZXLx6PDarPLKs3NNGxDE5AnzV9VMzIqMQy5ZJU7x09N5derkJb3Ih4Ma_tAYwF5sy2chuULZ4jlw6HyKxv-kCrI9u3nONZrThAxo_Je2-JX5P8hMftT8DTHTeM8EEFj-OZ4Dncfoqtj-cX44s89GTeLN2PBROabsFEpbetZV5D9irS8gOvGsaxtt2RzQuGqJViTjpGdMBvWbSAyNSgToees-gwOMcYMoAl_UhJsNwiNCFu700P6h2LpRaRMV4w5l4rNZqItNDk"/><div class="absolute bottom-3 left-3"><span class="bg-on-surface text-surface text-[10px] font-bold px-2 py-1 rounded-full uppercase">Tomorrow, 10:00</span></div></div><div class="p-4"><div class="flex justify-between items-start mb-2"><span class="text-primary font-bold text-xs uppercase tracking-wider">Spikeball Pro Tour</span></div><h3 class="font-headline-md text-on-surface line-clamp-1 mb-1">Huntington Beach</h3><div class="flex items-center gap-2 text-secondary text-sm"><span>Spikeball</span></div></div></div><!-- Card 5: Bouldering --><div class="group bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"><div class="aspect-video relative overflow-hidden"><img alt="IFSC Bouldering World Cup" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA5MXOuBpJ7Q39de1TfAucflQST2s8GohUxSKyJ_sT6MvhnBIupcsPsnrLCKxDvBDytrMWnf7SI_Bf8M7vq4pu0VaxWebNWFIXOlkUg7u0s_LeSzautKa_TMR2mLlC1CZblAF6cfSUsoroP2VC4RYdC286E1ESamHHp4lgZ7Mv8C8hpLXwfeGNDHAkgqwEvhg9jADGtkOvWkDGZwnBfSABxzMIfP-mE4ERQdvbXkfMTUhjdZP_jEwdF3_HV_d4lkK5uKxShkNbmUfO3"/><div class="absolute top-3 right-3"><span class="bg-secondary/80 backdrop-blur-md text-white text-[10px] font-extrabold px-2 py-1 rounded-full uppercase flex items-center gap-1"><span class="material-symbols-outlined text-sm">trending_up</span> Trending</span></div></div><div class="p-4"><div class="flex justify-between items-start mb-2"><span class="text-primary font-bold text-xs uppercase tracking-wider">IFSC Bouldering World Cup</span></div><h3 class="font-headline-md text-on-surface line-clamp-1 mb-1">Innsbruck</h3><div class="flex items-center gap-2 text-secondary text-sm"><span>Bouldering</span></div></div></div><!-- Card 6: Kitesurfing --><div class="group bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"><div class="aspect-video relative overflow-hidden"><img alt="GKA Kite World Tour" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCC00P0wvRF_MBUWqXrLt5Z1mdygbdSkHdYumsqWP3kShvVgj7bo0GE0cPNEg_6q1L77l6bB9Wl2JPwD9pzgOW2Nwc5WEfzdB5svfpPLzwqg4BgQtYPUn51X2Z2BvT4_Na8-4BI3wFN23qDkeVm7c72f9FuCQrY6Bxbs7KssuHgY_KGmgk_Vpd_0pqpaC2hpnnnYF4qQKkuUELnRavFKRlvbeGFAG0jX1S1SOL7B1NLv5MkoV_u2rEexI2cACEqaJ-wROsxJ7HDHRyp"/><div class="absolute bottom-3 left-3"><span class="bg-on-surface text-surface text-[10px] font-bold px-2 py-1 rounded-full uppercase">Starts in 4h</span></div></div><div class="p-4"><div class="flex justify-between items-start mb-2"><span class="text-primary font-bold text-xs uppercase tracking-wider">GKA Kite World Tour</span></div><h3 class="font-headline-md text-on-surface line-clamp-1 mb-1">Tarifa</h3><div class="flex items-center gap-2 text-secondary text-sm"><span>Kitesurfing</span></div></div></div><!-- Card 7: Hobby Horsing --><div class="group bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"><div class="aspect-video relative overflow-hidden"><img alt="Finnish Hobby Horse Champs" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAzIBJkJ0QShuDUD1hBch2nINbZ6LVrKz8KqgE4h6P4VRg09zbG59U49Wn2X8MQk9gXqwp5J_uLu-LhOKHmUoIYZz6WU_YnnNGrCM4k2UW1UQNzVQUiS6Dl9qToc0Pg85qvSn_MYhUZR75txcVgXmKar1ktC2p74f_Fga-nTOWgnr3Vjde4SYOiYEjPUq691VmHDnohM18H3JC-7FWlkYxE5WVAs0lt_ShH8VEKO2qv1Ip1mgzWGZbvpiuz5YOCiZJ1Od5x6wBin6LG"/><div class="absolute top-3 left-3"><span class="bg-surface-container-high text-on-surface-variant text-[10px] font-extrabold px-2 py-1 rounded-full uppercase">Replay</span></div></div><div class="p-4"><div class="flex justify-between items-start mb-2"><span class="text-primary font-bold text-xs uppercase tracking-wider">Finnish Hobby Horse Champs</span></div><h3 class="font-headline-md text-on-surface line-clamp-1 mb-1">Helsinki</h3><div class="flex items-center gap-2 text-secondary text-sm"><span>Hobby Horsing</span></div></div></div><!-- Card 8: Underwater Hockey --><div class="group bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"><div class="aspect-video relative overflow-hidden"><img alt="CMAS World Championship" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDfYpYaXPM0arN2aT-c02mlUXwsa9HPOh91JNPIEDKgyuaFdQvyNYufq7C7bfXLtWCm0q-3D92NIICEPKs4aWBWoAf2V2qjlSInjRuqHRukqFdMFT21YiR3Utt0pP4JCMqePMk04ZKrImRXf_6XcSqqE5Uph-uefNr5gz7Bo6Yd4zyzcZ_IHAVDYUzVHegZ2Dl03L24IL8bczu2GgHr72xdQiMOJkr2g-F-f6JRCguIF0m39mAt-F23v8vedlLMYR4BE1SRRreHueVV"/><div class="absolute top-3 left-3"><span class="bg-primary text-white text-[10px] font-extrabold px-2 py-1 rounded-full uppercase flex items-center gap-1 live-pulse"><span class="w-1.5 h-1.5 bg-white rounded-full"></span> LIVE</span></div></div><div class="p-4"><div class="flex justify-between items-start mb-2"><span class="text-primary font-bold text-xs uppercase tracking-wider">CMAS World Championship</span></div><h3 class="font-headline-md text-on-surface line-clamp-1 mb-1">Sheffield</h3><div class="flex items-center gap-2 text-secondary text-sm"><span>Underwater Hockey</span></div></div></div><!-- Card 9: Professional Fishing --><div class="group bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"><div class="aspect-video relative overflow-hidden"><img alt="Bassmaster Classic" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAlEIOqm-L25WcbAT4FB4WmxSBX6Ava2zPMwbeqoX4kQyCew-SPyq1-i7Z3Sw93pMHPrE1p82niiOZ-wYZ7lPyUH1RVGusiDo38YW9fu1sCk6hbiQwG5RKn7yDQBY8hBM3ezGjm3yu392hJKqf7GLb0Gp0xAme9NAmaHodcUbjD5nZ-trn9gZERhZFv9MZHrCDnRrFBfhp3CjndoiedaWJdJ103v7guiT3eJagw1HqDQr75BPJYvcEtGTn6CVgdZsy8PAEVz30RxCj8"/><div class="absolute bottom-3 left-3"><span class="bg-on-surface text-surface text-[10px] font-bold px-2 py-1 rounded-full uppercase">Today, 16:00</span></div></div><div class="p-4"><div class="flex justify-between items-start mb-2"><span class="text-primary font-bold text-xs uppercase tracking-wider">Bassmaster Classic</span></div><h3 class="font-headline-md text-on-surface line-clamp-1 mb-1">Lake Guntersville</h3><div class="flex items-center gap-2 text-secondary text-sm"><span>Fishing</span></div></div></div></div>
+<!-- Load More Section -->
+<div class="mt-16 flex flex-col items-center">
+<button class="px-8 py-3 bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-bold rounded-full transition-all flex items-center gap-2 group active:scale-95">
+<span>Load More Matches</span>
+<span class="material-symbols-outlined group-hover:translate-y-1 transition-transform">expand_more</span>
+</button>
+<p class="mt-4 text-secondary text-sm">Showing 8 of 124 matches</p>
+</div>
+</main>
+<!-- Footer -->
+<footer class="bg-surface-container-low dark:bg-inverse-surface full-width bottom mt-12">
+<div class="w-full py-16 px-margin-mobile md:px-margin-desktop flex flex-col gap-12 max-w-container-max mx-auto">
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
+<div>
+<span class="font-headline-md text-headline-md font-bold text-on-surface dark:text-inverse-on-surface block mb-2">Sportcast</span>
+<p class="text-on-surface-variant dark:text-on-secondary-fixed-variant max-w-sm font-body-md">Your premium destination for the world's most exciting live sports events, replays, and expert analysis.</p>
+</div>
+<div class="flex flex-wrap gap-8">
+<div class="flex flex-col gap-4">
+<span class="font-bold text-on-surface dark:text-inverse-on-surface">Platform</span>
+<a class="text-on-surface-variant dark:text-on-secondary-fixed-variant hover:text-primary transition-colors font-label-sm text-label-sm" href="#">Devices</a>
+<a class="text-on-surface-variant dark:text-on-secondary-fixed-variant hover:text-primary transition-colors font-label-sm text-label-sm" href="#">Pricing</a>
+</div>
+<div class="flex flex-col gap-4">
+<span class="font-bold text-on-surface dark:text-inverse-on-surface">Support</span>
+<a class="text-on-surface-variant dark:text-on-secondary-fixed-variant hover:text-primary transition-colors font-label-sm text-label-sm" href="#">Help Center</a>
+<a class="text-on-surface-variant dark:text-on-secondary-fixed-variant hover:text-primary transition-colors font-label-sm text-label-sm" href="#">Contact</a>
+</div>
+</div>
+</div>
+<div class="h-px bg-surface-variant/50 w-full"></div>
+<div class="flex flex-col md:flex-row justify-between items-center gap-6">
+<p class="font-label-sm text-label-sm text-on-surface-variant dark:text-on-secondary-fixed-variant">© 2024 Sportcast Streaming. All rights reserved.</p>
+<div class="flex gap-6">
+<a class="font-label-sm text-label-sm text-on-surface-variant dark:text-on-secondary-fixed-variant hover:text-primary underline" href="#">Privacy Policy</a>
+<a class="font-label-sm text-label-sm text-on-surface-variant dark:text-on-secondary-fixed-variant hover:text-primary underline" href="#">Terms of Service</a>
+</div>
+<div class="flex gap-4">
+<a class="text-on-surface-variant dark:text-on-secondary-fixed-variant hover:text-primary" href="#"><span class="material-symbols-outlined">public</span></a>
+<a class="text-on-surface-variant dark:text-on-secondary-fixed-variant hover:text-primary" href="#"><span class="material-symbols-outlined">alternate_email</span></a>
+</div>
+</div>
+</div>
+</footer>
+<!-- Mobile Bottom Navigation Shell (Suppressed as per rules for focus page, but kept for Top-Level context if needed) -->
+<div class="md:hidden fixed bottom-0 left-0 right-0 bg-surface shadow-2xl z-50 flex justify-around items-center h-16 border-t border-surface-container">
+<a class="flex flex-col items-center gap-1 text-secondary" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="text-[10px] font-bold">Home</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-primary" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">calendar_today</span>
+<span class="text-[10px] font-bold">Schedule</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-secondary" href="#">
+<span class="material-symbols-outlined">live_tv</span>
+<span class="text-[10px] font-bold">Live</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-secondary" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="text-[10px] font-bold">Profile</span>
+</a>
+</div>
+<script>
+        // Micro-interactions for category filter
+        document.querySelectorAll('.flex-shrink-0.px-6.py-2').forEach(button => {
+            button.addEventListener('click', () => {
+                // Remove active classes
+                document.querySelectorAll('.flex-shrink-0.px-6.py-2').forEach(btn => {
+                    btn.classList.remove('bg-on-surface', 'text-surface', 'font-bold');
+                    btn.classList.add('bg-surface-container-low', 'text-on-surface-variant', 'font-semibold');
+                });
+                // Add active classes
+                button.classList.add('bg-on-surface', 'text-surface', 'font-bold');
+                button.classList.remove('bg-surface-container-low', 'text-on-surface-variant', 'font-semibold');
+            });
+        });
+    </script>
+</body></html>

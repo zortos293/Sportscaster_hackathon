@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Sportcast - Highlights</title>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&amp;family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        /* Custom scrollbar for minimalist look */
+        ::-webkit-scrollbar {
+            width: 0px;
+            background: transparent;
+        }
+        
+        .video-container {
+            scroll-snap-type: y mandatory;
+            overflow-y: scroll;
+            height: 100%;
+        }
+        
+        .video-card {
+            scroll-snap-align: start;
+            scroll-snap-stop: always;
+        }
+
+        .glass-overlay {
+            background: rgba(26, 28, 29, 0.4);
+            backdrop-filter: blur(8px);
+        }
+
+        .pulse-live {
+            animation: pulse-animation 2s infinite;
+        }
+
+        @keyframes pulse-animation {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
+
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .filled-icon {
+            font-variation-settings: 'FILL' 1;
+        }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
+    </style>
+<!-- Tailwind Config -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "error-container": "#ffdad6",
+                        "surface-tint": "#b52420",
+                        "on-surface": "#1a1c1d",
+                        "primary-fixed-dim": "#ffb4ab",
+                        "tertiary-fixed": "#e2e2e2",
+                        "on-secondary-fixed": "#1b1b1b",
+                        "on-primary-fixed-variant": "#92030b",
+                        "error": "#ba1a1a",
+                        "surface-variant": "#e2e2e4",
+                        "surface": "#f9f9fb",
+                        "secondary-fixed-dim": "#c6c6c6",
+                        "outline-variant": "#e3beba",
+                        "on-secondary": "#ffffff",
+                        "secondary-container": "#e2e2e2",
+                        "on-tertiary-fixed-variant": "#454747",
+                        "on-primary": "#ffffff",
+                        "tertiary": "#5d5f5f",
+                        "surface-bright": "#f9f9fb",
+                        "on-tertiary": "#ffffff",
+                        "primary": "#b52420",
+                        "secondary": "#5e5e5e",
+                        "tertiary-fixed-dim": "#c6c6c7",
+                        "on-tertiary-fixed": "#1a1c1c",
+                        "surface-container-low": "#f3f3f5",
+                        "on-error": "#ffffff",
+                        "inverse-primary": "#ffb4ab",
+                        "on-primary-fixed": "#410002",
+                        "inverse-on-surface": "#f0f0f2",
+                        "inverse-surface": "#2f3132",
+                        "background": "#f9f9fb",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container": "#eeeef0",
+                        "primary-fixed": "#ffdad6",
+                        "on-error-container": "#93000a",
+                        "on-background": "#1a1c1d",
+                        "on-secondary-fixed-variant": "#474747",
+                        "outline": "#8e706c",
+                        "surface-container-highest": "#e2e2e4",
+                        "surface-container-high": "#e8e8ea",
+                        "on-tertiary-container": "#2a2c2c",
+                        "on-primary-container": "#600004",
+                        "primary-container": "#ff5a4e",
+                        "tertiary-container": "#929393",
+                        "surface-dim": "#d9dadc",
+                        "on-secondary-container": "#646464",
+                        "secondary-fixed": "#e2e2e2",
+                        "on-surface-variant": "#5a403d"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-desktop": "48px",
+                        "gutter": "24px",
+                        "unit": "8px",
+                        "margin-mobile": "16px",
+                        "container-max": "1280px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Montserrat"],
+                        "headline-lg": ["Montserrat"],
+                        "body-md": ["Inter"],
+                        "display-lg-mobile": ["Montserrat"],
+                        "label-sm": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "label-md": ["Inter"],
+                        "display-lg": ["Montserrat"],
+                        "headline-lg-mobile": ["Montserrat"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "700"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "display-lg-mobile": ["32px", {"lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "800"}],
+                        "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600"}],
+                        "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "800"}],
+                        "headline-lg-mobile": ["24px", {"lineHeight": "30px", "fontWeight": "700"}]
+                    }
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-on-surface overflow-hidden font-body-md flex flex-col h-full">
+<header class="bg-surface shadow-sm sticky top-0 z-50 h-20 flex items-center">
+<nav class="flex justify-between items-center px-margin-mobile md:px-margin-desktop w-full max-w-container-max mx-auto">
+<a aria-label="Sportcast home" class="flex items-center gap-3 cursor-pointer active:scale-95 transition-transform" href="live.html">
+<img alt="" aria-hidden="true" class="h-12 w-12 md:h-14 md:w-14 shrink-0 object-contain" src="assets/logo.png"/>
+<span class="font-display-lg text-headline-md md:text-display-lg font-extrabold text-primary">Sportcast</span>
+</a>
+<div class="hidden md:flex items-center gap-8">
+<a class="text-secondary font-label-md hover:text-primary transition-colors" href="live.html">Live</a>
+<a class="text-primary font-bold border-b-2 border-primary py-1 px-1 transition-colors" href="highlight.html">Highlight</a>
+</div>
+<div class="flex items-center gap-4 md:gap-6">
+<div class="relative hidden sm:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-secondary pointer-events-none">search</span>
+<input aria-label="Search highlights" class="bg-surface-container-low border-none rounded-full pl-10 pr-4 py-2 w-48 md:w-64 font-body-md text-on-surface focus:ring-2 focus:ring-primary outline-none transition-all" placeholder="Search highlights..." type="search"/>
+</div>
+<button class="p-2 rounded-full hover:bg-surface-container transition-colors cursor-pointer active:scale-95" type="button">
+<span class="material-symbols-outlined text-secondary">notifications</span>
+</button>
+<div class="h-10 w-10 rounded-full border-2 border-primary-container overflow-hidden cursor-pointer active:scale-95 transition-transform">
+<img class="w-full h-full object-cover" data-alt="A professional close-up studio portrait of a sports enthusiast with a friendly expression, set against a clean, minimalist light gray background. The lighting is soft and cinematic, following the modern Sportcast aesthetic of premium streaming platforms. High contrast and sharp focus on facial features." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBwQ1b33Tg2FBsjSFsMtZFNeCLeGnOt-cb5jgK4gvgOAD_dfx2ItzrjbUjqCFsZaYXot8bET-czNBzPFcn4oYq1Uzyi9FKrNrUQvwwODZ-W38f6Ucgw63AfjVzoJtwPdKieoaXUixsV-a1hWeNy_v61oLsKlPd4kzvRnLH-yxs3LcDAvlQgvZx7V6XlLrXMeVtABuMv3tDtlorH5pNsfHkMe2Ux_8K5vyq5vFJTd8zbpcw9lHNEEy_xKvL7I4lKCbN_m4lqVJFTwcHo"/>
+</div>
+</div>
+</nav>
+</header>
+<!-- Main Content: Vertical Video Feed -->
+<main class="flex-1 min-h-0 w-full flex justify-center items-center relative overflow-hidden bg-on-surface">
+<!-- Background Blur Layer (Atmospheric) -->
+<div class="absolute inset-0 z-0 opacity-40 blur-3xl scale-110 pointer-events-none">
+<div class="w-full h-full bg-cover bg-center" data-alt="A highly atmospheric and blurred background of a packed football stadium under floodlights at night. Vibrant greens from the pitch, brilliant whites from the stadium lights, and pops of primary red from jersey colors blend into a cinematic abstract wash. The lighting is dramatic and energetic, echoing the high-intensity atmosphere of a live professional sports event." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDyc5pSBX4qWtMv-jej1lvapt2KMnwfc841-zogJyYZd0GvskUayxNonT79YvaoVlWqebF7zlsM9IenhG2QR_vSbuRS91cdCC1UXnY5VNE6brVhdaxDxdjvAxR267t2O3EL9SC2QtWRQWLReUgfllzgL59lOgTf7EL3R0eJr_nzqfpNDcfrBpDyukfJ_o5e8jxeD6-cpi2R7PPS6EYRcvBdsmsMRByHEGsgey6oYcMf99cUjqlPLgAXx37WcioRoBh6STypg114RPdF')"></div>
+</div>
+<!-- Scrollable Feed Container -->
+<div class="video-container relative z-10 w-full h-full flex flex-col items-center overflow-y-scroll snap-y snap-mandatory">
+<!-- Video Slide 1 -->
+<section class="video-card w-full h-full flex-shrink-0 flex justify-center items-center py-4 relative snap-start">
+<!-- Vertical Player Shell -->
+<div class="relative aspect-[9/16] h-full bg-black rounded-xl shadow-2xl overflow-hidden group">
+<!-- Video Placeholder -->
+<div class="w-full h-full bg-cover bg-center" data-alt="A dynamic, low-angle vertical shot of a professional football player performing a spectacular bicycle kick in a modern stadium. The athlete is caught mid-air, muscular and focused. The background shows a roaring crowd of fans and bright stadium lights. The aesthetic is crisp and high-contrast, following a cinematic minimalist sports photography style with vibrant reds and deep blacks." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuChdygEEa910GwsnPTWAEjrK0bXGQrtvArJVTXYx5mo-fDaMZV0cJK3vQ09i7VTkzFMaPCayWutyIf8aZFZ0l94UzQi8hNKQAL_eeJ6Gf1XOPkiFpvg5V7qX9p-oYo2EAKvyKexR2k2UYD3o2hv9aTWd44NdVHOBJKNdHxZuYPHXMKhV20WaSFlLlbuFYk71O5bdzs-xpDKBtNlSgTLGbq0s0j0EaFDWXYQwBGh0ibmRynGz80GN7FmhOLowjuVADyNcxfQ4bV07Y4E')"></div>
+<!-- Bottom Info Overlay -->
+<div class="absolute bottom-0 left-0 w-full p-6 bg-gradient-to-t from-black/80 to-transparent text-white pointer-events-none">
+<div class="flex items-center gap-3 mb-3 pointer-events-auto">
+<div class="w-10 h-10 rounded-full border-2 border-white overflow-hidden shadow-lg">
+<img class="w-full h-full object-cover" data-alt="Circular avatar for Sportcast Official, featuring a bold, minimalist red and white logo that evokes the feeling of a modern sports network. The design is clean, authoritative, and professional, standing out against the dark video background of the highlights screen." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAij8vdmOPuge60qraYJaDDz_N8gMFGRaDTRanOGfV9vSktplXLX5hA5M-qt133ANJ9p-61L44kWV4N0DWYJBOGk7PbWC4G9SFP8x-2Rdh9E-Lswmpct7OiJodge3IZnGMSKUEsa7pAZKqDG9a3HxpBy0i3hxeUg172NNQVoy4Y28NplU8KUcstYUMTLJX_tA0K6GfbeV2e2Zi9Vb0Ntu7MEmUQbVBNrZ4XJwjGDCHtymEHND_x_xP89jCPMZUHU9-I2dlCKpfWLAxp"/>
+</div>
+<span class="font-headline-md text-white">@SportcastOfficial</span>
+<button class="bg-white text-on-surface px-4 py-1.5 rounded-full font-label-sm hover:bg-primary hover:text-white transition-all active:scale-95">Follow</button>
+</div>
+<p class="font-body-md text-white line-clamp-2 mb-3 pointer-events-auto">Incredible solo goal from last night's derby! 🔥 What a run and finish. #SportcastHighlights #Football #DerbyDay</p>
+<div class="flex items-center gap-2 pointer-events-auto">
+<span class="material-symbols-outlined text-sm">music_note</span>
+<marquee class="font-label-sm w-32">Original Audio - Champion's League Anthem (Remix)</marquee>
+</div>
+</div>
+<!-- Right Side Interactive Column -->
+<div class="absolute right-4 flex flex-col items-center gap-6 z-20 bottom-6">
+<div class="flex flex-col items-center gap-1 group/btn cursor-pointer">
+<div class="w-14 h-14 rounded-full glass-overlay flex items-center justify-center text-white transition-all group-hover/btn:scale-110 active:scale-90">
+<span class="material-symbols-outlined text-3xl filled-icon">thumb_up</span>
+</div>
+<span class="font-label-sm text-white drop-shadow-md">28K</span>
+</div>
+<div class="flex flex-col items-center gap-1 group/btn cursor-pointer">
+<div class="w-14 h-14 rounded-full glass-overlay flex items-center justify-center text-white transition-all group-hover/btn:scale-110 active:scale-90">
+<span class="material-symbols-outlined text-3xl">thumb_down</span>
+</div>
+<span class="font-label-sm text-white drop-shadow-md">Dislike</span>
+</div>
+<div class="flex flex-col items-center gap-1 group/btn cursor-pointer">
+<div class="w-14 h-14 rounded-full glass-overlay flex items-center justify-center text-white transition-all group-hover/btn:scale-110 active:scale-90">
+<span class="material-symbols-outlined text-3xl filled-icon">chat</span>
+</div>
+<span class="font-label-sm text-white drop-shadow-md">66</span>
+</div>
+<div class="flex flex-col items-center gap-1 group/btn cursor-pointer">
+<div class="w-14 h-14 rounded-full glass-overlay flex items-center justify-center text-white transition-all group-hover/btn:scale-110 active:scale-90">
+<span class="material-symbols-outlined text-3xl">share</span>
+</div>
+<span class="font-label-sm text-white drop-shadow-md">Share</span>
+</div>
+<div class="flex flex-col items-center gap-1 group/btn cursor-pointer">
+<div class="w-14 h-14 rounded-full glass-overlay flex items-center justify-center text-white transition-all group-hover/btn:scale-110 active:scale-90">
+<span class="material-symbols-outlined text-3xl">cached</span>
+</div>
+<span class="font-label-sm text-white drop-shadow-md">Remix</span>
+</div>
+<div class="w-12 h-12 rounded-lg border-2 border-white overflow-hidden shadow-xl mt-2 animate-spin-slow">
+<img class="w-full h-full object-cover" data-alt="A small square thumbnail for a music track, featuring abstract colorful sound waves on a dark background. The design is modern, sleek, and high-contrast, fitting the cinematic sports aesthetic of the application." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDUas2vxFFLp98fLNmX3bqmDk0V7hjJ_2HYoZKLHHubsu4UKR3CFU5B-CHv9nEz7SBr4ZlkdiBu2NzYgq-sxcQq4FEDc1H-Pbs2QhVlCb13p2ilAPrGHGNP_Gu4VPuH3p7oUhUHx5croKb7Y_iGGIHzOfFEQu779rljdJnFdghBmz-7hMgYtI-Qr_yGoNA2-sg3youSUT-Bu46AkByvoRGEtg3a_VRwlYHkWXQd7xWRhJMMtzbQ5fl3F6rcrN5CVic8muPe1vt8Xjjz"/>
+</div>
+</div>
+<!-- Live Badge Overlay -->
+<div class="absolute top-6 left-6 flex items-center gap-2">
+<div class="bg-primary px-3 py-1 rounded-full flex items-center gap-1.5 shadow-lg">
+<div class="w-2 h-2 rounded-full bg-white pulse-live"></div>
+<span class="text-white text-[10px] font-bold uppercase tracking-widest">Live Heat</span>
+</div>
+</div>
+</div>
+<!-- Vertical Navigation Sidebar (Right Desktop Only) -->
+<div class="hidden lg:flex flex-col gap-4 absolute right-8 top-1/2 -translate-y-1/2">
+<button class="w-12 h-12 rounded-full bg-surface-container-low text-on-surface hover:bg-primary hover:text-white transition-all shadow-md flex items-center justify-center group">
+<span class="material-symbols-outlined">arrow_upward</span>
+</button>
+<button class="w-12 h-12 rounded-full bg-surface-container-low text-on-surface hover:bg-primary hover:text-white transition-all shadow-md flex items-center justify-center group">
+<span class="material-symbols-outlined">arrow_downward</span>
+</button>
+</div>
+</section>
+<!-- Video Slide 2 (Preview) -->
+<section class="video-card w-full h-full flex-shrink-0 flex justify-center items-center py-4 relative snap-start">
+<div class="relative aspect-[9/16] h-full bg-black rounded-xl overflow-hidden shadow-2xl">
+<div class="w-full h-full bg-cover bg-center" data-alt="A cinematic capture of a basketball player executing a powerful slam dunk. The perspective is from directly under the hoop, looking up into the arena's bright lights. The aesthetic is dramatic, with high-contrast shadows and vibrant colors against the dark arena. A modern, premium sports photography look with minimalist composition." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDzzpyLrWFflQSzGmNM500sOmVSPROUYwel0xIrupf2KX0z49sUxf2bVYcEOltM8iH67k3br9NICkOphG8VAuATQ1bVg57XPBm2kCORau6fa55rbpdiMQHXErS-cnlIG4vv9b0DcT7xxU9SV3Nx4EAnuzJXXZSc9LS72Rx4VZaI1UUbf4hz_2o5TR-SGy6CKFk3hIKPLEwzQB1d_voHxHoFQEhCfqSahu3aquz7hY4hdfLjwAaXL_Pq1Gb0THHOlxeWqooJ-R8fM93Y')"></div>
+</div>
+</section>
+</div>
+</main>
+<footer class="bg-surface-container-low w-full border-t border-surface-container-high py-gutter px-margin-mobile md:px-margin-desktop flex flex-col md:flex-row justify-between items-center gap-4 shrink-0">
+<span class="font-headline-md text-headline-md font-bold text-on-surface">Sportcast</span>
+<div class="flex flex-wrap justify-center gap-6">
+<a class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors" href="#">Privacy Policy</a>
+<a class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors" href="#">Terms of Service</a>
+<a class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors" href="#">Help Center</a>
+<a class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors" href="#">Contact</a>
+</div>
+<p class="font-label-sm text-label-sm text-secondary">© 2026 Sportcast Streaming. All rights reserved.</p>
+</footer>
+<script>
+        // Micro-interactions and Feed Logic
+        document.querySelectorAll('.video-container div').forEach(btn => {
+            btn.addEventListener('click', function() {
+                if(this.classList.contains('group/btn')) {
+                    const icon = this.querySelector('.material-symbols-outlined');
+                    icon.classList.add('scale-125');
+                    setTimeout(() => icon.classList.remove('scale-125'), 200);
+                    
+                    // Simple Toggle logic for Like
+                    if(icon.innerText === 'thumb_up') {
+                        icon.style.color = icon.style.color === 'rgb(181, 36, 32)' ? 'white' : '#FF5A4E';
+                    }
+                }
+            });
+        });
+
+        // Infinite scroll simulation hint
+        const container = document.querySelector('.video-container');
+        container.addEventListener('scroll', () => {
+            // Logic for pre-fetching next videos could go here
+        });
+    </script>
+</body></html>

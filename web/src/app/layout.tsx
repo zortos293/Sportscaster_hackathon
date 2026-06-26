@@ -6,9 +6,9 @@ import { isConvexEnabled } from "@/lib/env";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Sportscaster — AI commentary for every game",
+  title: "Sportcast — AI commentary for every game",
   description:
-    "Live AI sportscaster commentary powered by ElevenLabs for sports that do not have native audio.",
+    "Discover niche sports with AI-powered commentary and insights. Live streaming for emerging sports.",
 };
 
 export default async function RootLayout({
@@ -24,7 +24,13 @@ export default async function RootLayout({
 
   return (
     <html lang="en" className="h-full antialiased">
-      <body className="isolate flex min-h-dvh flex-col bg-white font-sans text-neutral-950">
+      <head>
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"
+        />
+      </head>
+      <body className="isolate flex min-h-dvh flex-col bg-background font-sans text-on-background">
         {isConvexEnabled() ? (
           <ConvexAuthNextjsServerProvider>{app}</ConvexAuthNextjsServerProvider>
         ) : (

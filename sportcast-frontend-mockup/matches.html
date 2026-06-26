@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Sportcast - All Matches</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Inter:wght@400;600;700&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Montserrat:wght@100..900&display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-tint": "#b52420",
+                        "inverse-surface": "#2f3132",
+                        "on-secondary-fixed": "#1b1b1b",
+                        "on-secondary-fixed-variant": "#474747",
+                        "surface-dim": "#d9dadc",
+                        "primary-fixed-dim": "#ffb4ab",
+                        "on-secondary": "#ffffff",
+                        "tertiary-fixed": "#e2e2e2",
+                        "inverse-on-surface": "#f0f0f2",
+                        "tertiary": "#5d5f5f",
+                        "surface-container-highest": "#e2e2e4",
+                        "surface": "#f9f9fb",
+                        "on-primary-fixed": "#410002",
+                        "surface-variant": "#e2e2e4",
+                        "secondary-fixed-dim": "#c6c6c6",
+                        "secondary": "#5e5e5e",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "on-primary-container": "#600004",
+                        "secondary-container": "#e2e2e2",
+                        "on-tertiary-fixed-variant": "#454747",
+                        "on-surface-variant": "#5a403d",
+                        "error-container": "#ffdad6",
+                        "outline": "#8e706c",
+                        "outline-variant": "#e3beba",
+                        "tertiary-container": "#929393",
+                        "tertiary-fixed-dim": "#c6c6c7",
+                        "on-background": "#1a1c1d",
+                        "on-primary-fixed-variant": "#92030b",
+                        "secondary-fixed": "#e2e2e2",
+                        "surface-container": "#eeeef0",
+                        "inverse-primary": "#ffb4ab",
+                        "on-surface": "#1a1c1d",
+                        "surface-container-low": "#f3f3f5",
+                        "on-error": "#ffffff",
+                        "primary-fixed": "#ffdad6",
+                        "surface-bright": "#f9f9fb",
+                        "primary": "#b52420",
+                        "error": "#ba1a1a",
+                        "surface-container-high": "#e8e8ea",
+                        "background": "#f9f9fb",
+                        "primary-container": "#ff5a4e",
+                        "on-secondary-container": "#646464",
+                        "on-error-container": "#93000a",
+                        "on-tertiary-container": "#2a2c2c",
+                        "on-tertiary-fixed": "#1a1c1c"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "unit": "8px",
+                        "gutter": "24px",
+                        "margin-desktop": "48px",
+                        "margin-mobile": "16px",
+                        "container-max": "1280px"
+                    },
+                    "fontFamily": {
+                        "display-lg": ["Montserrat"],
+                        "headline-lg": ["Montserrat"],
+                        "body-lg": ["Inter"],
+                        "headline-md": ["Montserrat"],
+                        "body-md": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "label-md": ["Inter"],
+                        "display-lg-mobile": ["Montserrat"],
+                        "headline-lg-mobile": ["Montserrat"]
+                    },
+                    "fontSize": {
+                        "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "800"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "700"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                        "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600"}],
+                        "display-lg-mobile": ["32px", {"lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "800"}],
+                        "headline-lg-mobile": ["24px", {"lineHeight": "30px", "fontWeight": "700"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .hero-gradient {
+            background: linear-gradient(0deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0) 100%);
+        }
+
+        .pulse-animation {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+        }
+
+        .live-action-bar {
+            background: #ffffff;
+            border: 1px solid #e8e8ea;
+            border-top: none;
+        }
+
+        .live-action-btn {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.875rem 1.25rem;
+            border-radius: 9999px;
+            background: #ffffff;
+            border: 1px solid #e8e8ea;
+            color: #18181b;
+            transition: background 0.2s, transform 0.2s;
+        }
+
+        .live-action-btn:hover {
+            background: #f4f4f5;
+        }
+
+        .live-action-btn:active {
+            transform: scale(0.98);
+        }
+
+        .live-action-btn .icon-wrap {
+            width: 2.75rem;
+            height: 2.75rem;
+            border-radius: 9999px;
+            background: #f4f4f5;
+            color: #3f3f46;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        #live-player-section.is-live #play-overlay {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #live-player-section.is-live #hero-info {
+            opacity: 0.85;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #e2e2e4;
+            border-radius: 10px;
+        }
+
+        #insights-backdrop {
+            display: none;
+        }
+
+        #live-player-section {
+            --insights-panel-width: 380px;
+        }
+
+        .live-stage {
+            background: #ffffff;
+            border: 1px solid #e8e8ea;
+            overflow: hidden;
+        }
+
+        #insights-panel {
+            width: 0;
+            max-width: 0;
+            height: 0;
+            max-height: 0;
+            overflow: hidden;
+            flex-shrink: 0;
+            opacity: 0;
+            border-left: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            pointer-events: none;
+            transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1), max-width 0.35s cubic-bezier(0.4, 0, 0.2, 1), max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease;
+        }
+
+        #insights-panel-scroll {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-y: auto;
+        }
+
+        #live-player-section.insights-open #insights-panel {
+            width: 100%;
+            max-width: 100%;
+            height: auto;
+            opacity: 1;
+            max-height: 24rem;
+            border-top: 1px solid #e8e8ea;
+            pointer-events: auto;
+        }
+
+        @media (min-width: 1024px) {
+            #live-player-section.insights-open .live-stage {
+                position: relative;
+                width: 100%;
+            }
+
+            #live-player-section.insights-open .live-player-main {
+                flex: 0 0 calc(100% - var(--insights-panel-width));
+                width: calc(100% - var(--insights-panel-width));
+                max-width: calc(100% - var(--insights-panel-width));
+            }
+
+            #live-player-section.insights-open #insights-panel {
+                position: absolute;
+                top: 0;
+                right: 0;
+                bottom: 0;
+                width: var(--insights-panel-width);
+                max-width: var(--insights-panel-width);
+                flex: none;
+                height: auto;
+                max-height: none;
+                align-self: auto;
+                border-top: none;
+                border-left: 1px solid #e8e8ea;
+                pointer-events: auto;
+            }
+
+            #live-player-section.insights-open #live-screen {
+                border-top-right-radius: 0;
+            }
+
+            #live-player-section.insights-open .live-action-bar {
+                border-bottom-right-radius: 0;
+            }
+
+            #live-player-section.insights-open #insights-panel {
+                border-top-right-radius: 0.75rem;
+                border-bottom-right-radius: 0.75rem;
+            }
+        }
+
+        .live-action-btn.is-active {
+            background: #fef2f2;
+            border-color: #b52420;
+            box-shadow: 0 0 0 1px rgba(181, 36, 32, 0.12);
+        }
+
+    
+        .live-pulse {
+            animation: pulse-red 2s infinite;
+        }
+        @keyframes pulse-red {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(181, 36, 32, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(181, 36, 32, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(181, 36, 32, 0); }
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md selection:bg-primary-container selection:text-on-primary-container">
+<header class="bg-surface shadow-sm sticky top-0 z-50 h-20 flex items-center">
+<nav class="flex justify-between items-center px-margin-mobile md:px-margin-desktop w-full max-w-container-max mx-auto">
+<!-- Brand -->
+<a aria-label="Sportcast home" class="flex items-center gap-3 cursor-pointer active:scale-95 transition-transform" href="live.html">
+<img alt="" aria-hidden="true" class="h-12 w-12 md:h-14 md:w-14 shrink-0 object-contain" src="assets/logo.png"/>
+<span class="font-display-lg text-headline-md md:text-display-lg font-extrabold text-primary">Sportcast</span>
+</a>
+<!-- Desktop Links -->
+<div class="hidden md:flex items-center gap-8">
+<a class="text-primary font-bold border-b-2 border-primary py-1 px-1 transition-colors" href="live.html">Live</a>
+<a class="text-secondary font-label-md hover:text-primary transition-colors" href="highlight.html">Highlight</a>
+</div>
+<!-- Actions -->
+<div class="flex items-center gap-4 md:gap-6">
+<div class="relative hidden sm:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-secondary pointer-events-none">search</span>
+<input aria-label="Search matches" class="bg-surface-container-low border-none rounded-full pl-10 pr-4 py-2 w-48 md:w-64 font-body-md text-on-surface focus:ring-2 focus:ring-primary outline-none transition-all" placeholder="Search matches..." type="search"/>
+</div>
+<button class="p-2 rounded-full hover:bg-surface-container transition-colors cursor-pointer active:scale-95" type="button">
+<span class="material-symbols-outlined text-secondary">notifications</span>
+</button>
+<div class="h-10 w-10 rounded-full border-2 border-primary-container overflow-hidden cursor-pointer active:scale-95 transition-transform">
+<img class="w-full h-full object-cover" data-alt="A professional close-up studio portrait of a sports enthusiast with a friendly expression, set against a clean, minimalist light gray background. The lighting is soft and cinematic, following the modern Sportcast aesthetic of premium streaming platforms. High contrast and sharp focus on facial features." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBwQ1b33Tg2FBsjSFsMtZFNeCLeGnOt-cb5jgK4gvgOAD_dfx2ItzrjbUjqCFsZaYXot8bET-czNBzPFcn4oYq1Uzyi9FKrNrUQvwwODZ-W38f6Ucgw63AfjVzoJtwPdKieoaXUixsV-a1hWeNy_v61oLsKlPd4kzvRnLH-yxs3LcDAvlQgvZx7V6XlLrXMeVtABuMv3tDtlorH5pNsfHkMe2Ux_8K5vyq5vFJTd8zbpcw9lHNEEy_xKvL7I4lKCbN_m4lqVJFTwcHo"/>
+</div>
+</div>
+</nav>
+</header>
+<main class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-8">
+<section class="mb-8">
+<div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-2">
+<div>
+<h1 class="font-headline-lg text-on-surface mb-2">Continue Watching</h1>
+<p class="text-secondary font-body-md">All live events, replays, and upcoming matches.</p>
+</div>
+<a class="text-primary font-label-md hover:underline shrink-0" href="live.html">← Back to Live</a>
+</div>
+</section>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+<article class="group bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm border border-surface-container hover:shadow-md transition-shadow scroll-mt-28" id="match-1">
+<div class="aspect-video relative overflow-hidden bg-black">
+<video class="w-full h-full object-cover" controls playsinline preload="metadata" poster="https://lh3.googleusercontent.com/aida-public/AB6AXuBnUwTm1KreFAKYwt6xd5Yfbt-Z7rh-meOlO-Yf1oblKtlgSNvCD1VrcSLYItHrt1JzXxXOO-e-eMN-grmEm4aB3RTwkdr63bcOWINcXQUVvuGXIL1Z7a_3jPV3VLCIYo8204njGiDQDdm_8yi-JK5HhsiEbFVoQ472aEdFbzcNuL5xNIjgdrV4iXH6Scz1uW9DwioFGn4vkdUuV1jF22ZAIUZW7eXDfDwQ19yTLra4kFjnESzQeaNIukQesW0tWULWstenXunmDvdm" aria-label="Teqball World Series">
+<source src="assets/videos/match-1.mp4" type="video/mp4"/>
+<source src="https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" type="video/mp4"/>
+</video>
+<div class="absolute top-3 left-3"><span class="bg-primary text-white text-[10px] font-extrabold px-2 py-1 rounded-full uppercase flex items-center gap-1 live-pulse"><span class="w-1.5 h-1.5 bg-white rounded-full"></span> LIVE</span></div>
+</div>
+<div class="p-4">
+<span class="text-primary font-bold text-xs uppercase tracking-wider">Teqball World Series</span>
+<h3 class="font-headline-md text-on-surface mt-1 mb-1">Budapest</h3>
+<p class="text-secondary text-sm">Teqball</p>
+</div>
+</article>
+<article class="group bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm border border-surface-container hover:shadow-md transition-shadow scroll-mt-28" id="match-2">
+<div class="aspect-video relative overflow-hidden bg-black">
+<video class="w-full h-full object-cover" controls playsinline preload="metadata" poster="https://lh3.googleusercontent.com/aida-public/AB6AXuAXnpvJzw5PcV4oRXA1a46VhfI65KMpKS2ZaMe22-_2vLwkL8wSrkBfn26DwPdAyTmd1U8KNMKHLIMfGwXEzSiHpxbkejUrrJK2UPCwF3fis1UbMdVKCeYyI1UGcY7qAw4oB27I_s000q-ZcqGNT4-8h2Aq9vPP9ci7uaNc-sDA7XKJNokSmbx-DptMPdwkW50D-9W3ScfjRgxqdw8hVQC6kOWTaRnk9Vbe6IkU8vOVdvhyWaVNg0def1ITyWPnyeX7h2OLOlfq1-Wf" aria-label="National Dodgeball League">
+<source src="assets/videos/match-2.mp4" type="video/mp4"/>
+<source src="https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" type="video/mp4"/>
+</video>
+<div class="absolute bottom-3 left-3"><span class="bg-on-surface text-surface text-[10px] font-bold px-2 py-1 rounded-full uppercase">Today, 21:00</span></div>
+</div>
+<div class="p-4">
+<span class="text-primary font-bold text-xs uppercase tracking-wider">National Dodgeball League</span>
+<h3 class="font-headline-md text-on-surface mt-1 mb-1">Las Vegas</h3>
+<p class="text-secondary text-sm">Dodgeball</p>
+</div>
+</article>
+<article class="group bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm border border-surface-container hover:shadow-md transition-shadow scroll-mt-28" id="match-3">
+<div class="aspect-video relative overflow-hidden bg-black">
+<video class="w-full h-full object-cover" controls playsinline preload="metadata" poster="https://lh3.googleusercontent.com/aida-public/AB6AXuBxDSm53sy-4RECnS5S3unf2P37ywb9rIMa4xLBhaYwF9JrVMrmtkAjp02rb2dAIhm56RS8QdUspLIVVMVeQD_xiJtAln8GIhVyzGY9IWzBdk5o_ctrmgfDgP0Uw6g8M5vmgxmxFCPQHFYdqR-fIi0e8j9F88cNUPtrl63fFoF-wXiohUpKtP2NJ7rMLSQXie9kcicVs3wsG2S7soEtbCNMbZSTK7MDvVdJynAARHr_VAPE6g3E4aac5QtAvEKaK_UFF6LrpCqg8glt" aria-label="World Padel Tour">
+<source src="assets/videos/match-3.mp4" type="video/mp4"/>
+<source src="https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" type="video/mp4"/>
+</video>
+<div class="absolute top-3 left-3"><span class="bg-primary text-white text-[10px] font-extrabold px-2 py-1 rounded-full uppercase flex items-center gap-1 live-pulse"><span class="w-1.5 h-1.5 bg-white rounded-full"></span> LIVE</span></div>
+</div>
+<div class="p-4">
+<span class="text-primary font-bold text-xs uppercase tracking-wider">World Padel Tour</span>
+<h3 class="font-headline-md text-on-surface mt-1 mb-1">Madrid Arena</h3>
+<p class="text-secondary text-sm">Padel</p>
+</div>
+</article>
+<article class="group bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm border border-surface-container hover:shadow-md transition-shadow scroll-mt-28" id="match-4">
+<div class="aspect-video relative overflow-hidden bg-black">
+<video class="w-full h-full object-cover" controls playsinline preload="metadata" poster="https://lh3.googleusercontent.com/aida-public/AB6AXuBp21ZXLx6PDarPLKs3NNGxDE5AnzV9VMzIqMQy5ZJU7x09N5derkJb3Ih4Ma_tAYwF5sy2chuULZ4jlw6HyKxv-kCrI9u3nONZrThAxo_Je2-JX5P8hMftT8DTHTeM8EEFj-OZ4Dncfoqtj-cX44s89GTeLN2PBROabsFEpbetZV5D9irS8gOvGsaxtt2RzQuGqJViTjpGdMBvWbSAyNSgToees-gwOMcYMoAl_UhJsNwiNCFu700P6h2LpRaRMV4w5l4rNZqItNDk" aria-label="Spikeball Pro Tour">
+<source src="assets/videos/match-4.mp4" type="video/mp4"/>
+<source src="https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" type="video/mp4"/>
+</video>
+<div class="absolute bottom-3 left-3"><span class="bg-on-surface text-surface text-[10px] font-bold px-2 py-1 rounded-full uppercase">Tomorrow, 10:00</span></div>
+</div>
+<div class="p-4">
+<span class="text-primary font-bold text-xs uppercase tracking-wider">Spikeball Pro Tour</span>
+<h3 class="font-headline-md text-on-surface mt-1 mb-1">Huntington Beach</h3>
+<p class="text-secondary text-sm">Spikeball</p>
+</div>
+</article>
+<article class="group bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm border border-surface-container hover:shadow-md transition-shadow scroll-mt-28" id="match-5">
+<div class="aspect-video relative overflow-hidden bg-black">
+<video class="w-full h-full object-cover" controls playsinline preload="metadata" poster="https://lh3.googleusercontent.com/aida-public/AB6AXuA5MXOuBpJ7Q39de1TfAucflQST2s8GohUxSKyJ_sT6MvhnBIupcsPsnrLCKxDvBDytrMWnf7SI_Bf8M7vq4pu0VaxWebNWFIXOlkUg7u0s_LeSzautKa_TMR2mLlC1CZblAF6cfSUsoroP2VC4RYdC286E1ESamHHp4lgZ7Mv8C8hpLXwfeGNDHAkgqwEvhg9jADGtkOvWkDGZwnBfSABxzMIfP-mE4ERQdvbXkfMTUhjdZP_jEwdF3_HV_d4lkK5uKxShkNbmUfO3" aria-label="IFSC Bouldering World Cup">
+<source src="assets/videos/match-5.mp4" type="video/mp4"/>
+<source src="https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" type="video/mp4"/>
+</video>
+<div class="absolute top-3 right-3"><span class="bg-secondary/80 backdrop-blur-md text-white text-[10px] font-extrabold px-2 py-1 rounded-full uppercase flex items-center gap-1"><span class="material-symbols-outlined text-sm">trending_up</span> Trending</span></div>
+</div>
+<div class="p-4">
+<span class="text-primary font-bold text-xs uppercase tracking-wider">IFSC Bouldering World Cup</span>
+<h3 class="font-headline-md text-on-surface mt-1 mb-1">Innsbruck</h3>
+<p class="text-secondary text-sm">Bouldering</p>
+</div>
+</article>
+<article class="group bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm border border-surface-container hover:shadow-md transition-shadow scroll-mt-28" id="match-6">
+<div class="aspect-video relative overflow-hidden bg-black">
+<video class="w-full h-full object-cover" controls playsinline preload="metadata" poster="https://lh3.googleusercontent.com/aida-public/AB6AXuCC00P0wvRF_MBUWqXrLt5Z1mdygbdSkHdYumsqWP3kShvVgj7bo0GE0cPNEg_6q1L77l6bB9Wl2JPwD9pzgOW2Nwc5WEfzdB5svfpPLzwqg4BgQtYPUn51X2Z2BvT4_Na8-4BI3wFN23qDkeVm7c72f9FuCQrY6Bxbs7KssuHgY_KGmgk_Vpd_0pqpaC2hpnnnYF4qQKkuUELnRavFKRlvbeGFAG0jX1S1SOL7B1NLv5MkoV_u2rEexI2cACEqaJ-wROsxJ7HDHRyp" aria-label="GKA Kite World Tour">
+<source src="assets/videos/match-6.mp4" type="video/mp4"/>
+<source src="https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" type="video/mp4"/>
+</video>
+<div class="absolute bottom-3 left-3"><span class="bg-on-surface text-surface text-[10px] font-bold px-2 py-1 rounded-full uppercase">Starts in 4h</span></div>
+</div>
+<div class="p-4">
+<span class="text-primary font-bold text-xs uppercase tracking-wider">GKA Kite World Tour</span>
+<h3 class="font-headline-md text-on-surface mt-1 mb-1">Tarifa</h3>
+<p class="text-secondary text-sm">Kitesurfing</p>
+</div>
+</article>
+<article class="group bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm border border-surface-container hover:shadow-md transition-shadow scroll-mt-28" id="match-7">
+<div class="aspect-video relative overflow-hidden bg-black">
+<video class="w-full h-full object-cover" controls playsinline preload="metadata" poster="https://lh3.googleusercontent.com/aida-public/AB6AXuAzIBJkJ0QShuDUD1hBch2nINbZ6LVrKz8KqgE4h6P4VRg09zbG59U49Wn2X8MQk9gXqwp5J_uLu-LhOKHmUoIYZz6WU_YnnNGrCM4k2UW1UQNzVQUiS6Dl9qToc0Pg85qvSn_MYhUZR75txcVgXmKar1ktC2p74f_Fga-nTOWgnr3Vjde4SYOiYEjPUq691VmHDnohM18H3JC-7FWlkYxE5WVAs0lt_ShH8VEKO2qv1Ip1mgzWGZbvpiuz5YOCiZJ1Od5x6wBin6LG" aria-label="Finnish Hobby Horse Champs">
+<source src="assets/videos/match-7.mp4" type="video/mp4"/>
+<source src="https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" type="video/mp4"/>
+</video>
+<div class="absolute top-3 left-3"><span class="bg-surface-container-high text-on-surface-variant text-[10px] font-extrabold px-2 py-1 rounded-full uppercase">Replay</span></div>
+</div>
+<div class="p-4">
+<span class="text-primary font-bold text-xs uppercase tracking-wider">Finnish Hobby Horse Champs</span>
+<h3 class="font-headline-md text-on-surface mt-1 mb-1">Helsinki</h3>
+<p class="text-secondary text-sm">Hobby Horsing</p>
+</div>
+</article>
+<article class="group bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm border border-surface-container hover:shadow-md transition-shadow scroll-mt-28" id="match-8">
+<div class="aspect-video relative overflow-hidden bg-black">
+<video class="w-full h-full object-cover" controls playsinline preload="metadata" poster="https://lh3.googleusercontent.com/aida-public/AB6AXuDfYpYaXPM0arN2aT-c02mlUXwsa9HPOh91JNPIEDKgyuaFdQvyNYufq7C7bfXLtWCm0q-3D92NIICEPKs4aWBWoAf2V2qjlSInjRuqHRukqFdMFT21YiR3Utt0pP4JCMqePMk04ZKrImRXf_6XcSqqE5Uph-uefNr5gz7Bo6Yd4zyzcZ_IHAVDYUzVHegZ2Dl03L24IL8bczu2GgHr72xdQiMOJkr2g-F-f6JRCguIF0m39mAt-F23v8vedlLMYR4BE1SRRreHueVV" aria-label="CMAS World Championship">
+<source src="assets/videos/match-8.mp4" type="video/mp4"/>
+<source src="https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" type="video/mp4"/>
+</video>
+<div class="absolute top-3 left-3"><span class="bg-primary text-white text-[10px] font-extrabold px-2 py-1 rounded-full uppercase flex items-center gap-1 live-pulse"><span class="w-1.5 h-1.5 bg-white rounded-full"></span> LIVE</span></div>
+</div>
+<div class="p-4">
+<span class="text-primary font-bold text-xs uppercase tracking-wider">CMAS World Championship</span>
+<h3 class="font-headline-md text-on-surface mt-1 mb-1">Sheffield</h3>
+<p class="text-secondary text-sm">Underwater Hockey</p>
+</div>
+</article>
+<article class="group bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm border border-surface-container hover:shadow-md transition-shadow scroll-mt-28" id="match-9">
+<div class="aspect-video relative overflow-hidden bg-black">
+<video class="w-full h-full object-cover" controls playsinline preload="metadata" poster="https://lh3.googleusercontent.com/aida-public/AB6AXuAlEIOqm-L25WcbAT4FB4WmxSBX6Ava2zPMwbeqoX4kQyCew-SPyq1-i7Z3Sw93pMHPrE1p82niiOZ-wYZ7lPyUH1RVGusiDo38YW9fu1sCk6hbiQwG5RKn7yDQBY8hBM3ezGjm3yu392hJKqf7GLb0Gp0xAme9NAmaHodcUbjD5nZ-trn9gZERhZFv9MZHrCDnRrFBfhp3CjndoiedaWJdJ103v7guiT3eJagw1HqDQr75BPJYvcEtGTn6CVgdZsy8PAEVz30RxCj8" aria-label="Bassmaster Classic">
+<source src="assets/videos/match-9.mp4" type="video/mp4"/>
+<source src="https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" type="video/mp4"/>
+</video>
+<div class="absolute bottom-3 left-3"><span class="bg-on-surface text-surface text-[10px] font-bold px-2 py-1 rounded-full uppercase">Today, 16:00</span></div>
+</div>
+<div class="p-4">
+<span class="text-primary font-bold text-xs uppercase tracking-wider">Bassmaster Classic</span>
+<h3 class="font-headline-md text-on-surface mt-1 mb-1">Lake Guntersville</h3>
+<p class="text-secondary text-sm">Fishing</p>
+</div>
+</article>
+</div>
+</main>
+<footer class="bg-surface-container-low w-full border-t border-surface-container-high py-gutter px-margin-mobile md:px-margin-desktop flex flex-col md:flex-row justify-between items-center gap-4">
+<span class="font-headline-md text-headline-md font-bold text-on-surface">Sportcast</span>
+<div class="flex flex-wrap justify-center gap-6">
+<a class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors" href="#">Privacy Policy</a>
+<a class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors" href="#">Terms of Service</a>
+<a class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors" href="#">Help Center</a>
+<a class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors" href="#">Contact</a>
+</div>
+<p class="font-label-sm text-label-sm text-secondary">© 2026 Sportcast Streaming. All rights reserved.</p>
+</footer>
+<script>
+if (location.hash) {
+  const target = document.querySelector(location.hash);
+  if (target) {
+    requestAnimationFrame(() => target.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  }
+}
+</script>
+</body></html>

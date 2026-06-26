@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Sportcast Onboarding</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&amp;family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-tint": "#b52420",
+                    "inverse-surface": "#2f3132",
+                    "on-secondary-fixed": "#1b1b1b",
+                    "on-secondary-fixed-variant": "#474747",
+                    "surface-dim": "#d9dadc",
+                    "primary-fixed-dim": "#ffb4ab",
+                    "on-secondary": "#ffffff",
+                    "tertiary-fixed": "#e2e2e2",
+                    "inverse-on-surface": "#f0f0f2",
+                    "tertiary": "#5d5f5f",
+                    "surface-container-highest": "#e2e2e4",
+                    "surface": "#f9f9fb",
+                    "on-primary-fixed": "#410002",
+                    "surface-variant": "#e2e2e4",
+                    "secondary-fixed-dim": "#c6c6c6",
+                    "secondary": "#5e5e5e",
+                    "surface-container-lowest": "#ffffff",
+                    "on-tertiary": "#ffffff",
+                    "on-primary": "#ffffff",
+                    "on-primary-container": "#600004",
+                    "secondary-container": "#e2e2e2",
+                    "on-tertiary-fixed-variant": "#454747",
+                    "on-surface-variant": "#5a403d",
+                    "error-container": "#ffdad6",
+                    "outline": "#8e706c",
+                    "outline-variant": "#e3beba",
+                    "tertiary-container": "#929393",
+                    "tertiary-fixed-dim": "#c6c6c7",
+                    "on-background": "#1a1c1d",
+                    "on-primary-fixed-variant": "#92030b",
+                    "secondary-fixed": "#e2e2e2",
+                    "surface-container": "#eeeef0",
+                    "inverse-primary": "#ffb4ab",
+                    "on-surface": "#1a1c1d",
+                    "surface-container-low": "#f3f3f5",
+                    "on-error": "#ffffff",
+                    "primary-fixed": "#ffdad6",
+                    "surface-bright": "#f9f9fb",
+                    "primary": "#b52420",
+                    "error": "#ba1a1a",
+                    "surface-container-high": "#e8e8ea",
+                    "background": "#f9f9fb",
+                    "primary-container": "#ff5a4e",
+                    "on-secondary-container": "#646464",
+                    "on-error-container": "#93000a",
+                    "on-tertiary-container": "#2a2c2c",
+                    "on-tertiary-fixed": "#1a1c1c"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "unit": "8px",
+                    "gutter": "24px",
+                    "margin-desktop": "48px",
+                    "margin-mobile": "16px",
+                    "container-max": "1280px"
+            },
+            "fontFamily": {
+                    "display-lg": ["Montserrat"],
+                    "headline-lg": ["Montserrat"],
+                    "body-lg": ["Inter"],
+                    "headline-md": ["Montserrat"],
+                    "body-md": ["Inter"],
+                    "label-sm": ["Inter"],
+                    "label-md": ["Inter"],
+                    "display-lg-mobile": ["Montserrat"],
+                    "headline-lg-mobile": ["Montserrat"]
+            },
+            "fontSize": {
+                    "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "800"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                    "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "700"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                    "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600"}],
+                    "display-lg-mobile": ["32px", {"lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "800"}],
+                    "headline-lg-mobile": ["24px", {"lineHeight": "30px", "fontWeight": "700"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .step-transition {
+            transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .sport-card-active {
+            border-color: #ff5a4e;
+            background-color: rgba(255, 90, 78, 0.04);
+            transform: scale(1.02);
+            box-shadow: 0 10px 25px -5px rgba(255, 90, 78, 0.15);
+        }
+        .hide {
+            display: none;
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        .show {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .progress-bar {
+            transition: width 0.5s cubic-bezier(0.65, 0, 0.35, 1);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen flex flex-col">
+<!-- Progress Indicator Shell -->
+<header class="fixed top-0 left-0 w-full z-50 bg-surface/80 backdrop-blur-md">
+<div class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop h-20 flex flex-col justify-center">
+<div class="flex justify-between items-center mb-2">
+<span class="font-display-lg text-[24px] font-extrabold text-primary">Sportcast</span>
+<span class="font-label-sm text-secondary uppercase" id="step-label">Step 1 of 3</span>
+</div>
+<div class="w-full h-1 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="progress-bar h-full bg-primary-container" id="progress-indicator" style="width: 33.33%;"></div>
+</div>
+</div>
+</header>
+<main class="flex-grow flex items-center justify-center pt-24 pb-12 px-margin-mobile">
+<div class="w-full max-w-3xl bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden p-8 md:p-16">
+<!-- Step 1: Welcome -->
+<section class="step-transition show" id="step-1">
+<div class="flex flex-col md:flex-row items-center gap-12">
+<div class="flex-1 text-center md:text-left">
+<h1 class="font-display-lg text-display-lg-mobile md:text-display-lg mb-4">Welcome to Sportcast</h1>
+<p class="font-body-lg text-on-surface-variant mb-10">Discover niche sports with AI-powered commentary and insights.</p>
+<div class="space-y-6">
+<div class="group">
+<label class="block font-label-md text-on-surface mb-2" for="name-input">What should we call you?</label>
+<input class="w-full p-4 bg-surface-container rounded-lg border-transparent focus:border-primary-container focus:ring-2 focus:ring-primary-container/20 transition-all outline-none text-body-md" id="name-input" placeholder="Enter your name" type="text"/>
+</div>
+<button class="w-full md:w-auto px-10 py-4 bg-primary-container text-white font-bold rounded-full shadow-lg hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2" onclick="goToStep(2)">
+                                Continue
+                                <span class="material-symbols-outlined">arrow_forward</span>
+</button>
+</div>
+</div>
+<div class="hidden md:block flex-1">
+<div class="relative w-full aspect-square rounded-2xl overflow-hidden shadow-2xl">
+<img class="w-full h-full object-cover" data-alt="A cinematic, high-speed photograph of a professional squash player in mid-action against a minimalist, bright glass court background. The athlete wears sleek modern sports gear in a monochromatic palette with subtle coral accents. The lighting is dramatic, high-contrast, and professional, evoking a premium sports broadcasting feel with clean lines and plenty of negative space." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC1b4oFHBHoZjjD0fN1h0UOc1wBton3y9jQSVAHMlvRMkJFS-vLYeChzQ5Fvmq-8aRruTDfhXtnWMdplzNE0F_BapPIqLd7CimDLa1tStsQRxUXgKXgvxAJeOokv9L7B0SDfNHUadP8eRSv1wUWk10NDWaqdmmFdJVyKHcDojw2ImntoBgHbKpVd-0C3FIBlHkuK2r_wFPUqG1u56vWZBywd6qHJb0yQHeoKcVnWZMQl5nhPQJh_ZmJUQ0cYH8Lv5BG9RRSeMCr3zWZ"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
+</div>
+</div>
+</div>
+</section>
+<!-- Step 2: Sports Selection -->
+<section class="step-transition hide" id="step-2">
+<div class="text-center mb-10">
+<h2 class="font-headline-lg text-headline-lg-mobile md:text-headline-lg mb-2">What sports are you interested in?</h2>
+<p class="font-body-md text-on-surface-variant">Select all that apply to personalize your feed.</p>
+</div>
+<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mb-12">
+<!-- Sport Card 1 -->
+<div class="sport-card cursor-pointer group flex flex-col items-center justify-center p-6 border-2 border-surface-container rounded-xl bg-surface-container-low hover:border-outline-variant transition-all" onclick="toggleSport(this)">
+<span class="material-symbols-outlined text-[32px] text-secondary mb-3 group-hover:text-primary transition-colors">sports_tennis</span>
+<span class="font-label-md">Padel</span>
+</div>
+<!-- Sport Card 2 -->
+<div class="sport-card cursor-pointer group flex flex-col items-center justify-center p-6 border-2 border-surface-container rounded-xl bg-surface-container-low hover:border-outline-variant transition-all" onclick="toggleSport(this)">
+<span class="material-symbols-outlined text-[32px] text-secondary mb-3 group-hover:text-primary transition-colors">sports_volleyball</span>
+<span class="font-label-md">Volleyball</span>
+</div>
+<!-- Sport Card 3 -->
+<div class="sport-card cursor-pointer group flex flex-col items-center justify-center p-6 border-2 border-surface-container rounded-xl bg-surface-container-low hover:border-outline-variant transition-all" onclick="toggleSport(this)">
+<span class="material-symbols-outlined text-[32px] text-secondary mb-3 group-hover:text-primary transition-colors">sports_handball</span>
+<span class="font-label-md">Handball</span>
+</div>
+<!-- Sport Card 4 -->
+<div class="sport-card cursor-pointer group flex flex-col items-center justify-center p-6 border-2 border-surface-container rounded-xl bg-surface-container-low hover:border-outline-variant transition-all" onclick="toggleSport(this)">
+<span class="material-symbols-outlined text-[32px] text-secondary mb-3 group-hover:text-primary transition-colors">sports_soccer</span>
+<span class="font-label-md">Futsal</span>
+</div>
+<!-- Sport Card 5 -->
+<div class="sport-card cursor-pointer group flex flex-col items-center justify-center p-6 border-2 border-surface-container rounded-xl bg-surface-container-low hover:border-outline-variant transition-all" onclick="toggleSport(this)">
+<span class="material-symbols-outlined text-[32px] text-secondary mb-3 group-hover:text-primary transition-colors">sports_hockey</span>
+<span class="font-label-md">Field Hockey</span>
+</div>
+<!-- Sport Card 6 -->
+<div class="sport-card cursor-pointer group flex flex-col items-center justify-center p-6 border-2 border-surface-container rounded-xl bg-surface-container-low hover:border-outline-variant transition-all" onclick="toggleSport(this)">
+<span class="material-symbols-outlined text-[32px] text-secondary mb-3 group-hover:text-primary transition-colors">sports_rugby</span>
+<span class="font-label-md">Rugby</span>
+</div>
+<!-- Sport Card 7 -->
+<div class="sport-card cursor-pointer group flex flex-col items-center justify-center p-6 border-2 border-surface-container rounded-xl bg-surface-container-low hover:border-outline-variant transition-all" onclick="toggleSport(this)">
+<span class="material-symbols-outlined text-[32px] text-secondary mb-3 group-hover:text-primary transition-colors">table_edit</span>
+<span class="font-label-md">Table Tennis</span>
+</div>
+<!-- Sport Card 8 -->
+<div class="sport-card cursor-pointer group flex flex-col items-center justify-center p-6 border-2 border-surface-container rounded-xl bg-surface-container-low hover:border-outline-variant transition-all" onclick="toggleSport(this)">
+<span class="material-symbols-outlined text-[32px] text-secondary mb-3 group-hover:text-primary transition-colors">sports_tennis</span>
+<span class="font-label-md">Badminton</span>
+</div>
+<!-- Sport Card 9 -->
+<div class="sport-card cursor-pointer group flex flex-col items-center justify-center p-6 border-2 border-surface-container rounded-xl bg-surface-container-low hover:border-outline-variant transition-all" onclick="toggleSport(this)">
+<span class="material-symbols-outlined text-[32px] text-secondary mb-3 group-hover:text-primary transition-colors">sports_basketball</span>
+<span class="font-label-md">Basketball</span>
+</div>
+<!-- Sport Card 10 -->
+<div class="sport-card cursor-pointer group flex flex-col items-center justify-center p-6 border-2 border-surface-container rounded-xl bg-surface-container-low hover:border-outline-variant transition-all" onclick="toggleSport(this)">
+<span class="material-symbols-outlined text-[32px] text-secondary mb-3 group-hover:text-primary transition-colors">more_horiz</span>
+<span class="font-label-md">Other</span>
+</div>
+</div>
+<div class="flex justify-between items-center">
+<button class="text-secondary font-bold hover:text-on-surface transition-colors flex items-center gap-2" onclick="goToStep(1)">
+<span class="material-symbols-outlined">arrow_back</span>
+                        Back
+                    </button>
+<button class="px-10 py-4 bg-primary-container text-white font-bold rounded-full shadow-lg hover:brightness-110 active:scale-95 transition-all" onclick="goToStep(3)">
+                        Continue
+                    </button>
+</div>
+</section>
+<!-- Step 3: Language Selection -->
+<section class="step-transition hide" id="step-3">
+<div class="text-center mb-10">
+<h2 class="font-headline-lg text-headline-lg-mobile md:text-headline-lg mb-2">Choose your language</h2>
+<p class="font-body-md text-on-surface-variant">We'll use this for your AI-generated commentary and match insights.</p>
+</div>
+<div class="max-w-md mx-auto space-y-3 mb-12">
+<div class="lang-option flex items-center justify-between p-4 border-2 border-surface-container rounded-xl bg-surface-container-low cursor-pointer hover:border-outline-variant transition-all group" onclick="selectLanguage(this)">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-surface flex items-center justify-center text-xl">🇺🇸</div>
+<span class="font-body-md font-semibold">English</span>
+</div>
+<span class="material-symbols-outlined text-primary-container opacity-0 transition-opacity">check_circle</span>
+</div>
+<div class="lang-option flex items-center justify-between p-4 border-2 border-surface-container rounded-xl bg-surface-container-low cursor-pointer hover:border-outline-variant transition-all group" onclick="selectLanguage(this)">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-surface flex items-center justify-center text-xl">🇳🇱</div>
+<span class="font-body-md font-semibold">Dutch</span>
+</div>
+<span class="material-symbols-outlined text-primary-container opacity-0 transition-opacity">check_circle</span>
+</div>
+<div class="lang-option flex items-center justify-between p-4 border-2 border-surface-container rounded-xl bg-surface-container-low cursor-pointer hover:border-outline-variant transition-all group" onclick="selectLanguage(this)">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-surface flex items-center justify-center text-xl">🇮🇩</div>
+<span class="font-body-md font-semibold">Indonesian</span>
+</div>
+<span class="material-symbols-outlined text-primary-container opacity-0 transition-opacity">check_circle</span>
+</div>
+<div class="lang-option flex items-center justify-between p-4 border-2 border-surface-container rounded-xl bg-surface-container-low cursor-pointer hover:border-outline-variant transition-all group" onclick="selectLanguage(this)">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-surface flex items-center justify-center text-xl">🇪🇸</div>
+<span class="font-body-md font-semibold">Spanish</span>
+</div>
+<span class="material-symbols-outlined text-primary-container opacity-0 transition-opacity">check_circle</span>
+</div>
+<div class="lang-option flex items-center justify-between p-4 border-2 border-surface-container rounded-xl bg-surface-container-low cursor-pointer hover:border-outline-variant transition-all group" onclick="selectLanguage(this)">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-surface flex items-center justify-center text-xl">🇫🇷</div>
+<span class="font-body-md font-semibold">French</span>
+</div>
+<span class="material-symbols-outlined text-primary-container opacity-0 transition-opacity">check_circle</span>
+</div>
+<div class="lang-option flex items-center justify-between p-4 border-2 border-surface-container rounded-xl bg-surface-container-low cursor-pointer hover:border-outline-variant transition-all group" onclick="selectLanguage(this)">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-surface flex items-center justify-center text-xl">🇩🇪</div>
+<span class="font-body-md font-semibold">German</span>
+</div>
+<span class="material-symbols-outlined text-primary-container opacity-0 transition-opacity">check_circle</span>
+</div>
+</div>
+<div class="flex justify-between items-center">
+<button class="text-secondary font-bold hover:text-on-surface transition-colors flex items-center gap-2" onclick="goToStep(2)">
+<span class="material-symbols-outlined">arrow_back</span>
+                        Back
+                    </button>
+<button class="px-10 py-4 bg-primary-container text-white font-bold rounded-full shadow-lg hover:brightness-110 active:scale-95 transition-all" onclick="finishOnboarding()">
+                        Finish
+                    </button>
+</div>
+</section>
+</div>
+</main>
+<footer class="w-full py-unit-gutter px-margin-desktop flex flex-col md:flex-row justify-between items-center gap-4 bg-surface-container-low text-label-sm font-label-sm">
+<span class="text-on-surface-variant">© 2026 Sportcast Streaming. All rights reserved.</span>
+<div class="flex gap-6">
+<a class="text-on-surface-variant hover:text-primary transition-colors" href="#">Privacy Policy</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors" href="#">Terms of Service</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors" href="#">Help Center</a>
+</div>
+</footer>
+<script>
+        function goToStep(stepNumber) {
+            // Hide all steps
+            const steps = [1, 2, 3];
+            steps.forEach(num => {
+                const el = document.getElementById(`step-${num}`);
+                el.classList.remove('show');
+                el.classList.add('hide');
+            });
+
+            // Show active step with delay for smooth animation
+            setTimeout(() => {
+                const activeEl = document.getElementById(`step-${stepNumber}`);
+                activeEl.classList.remove('hide');
+                activeEl.classList.add('show');
+            }, 100);
+
+            // Update progress bar
+            const progress = document.getElementById('progress-indicator');
+            const stepLabel = document.getElementById('step-label');
+            const percent = (stepNumber / 3) * 100;
+            progress.style.width = `${percent}%`;
+            stepLabel.innerText = `Step ${stepNumber} of 3`;
+        }
+
+        function toggleSport(element) {
+            element.classList.toggle('sport-card-active');
+            const icon = element.querySelector('.material-symbols-outlined');
+            if (element.classList.contains('sport-card-active')) {
+                icon.style.fontVariationSettings = "'FILL' 1";
+                icon.classList.replace('text-secondary', 'text-primary');
+            } else {
+                icon.style.fontVariationSettings = "'FILL' 0";
+                icon.classList.replace('text-primary', 'text-secondary');
+            }
+        }
+
+        function selectLanguage(element) {
+            // Deselect others
+            document.querySelectorAll('.lang-option').forEach(el => {
+                el.classList.remove('sport-card-active');
+                el.querySelector('.material-symbols-outlined').classList.add('opacity-0');
+            });
+            // Select current
+            element.classList.add('sport-card-active');
+            element.querySelector('.material-symbols-outlined').classList.remove('opacity-0');
+        }
+
+        function finishOnboarding() {
+            const name = document.getElementById('name-input').value || 'Champ';
+            const container = document.querySelector('main > div');
+            
+            // Celebration screen
+            container.innerHTML = `
+                <div class="text-center py-12 animate-in fade-in zoom-in duration-500">
+                    <div class="w-24 h-24 bg-primary-container text-white rounded-full flex items-center justify-center mx-auto mb-8 shadow-xl">
+                        <span class="material-symbols-outlined text-[48px]" style="font-variation-settings: 'FILL' 1">check</span>
+                    </div>
+                    <h2 class="font-display-lg text-display-lg-mobile md:text-display-lg mb-4">You're all set, ${name}!</h2>
+                    <p class="font-body-lg text-on-surface-variant max-w-md mx-auto mb-10">We've tailored your dashboard with the sports and commentary you love. Get ready for a game-changing experience.</p>
+                    <a href="../live.html" class="inline-block px-12 py-5 bg-primary-container text-white font-extrabold rounded-full shadow-2xl hover:scale-105 active:scale-95 transition-all">
+                        Go to the Live
+                    </a>
+                </div>
+            `;
+        }
+    </script>
+</body></html>

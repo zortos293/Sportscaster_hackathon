@@ -15,7 +15,7 @@ const convexEnabled = Boolean(convexUrl && /^https?:\/\//.test(convexUrl));
 export default convexEnabled
   ? convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
       if (isAuthPage(request) && (await convexAuth.isAuthenticated())) {
-        return nextjsMiddlewareRedirect(request, "/dashboard");
+        return nextjsMiddlewareRedirect(request, "/live");
       }
 
       if (isProtectedRoute(request) && !(await convexAuth.isAuthenticated())) {

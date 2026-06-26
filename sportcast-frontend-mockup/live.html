@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Sportcast - Live Sports Streaming</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Inter:wght@400;600;700&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Montserrat:wght@100..900&display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-tint": "#b52420",
+                        "inverse-surface": "#2f3132",
+                        "on-secondary-fixed": "#1b1b1b",
+                        "on-secondary-fixed-variant": "#474747",
+                        "surface-dim": "#d9dadc",
+                        "primary-fixed-dim": "#ffb4ab",
+                        "on-secondary": "#ffffff",
+                        "tertiary-fixed": "#e2e2e2",
+                        "inverse-on-surface": "#f0f0f2",
+                        "tertiary": "#5d5f5f",
+                        "surface-container-highest": "#e2e2e4",
+                        "surface": "#f9f9fb",
+                        "on-primary-fixed": "#410002",
+                        "surface-variant": "#e2e2e4",
+                        "secondary-fixed-dim": "#c6c6c6",
+                        "secondary": "#5e5e5e",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "on-primary-container": "#600004",
+                        "secondary-container": "#e2e2e2",
+                        "on-tertiary-fixed-variant": "#454747",
+                        "on-surface-variant": "#5a403d",
+                        "error-container": "#ffdad6",
+                        "outline": "#8e706c",
+                        "outline-variant": "#e3beba",
+                        "tertiary-container": "#929393",
+                        "tertiary-fixed-dim": "#c6c6c7",
+                        "on-background": "#1a1c1d",
+                        "on-primary-fixed-variant": "#92030b",
+                        "secondary-fixed": "#e2e2e2",
+                        "surface-container": "#eeeef0",
+                        "inverse-primary": "#ffb4ab",
+                        "on-surface": "#1a1c1d",
+                        "surface-container-low": "#f3f3f5",
+                        "on-error": "#ffffff",
+                        "primary-fixed": "#ffdad6",
+                        "surface-bright": "#f9f9fb",
+                        "primary": "#b52420",
+                        "error": "#ba1a1a",
+                        "surface-container-high": "#e8e8ea",
+                        "background": "#f9f9fb",
+                        "primary-container": "#ff5a4e",
+                        "on-secondary-container": "#646464",
+                        "on-error-container": "#93000a",
+                        "on-tertiary-container": "#2a2c2c",
+                        "on-tertiary-fixed": "#1a1c1c"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "unit": "8px",
+                        "gutter": "24px",
+                        "margin-desktop": "48px",
+                        "margin-mobile": "16px",
+                        "container-max": "1280px"
+                    },
+                    "fontFamily": {
+                        "display-lg": ["Montserrat"],
+                        "headline-lg": ["Montserrat"],
+                        "body-lg": ["Inter"],
+                        "headline-md": ["Montserrat"],
+                        "body-md": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "label-md": ["Inter"],
+                        "display-lg-mobile": ["Montserrat"],
+                        "headline-lg-mobile": ["Montserrat"]
+                    },
+                    "fontSize": {
+                        "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "800"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "700"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                        "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600"}],
+                        "display-lg-mobile": ["32px", {"lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "800"}],
+                        "headline-lg-mobile": ["24px", {"lineHeight": "30px", "fontWeight": "700"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .hero-gradient {
+            background: linear-gradient(0deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0) 100%);
+        }
+
+        .pulse-animation {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+        }
+
+        .live-action-bar {
+            background: #ffffff;
+            border: 1px solid #e8e8ea;
+            border-top: none;
+        }
+
+        .live-action-btn {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.875rem 1.25rem;
+            border-radius: 9999px;
+            background: #ffffff;
+            border: 1px solid #e8e8ea;
+            color: #18181b;
+            transition: background 0.2s, transform 0.2s;
+        }
+
+        .live-action-btn:hover {
+            background: #f4f4f5;
+        }
+
+        .live-action-btn:active {
+            transform: scale(0.98);
+        }
+
+        .live-action-btn .icon-wrap {
+            width: 2.75rem;
+            height: 2.75rem;
+            border-radius: 9999px;
+            background: #f4f4f5;
+            color: #3f3f46;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        #live-player-section.is-live #play-overlay {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #live-player-section.is-live #hero-info {
+            opacity: 0.85;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #e2e2e4;
+            border-radius: 10px;
+        }
+
+        #insights-backdrop {
+            display: none;
+        }
+
+        #live-player-section {
+            --insights-panel-width: 380px;
+        }
+
+        .live-stage {
+            background: #ffffff;
+            border: 1px solid #e8e8ea;
+            overflow: hidden;
+        }
+
+        #insights-panel {
+            width: 0;
+            max-width: 0;
+            height: 0;
+            max-height: 0;
+            overflow: hidden;
+            flex-shrink: 0;
+            opacity: 0;
+            border-left: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            pointer-events: none;
+            transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1), max-width 0.35s cubic-bezier(0.4, 0, 0.2, 1), max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease;
+        }
+
+        #insights-panel-scroll {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-y: auto;
+        }
+
+        #live-player-section.insights-open #insights-panel {
+            width: 100%;
+            max-width: 100%;
+            height: auto;
+            opacity: 1;
+            max-height: 24rem;
+            border-top: 1px solid #e8e8ea;
+            pointer-events: auto;
+        }
+
+        @media (min-width: 1024px) {
+            #live-player-section.insights-open .live-stage {
+                position: relative;
+                width: 100%;
+            }
+
+            #live-player-section.insights-open .live-player-main {
+                flex: 0 0 calc(100% - var(--insights-panel-width));
+                width: calc(100% - var(--insights-panel-width));
+                max-width: calc(100% - var(--insights-panel-width));
+            }
+
+            #live-player-section.insights-open #insights-panel {
+                position: absolute;
+                top: 0;
+                right: 0;
+                bottom: 0;
+                width: var(--insights-panel-width);
+                max-width: var(--insights-panel-width);
+                flex: none;
+                height: auto;
+                max-height: none;
+                align-self: auto;
+                border-top: none;
+                border-left: 1px solid #e8e8ea;
+                pointer-events: auto;
+            }
+
+            #live-player-section.insights-open #live-screen {
+                border-top-right-radius: 0;
+            }
+
+            #live-player-section.insights-open .live-action-bar {
+                border-bottom-right-radius: 0;
+            }
+
+            #live-player-section.insights-open #insights-panel {
+                border-top-right-radius: 0.75rem;
+                border-bottom-right-radius: 0.75rem;
+            }
+        }
+
+        .live-action-btn.is-active {
+            background: #fef2f2;
+            border-color: #b52420;
+            box-shadow: 0 0 0 1px rgba(181, 36, 32, 0.12);
+        }
+
+        .sport-chip {
+            flex-shrink: 0;
+            padding: 0.5rem 1.5rem;
+            border-radius: 9999px;
+            font-size: 14px;
+            font-weight: 600;
+            line-height: 20px;
+            letter-spacing: 0.01em;
+            background: #e8e8ea;
+            color: #5a403d;
+            transition: background 0.2s, color 0.2s, transform 0.15s;
+        }
+
+        .sport-chip:hover {
+            background: #e2e2e4;
+        }
+
+        .sport-chip.active {
+            background: #ff5a4e;
+            color: #ffffff;
+        }
+
+        .sport-chip:active {
+            transform: scale(0.95);
+        }
+
+        .sport-more-menu {
+            display: none;
+            position: absolute;
+            top: calc(100% + 0.5rem);
+            right: 0;
+            min-width: 13rem;
+            padding: 0.5rem;
+            background: #ffffff;
+            border: 1px solid #e8e8ea;
+            border-radius: 0.75rem;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+            z-index: 50;
+        }
+
+        .sport-more-menu.open {
+            display: block;
+        }
+
+        .sport-more-menu .sport-chip {
+            display: block;
+            width: 100%;
+            text-align: left;
+            margin-bottom: 0.25rem;
+        }
+
+        .sport-more-menu .sport-chip:last-child {
+            margin-bottom: 0;
+        }
+
+        .sport-more-btn {
+            flex-shrink: 0;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.125rem;
+            padding: 0.5rem 1.25rem;
+            border-radius: 9999px;
+            font-size: 14px;
+            font-weight: 600;
+            line-height: 20px;
+            letter-spacing: 0.01em;
+            background: #e8e8ea;
+            color: #5a403d;
+            transition: background 0.2s, color 0.2s, transform 0.15s;
+        }
+
+        .sport-more-btn:hover {
+            background: #e2e2e4;
+        }
+
+        .sport-more-btn:active {
+            transform: scale(0.95);
+        }
+
+        .sport-more-btn .material-symbols-outlined {
+            font-size: 18px;
+        }
+
+        .sport-more-btn.is-open,
+        .sport-more-btn.has-selection {
+            background: #ff5a4e;
+            color: #ffffff;
+        }
+
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md selection:bg-primary-container selection:text-on-primary-container">
+<!-- Top Navigation Bar -->
+<header class="bg-surface shadow-sm sticky top-0 z-50 h-20 flex items-center">
+<nav class="flex justify-between items-center px-margin-mobile md:px-margin-desktop w-full max-w-container-max mx-auto">
+<!-- Brand -->
+<a aria-label="Sportcast home" class="flex items-center gap-3 cursor-pointer active:scale-95 transition-transform" href="live.html">
+<img alt="" aria-hidden="true" class="h-12 w-12 md:h-14 md:w-14 shrink-0 object-contain" src="assets/logo.png"/>
+<span class="font-display-lg text-headline-md md:text-display-lg font-extrabold text-primary">Sportcast</span>
+</a>
+<!-- Desktop Links -->
+<div class="hidden md:flex items-center gap-8">
+<a class="text-primary font-bold border-b-2 border-primary py-1 px-1 transition-colors" href="live.html">Live</a>
+<a class="text-secondary font-label-md hover:text-primary transition-colors" href="highlight.html">Highlight</a>
+</div>
+<!-- Actions -->
+<div class="flex items-center gap-4 md:gap-6">
+<div class="relative hidden sm:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-secondary pointer-events-none">search</span>
+<input aria-label="Search matches" class="bg-surface-container-low border-none rounded-full pl-10 pr-4 py-2 w-48 md:w-64 font-body-md text-on-surface focus:ring-2 focus:ring-primary outline-none transition-all" placeholder="Search matches..." type="search"/>
+</div>
+<button class="p-2 rounded-full hover:bg-surface-container transition-colors cursor-pointer active:scale-95" type="button">
+<span class="material-symbols-outlined text-secondary">notifications</span>
+</button>
+<div class="h-10 w-10 rounded-full border-2 border-primary-container overflow-hidden cursor-pointer active:scale-95 transition-transform">
+<img class="w-full h-full object-cover" data-alt="A professional close-up studio portrait of a sports enthusiast with a friendly expression, set against a clean, minimalist light gray background. The lighting is soft and cinematic, following the modern Sportcast aesthetic of premium streaming platforms. High contrast and sharp focus on facial features." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBwQ1b33Tg2FBsjSFsMtZFNeCLeGnOt-cb5jgK4gvgOAD_dfx2ItzrjbUjqCFsZaYXot8bET-czNBzPFcn4oYq1Uzyi9FKrNrUQvwwODZ-W38f6Ucgw63AfjVzoJtwPdKieoaXUixsV-a1hWeNy_v61oLsKlPd4kzvRnLH-yxs3LcDAvlQgvZx7V6XlLrXMeVtABuMv3tDtlorH5pNsfHkMe2Ux_8K5vyq5vFJTd8zbpcw9lHNEEy_xKvL7I4lKCbN_m4lqVJFTwcHo"/>
+</div>
+</div>
+</nav>
+</header>
+<main class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-8">
+<!-- Category Chips -->
+<section class="mb-10">
+<div class="flex items-center gap-3">
+<div class="flex items-center gap-3 overflow-x-auto hide-scrollbar flex-1 min-w-0 pb-1" id="sport-categories">
+<button class="sport-chip active" data-sport="all" type="button">All</button>
+<button class="sport-chip" data-sport="teqball" type="button">Teqball</button>
+<button class="sport-chip" data-sport="dodgeball" type="button">Dodgeball</button>
+<button class="sport-chip" data-sport="padel" type="button">Padel</button>
+<button class="sport-chip" data-sport="spikeball" type="button">Spikeball</button>
+<button class="sport-chip hidden lg:inline-flex" data-sport="bouldering" type="button">Bouldering</button>
+</div>
+<div class="relative shrink-0 z-50" id="sport-more-wrap">
+<button aria-expanded="false" aria-haspopup="true" aria-label="More sports" class="sport-more-btn" id="sport-more-btn" type="button">
+More
+<span class="material-symbols-outlined">more_horiz</span>
+</button>
+<div class="sport-more-menu" id="sport-more-menu" role="menu">
+<button class="sport-chip lg:hidden" data-sport="bouldering" role="menuitem" type="button">Bouldering</button>
+<button class="sport-chip" data-sport="kitesurfing" role="menuitem" type="button">Kitesurfing</button>
+<button class="sport-chip" data-sport="hobby-horsing" role="menuitem" type="button">Hobby Horsing</button>
+<button class="sport-chip" data-sport="underwater-hockey" role="menuitem" type="button">Underwater Hockey</button>
+<button class="sport-chip" data-sport="pickleball" role="menuitem" type="button">Pickleball</button>
+<button class="sport-chip" data-sport="professional-fishing" role="menuitem" type="button">Professional Fishing</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Hero Section -->
+<section class="mb-16" id="live-player-section">
+<div class="live-stage flex flex-col lg:flex-row lg:items-stretch rounded-xl shadow-xl">
+<div class="live-player-main flex-1 min-w-0 flex flex-col">
+<div class="relative w-full aspect-[16/9] md:aspect-[21/9] rounded-t-xl overflow-hidden" id="live-screen">
+<!-- Hero Image -->
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105" id="live-screen-bg" data-alt="A wide-angle cinematic shot of a professional football match in a packed stadium at night. A player strikes the ball under dramatic floodlights with vibrant green pitch and blurred crowd energy. Premium sports broadcast style." style="background-image: url('https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=1920&q=80')">
+</div>
+<!-- Overlays -->
+<div class="absolute inset-0 hero-gradient"></div>
+<!-- Play Button Overlay -->
+<div class="absolute inset-0 flex items-center justify-center transition-opacity duration-300" id="play-overlay">
+<button class="w-20 h-20 md:w-28 md:h-28 rounded-full bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center transition-all hover:bg-white/40 hover:scale-110 active:scale-95" id="play-live-btn" type="button">
+<span class="material-symbols-outlined text-white text-5xl md:text-7xl" style="font-variation-settings: 'FILL' 1">play_arrow</span>
+</button>
+</div>
+<!-- Content Info -->
+<div class="absolute bottom-6 left-6 md:left-10 right-6 md:right-10 z-10 pointer-events-none transition-opacity duration-300" id="hero-info">
+<div class="flex flex-wrap gap-2 mb-4">
+<span class="bg-primary px-3 py-1 rounded-full text-white text-[10px] font-bold uppercase tracking-wider flex items-center gap-1" id="live-status-badge">
+<span class="w-2 h-2 rounded-full bg-white pulse-animation" id="live-status-dot"></span>
+<span id="live-status-text">Replay</span>
+                        </span>
+<span class="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-white text-[10px] font-bold uppercase tracking-wider">
+                            Football
+                        </span>
+</div>
+<h1 class="font-display-lg text-headline-lg-mobile md:text-display-lg text-white mb-2">Champions League Final Highlights</h1>
+<p class="font-body-lg text-white/90 max-w-2xl">
+                        Real Madrid vs Manchester City • May 17, 2025 • 1h 52m
+                    </p>
+</div>
+</div>
+<!-- Persistent Action Bar -->
+<div class="live-action-bar flex flex-col sm:flex-row gap-3 p-4 md:p-5 rounded-b-xl shadow-xl">
+<button class="live-action-btn" id="ai-commentary-btn" type="button">
+<div class="icon-wrap">
+<span class="material-symbols-outlined text-[22px]">mic</span>
+</div>
+<div class="text-left min-w-0">
+<div class="font-bold text-sm md:text-base leading-tight">AI Commentary</div>
+<div class="text-xs md:text-sm text-zinc-500 leading-snug">Listen to live commentary</div>
+</div>
+</button>
+<button class="live-action-btn" id="insights-btn" type="button" aria-controls="insights-panel" aria-expanded="false">
+<div class="icon-wrap">
+<span class="material-symbols-outlined text-[22px]">bar_chart</span>
+</div>
+<div class="text-left min-w-0">
+<div class="font-bold text-sm md:text-base leading-tight">Insights</div>
+<div class="text-xs md:text-sm text-zinc-500 leading-snug">View match analysis</div>
+</div>
+</button>
+</div>
+</div>
+<aside aria-label="Live Insights" class="bg-surface flex flex-col min-h-0" id="insights-panel" aria-hidden="true">
+<div class="p-6 border-b border-outline-variant flex justify-between items-center flex-none">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">analytics</span>
+<h2 class="font-headline-md text-headline-md">Live Insights</h2>
+</div>
+<button aria-label="Close insights panel" class="text-secondary hover:text-on-surface transition-colors p-1 rounded-full hover:bg-surface-container" id="insights-close-btn" type="button">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<div class="flex-grow overflow-y-auto custom-scrollbar p-6 space-y-8 min-h-0" id="insights-panel-scroll">
+<section>
+<h3 class="font-label-md text-label-md text-secondary uppercase tracking-widest mb-6">Real-Time Match Stats</h3>
+<div class="space-y-6">
+<div class="space-y-2">
+<div class="flex justify-between text-label-sm font-bold">
+<span>MAD</span>
+<span>POSSESSION</span>
+<span>MCI</span>
+</div>
+<div class="flex h-2 w-full rounded-full overflow-hidden bg-surface-container-high">
+<div class="bg-primary h-full" style="width: 58%"></div>
+<div class="bg-tertiary-container h-full" style="width: 42%"></div>
+</div>
+<div class="flex justify-between font-bold text-body-md mt-1">
+<span>58%</span>
+<span>42%</span>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="bg-surface-container-low p-4 rounded-xl border border-outline-variant/50">
+<span class="text-label-sm text-secondary block mb-1">Shots on Target</span>
+<div class="flex items-end gap-2">
+<span class="text-headline-md leading-none">8</span>
+<span class="text-label-sm text-secondary mb-0.5">/ 12 total</span>
+</div>
+</div>
+<div class="bg-surface-container-low p-4 rounded-xl border border-outline-variant/50">
+<span class="text-label-sm text-secondary block mb-1">Pass Accuracy</span>
+<div class="flex items-end gap-2">
+<span class="text-headline-md leading-none">89%</span>
+<span class="text-label-sm text-primary mb-0.5">+4% avg</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section>
+<h3 class="font-label-md text-label-md text-secondary uppercase tracking-widest mb-4">Top Performers</h3>
+<div class="space-y-4">
+<div class="group bg-white rounded-2xl p-4 shadow-sm border border-outline-variant/50 hover:shadow-md transition-all cursor-pointer">
+<div class="flex gap-4">
+<div class="w-14 h-14 rounded-xl bg-surface-container-high overflow-hidden">
+<img alt="" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAGq6q8Ut4AcJD_OmntqfBUbn3tcoF4rQUX06m2-2QH5Dxb7pd6RqYM6tfvtENVFFD9u2iZ7V6U3xC_ajR8u22_akXDcarpBSva16E91WKocRlRWUhfVkjmm_b2ROqMLOTMkIxjqUOOBX2UWlqYBYC0YXV-AHX0DXR9lPwKGzoFbarZRHcQ5RaiopqglK4spYDDU6AE6qxmgkcE4v9rcYKWyzuZjbPhXHCEwQkg6oSdXERVwJujzmJmkTT9pS_0BcJlmG-b8adQPCD5"/>
+</div>
+<div class="flex-grow min-w-0">
+<div class="flex justify-between items-start gap-2">
+<div>
+<h4 class="font-bold text-body-md">Vinícius Jr.</h4>
+<p class="text-label-sm text-secondary">Forward • Real Madrid</p>
+</div>
+<span class="bg-primary/10 text-primary px-2 py-0.5 rounded text-label-sm font-bold flex-none">9.2</span>
+</div>
+<div class="grid grid-cols-4 gap-2 mt-3">
+<div class="flex flex-col"><span class="text-[10px] text-secondary font-bold uppercase">Goals</span><span class="font-bold">1</span></div>
+<div class="flex flex-col"><span class="text-[10px] text-secondary font-bold uppercase">Ast</span><span class="font-bold">1</span></div>
+<div class="flex flex-col"><span class="text-[10px] text-secondary font-bold uppercase">Acc%</span><span class="font-bold">88%</span></div>
+<div class="flex flex-col"><span class="text-[10px] text-secondary font-bold uppercase">Dist</span><span class="font-bold">10.2km</span></div>
+</div>
+</div>
+</div>
+</div>
+<div class="group bg-white rounded-2xl p-4 shadow-sm border border-outline-variant/50 hover:shadow-md transition-all cursor-pointer">
+<div class="flex gap-4">
+<div class="w-14 h-14 rounded-xl bg-surface-container-high overflow-hidden">
+<img alt="" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuANzlDqYHCGeLtDWcyc07_5yNvHaqoZws9YlD-d5Kv1kSKH_-RHzbEBwSO0k2m-ebBbGg6ouNyTWR86QRGQiCj8FZYYB7CzJyh3S2egx1jLzYAlvGEE0njQKclu6dIEhFkEbEBCZiicQvDBRX6zvSQHdtTOvu7ZR2J08xkxJChwhUxYweg1PctsVdvQRmd_v_SOA1EeTNfZqaOHlxE3koNWSQbV4H5UOT3-vMOTcK_cNFh7w2_FlBby9EGIBYWLQmT-PjhZt8RZo3qk"/>
+</div>
+<div class="flex-grow min-w-0">
+<div class="flex justify-between items-start gap-2">
+<div>
+<h4 class="font-bold text-body-md">Erling Haaland</h4>
+<p class="text-label-sm text-secondary">Forward • Man City</p>
+</div>
+<span class="bg-surface-container-highest text-on-surface px-2 py-0.5 rounded text-label-sm font-bold flex-none">7.8</span>
+</div>
+<div class="grid grid-cols-4 gap-2 mt-3">
+<div class="flex flex-col"><span class="text-[10px] text-secondary font-bold uppercase">Goals</span><span class="font-bold">1</span></div>
+<div class="flex flex-col"><span class="text-[10px] text-secondary font-bold uppercase">Ast</span><span class="font-bold">0</span></div>
+<div class="flex flex-col"><span class="text-[10px] text-secondary font-bold uppercase">Acc%</span><span class="font-bold">92%</span></div>
+<div class="flex flex-col"><span class="text-[10px] text-secondary font-bold uppercase">Dist</span><span class="font-bold">9.4km</span></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section>
+<h3 class="font-label-md text-label-md text-secondary uppercase tracking-widest mb-4">Match Highlights</h3>
+<div class="flex gap-4 overflow-x-auto pb-2 custom-scrollbar">
+<div class="flex-none w-32 aspect-[9/16] bg-surface-container-high rounded-xl overflow-hidden relative group cursor-pointer">
+<img alt="" class="w-full h-full object-cover opacity-80 group-hover:scale-110 transition-transform duration-500" src="https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=400&q=80"/>
+<div class="absolute inset-0 flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-3xl drop-shadow-md">play_circle</span>
+</div>
+<div class="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent">
+<p class="text-white text-[10px] font-bold leading-tight">Great Goal</p>
+</div>
+</div>
+<div class="flex-none w-32 aspect-[9/16] bg-surface-container-high rounded-xl overflow-hidden relative group cursor-pointer">
+<img alt="" class="w-full h-full object-cover opacity-80 group-hover:scale-110 transition-transform duration-500" src="https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=400&q=80"/>
+<div class="absolute inset-0 flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-3xl drop-shadow-md">play_circle</span>
+</div>
+<div class="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent">
+<p class="text-white text-[10px] font-bold leading-tight">Amazing Save</p>
+</div>
+</div>
+</div>
+</section>
+<section>
+<h3 class="font-label-md text-label-md text-secondary uppercase tracking-widest mb-4">Match Notes</h3>
+<div class="bg-white rounded-2xl p-4 border border-outline-variant/50 shadow-sm">
+<textarea class="w-full bg-transparent border-none focus:ring-0 text-body-md text-on-surface placeholder:text-secondary/50 resize-none h-24 custom-scrollbar" placeholder="Write your match notes here..."></textarea>
+</div>
+</section>
+<section class="bg-primary/5 rounded-2xl p-5 border border-primary/10">
+<div class="flex items-center gap-2 mb-3">
+<span class="material-symbols-outlined text-primary text-sm">smart_toy</span>
+<h3 class="font-label-md text-label-md text-primary uppercase tracking-wider">AI Tactical Notes</h3>
+</div>
+<ul class="space-y-3">
+<li class="flex gap-3">
+<span class="w-1.5 h-1.5 rounded-full bg-primary mt-2 flex-none"></span>
+<p class="text-label-md leading-relaxed text-on-surface-variant">Madrid are overloading the left flank to exploit space behind the City full-back.</p>
+</li>
+<li class="flex gap-3">
+<span class="w-1.5 h-1.5 rounded-full bg-primary mt-2 flex-none"></span>
+<p class="text-label-md leading-relaxed text-on-surface-variant">City's press intensity has dropped 15% since the 60th minute mark.</p>
+</li>
+</ul>
+</section>
+</div>
+<div class="p-6 border-t border-outline-variant bg-surface-container-lowest flex-none">
+<button class="w-full bg-primary text-white font-bold py-4 px-6 rounded-full flex items-center justify-center gap-3 active:scale-[0.98] transition-transform shadow-lg shadow-primary/20" type="button">
+<span class="material-symbols-outlined">share</span>
+Share Insights
+</button>
+</div>
+</aside>
+</div>
+</section>
+<!-- Secondary Sections -->
+<div class="space-y-16">
+<!-- Continue Watching -->
+<section>
+<div class="flex justify-between items-end mb-6">
+<h2 class="font-headline-lg text-on-surface">Continue Watching</h2>
+<a class="text-primary font-label-md hover:underline" href="matches.html">View All</a>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+<a class="group block" href="matches.html#match-1">
+<div class="relative aspect-video rounded-lg overflow-hidden mb-3 shadow-sm border border-surface-container bg-black">
+<img alt="Teqball World Series" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBnUwTm1KreFAKYwt6xd5Yfbt-Z7rh-meOlO-Yf1oblKtlgSNvCD1VrcSLYItHrt1JzXxXOO-e-eMN-grmEm4aB3RTwkdr63bcOWINcXQUVvuGXIL1Z7a_3jPV3VLCIYo8204njGiDQDdm_8yi-JK5HhsiEbFVoQ472aEdFbzcNuL5xNIjgdrV4iXH6Scz1uW9DwioFGn4vkdUuV1jF22ZAIUZW7eXDfDwQ19yTLra4kFjnESzQeaNIukQesW0tWULWstenXunmDvdm"/>
+<span class="absolute top-2 left-2 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">Live</span>
+<div class="absolute inset-0 flex items-center justify-center bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+<span class="material-symbols-outlined text-white text-5xl" style="font-variation-settings: 'FILL' 1">play_circle</span>
+</div>
+</div>
+<h3 class="font-headline-md text-on-surface text-base">Budapest</h3>
+<p class="text-label-sm text-secondary">Teqball • Teqball World Series</p>
+</a><a class="group block" href="matches.html#match-2">
+<div class="relative aspect-video rounded-lg overflow-hidden mb-3 shadow-sm border border-surface-container bg-black">
+<img alt="National Dodgeball League" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAXnpvJzw5PcV4oRXA1a46VhfI65KMpKS2ZaMe22-_2vLwkL8wSrkBfn26DwPdAyTmd1U8KNMKHLIMfGwXEzSiHpxbkejUrrJK2UPCwF3fis1UbMdVKCeYyI1UGcY7qAw4oB27I_s000q-ZcqGNT4-8h2Aq9vPP9ci7uaNc-sDA7XKJNokSmbx-DptMPdwkW50D-9W3ScfjRgxqdw8hVQC6kOWTaRnk9Vbe6IkU8vOVdvhyWaVNg0def1ITyWPnyeX7h2OLOlfq1-Wf"/>
+
+<div class="absolute inset-0 flex items-center justify-center bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+<span class="material-symbols-outlined text-white text-5xl" style="font-variation-settings: 'FILL' 1">play_circle</span>
+</div>
+</div>
+<h3 class="font-headline-md text-on-surface text-base">Las Vegas</h3>
+<p class="text-label-sm text-secondary">Dodgeball • Today, 21:00</p>
+</a><a class="group block" href="matches.html#match-3">
+<div class="relative aspect-video rounded-lg overflow-hidden mb-3 shadow-sm border border-surface-container bg-black">
+<img alt="World Padel Tour" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBxDSm53sy-4RECnS5S3unf2P37ywb9rIMa4xLBhaYwF9JrVMrmtkAjp02rb2dAIhm56RS8QdUspLIVVMVeQD_xiJtAln8GIhVyzGY9IWzBdk5o_ctrmgfDgP0Uw6g8M5vmgxmxFCPQHFYdqR-fIi0e8j9F88cNUPtrl63fFoF-wXiohUpKtP2NJ7rMLSQXie9kcicVs3wsG2S7soEtbCNMbZSTK7MDvVdJynAARHr_VAPE6g3E4aac5QtAvEKaK_UFF6LrpCqg8glt"/>
+<span class="absolute top-2 left-2 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">Live</span>
+<div class="absolute inset-0 flex items-center justify-center bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+<span class="material-symbols-outlined text-white text-5xl" style="font-variation-settings: 'FILL' 1">play_circle</span>
+</div>
+</div>
+<h3 class="font-headline-md text-on-surface text-base">Madrid Arena</h3>
+<p class="text-label-sm text-secondary">Padel • World Padel Tour</p>
+</a>
+</div>
+</section>
+<!-- Trending Matches -->
+<section class="bg-surface-container-low -mx-margin-mobile md:-mx-margin-desktop px-margin-mobile md:px-margin-desktop py-12 rounded-3xl">
+<div class="flex justify-between items-end mb-8">
+<h2 class="font-headline-lg text-on-surface">Trending Matches</h2>
+<a class="text-primary font-label-md hover:underline" href="#">See Rankings</a>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+<!-- Bento-ish Grid Item -->
+<div class="bg-surface rounded-2xl p-6 shadow-sm flex flex-col justify-between h-48 border border-surface-container-highest">
+<div class="flex justify-between items-start">
+<span class="text-label-sm font-bold text-primary flex items-center gap-2">
+<span class="material-symbols-outlined text-base">trending_up</span> TRENDING #1
+                            </span>
+<span class="material-symbols-outlined text-secondary">more_vert</span>
+</div>
+<div>
+<h3 class="font-headline-md text-on-surface">Champions League: Madrid vs London</h3>
+<p class="text-body-md text-secondary">4.2M Viewers</p>
+</div>
+</div>
+<div class="bg-surface rounded-2xl p-6 shadow-sm flex flex-col justify-between h-48 border border-surface-container-highest">
+<div class="flex justify-between items-start">
+<span class="text-label-sm font-bold text-on-surface-variant">HOCKEY</span>
+<span class="material-symbols-outlined text-secondary">more_vert</span>
+</div>
+<div>
+<h3 class="font-headline-md text-on-surface">World Cup Qualifiers: Canada vs USA</h3>
+<p class="text-body-md text-secondary">1.8M Viewers</p>
+</div>
+</div>
+<div class="bg-surface rounded-2xl p-6 shadow-sm flex flex-col justify-between h-48 border border-surface-container-highest">
+<div class="flex justify-between items-start">
+<span class="text-label-sm font-bold text-on-surface-variant">FUTSAL</span>
+<span class="material-symbols-outlined text-secondary">more_vert</span>
+</div>
+<div>
+<h3 class="font-headline-md text-on-surface">Copa Futsal: Brazil vs Argentina</h3>
+<p class="text-body-md text-secondary">950K Viewers</p>
+</div>
+</div>
+</div>
+</section>
+</div>
+</main>
+<footer class="bg-surface-container-low w-full border-t border-surface-container-high py-gutter px-margin-mobile md:px-margin-desktop flex flex-col md:flex-row justify-between items-center gap-4">
+<span class="font-headline-md text-headline-md font-bold text-on-surface">Sportcast</span>
+<div class="flex flex-wrap justify-center gap-6">
+<a class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors" href="#">Privacy Policy</a>
+<a class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors" href="#">Terms of Service</a>
+<a class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors" href="#">Help Center</a>
+<a class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors" href="#">Contact</a>
+</div>
+<p class="font-label-sm text-label-sm text-secondary">© 2026 Sportcast Streaming. All rights reserved.</p>
+</footer>
+<!-- Micro-interactions Script -->
+<script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const playBtn = document.getElementById('play-live-btn');
+            const playerSection = document.getElementById('live-player-section');
+            const statusText = document.getElementById('live-status-text');
+
+            if (playBtn && playerSection) {
+                playBtn.addEventListener('click', () => {
+                    playerSection.classList.add('is-live');
+                    if (statusText) statusText.textContent = 'Live';
+                });
+            }
+
+            const insightsBtn = document.getElementById('insights-btn');
+            const insightsCloseBtn = document.getElementById('insights-close-btn');
+            const insightsPanel = document.getElementById('insights-panel');
+
+            function setInsightsOpen(isOpen) {
+                if (playerSection) {
+                    playerSection.classList.toggle('insights-open', isOpen);
+                }
+                if (insightsPanel) {
+                    insightsPanel.setAttribute('aria-hidden', String(!isOpen));
+                }
+                if (insightsBtn) {
+                    insightsBtn.classList.toggle('is-active', isOpen);
+                    insightsBtn.setAttribute('aria-expanded', String(isOpen));
+                }
+            }
+
+            if (insightsBtn && playerSection) {
+                insightsBtn.addEventListener('click', () => {
+                    setInsightsOpen(!playerSection.classList.contains('insights-open'));
+                });
+            }
+
+            if (insightsCloseBtn) {
+                insightsCloseBtn.addEventListener('click', () => setInsightsOpen(false));
+            }
+
+            const aiCommentaryBtn = document.getElementById('ai-commentary-btn');
+            if (aiCommentaryBtn) {
+                aiCommentaryBtn.addEventListener('click', () => {
+                    window.location.href = 'commentary.html';
+                });
+            }
+
+            const sportCategories = document.getElementById('sport-categories');
+            const sportMoreWrap = document.getElementById('sport-more-wrap');
+            const sportMoreBtn = document.getElementById('sport-more-btn');
+            const sportMoreMenu = document.getElementById('sport-more-menu');
+            const overflowSports = new Set(['kitesurfing', 'hobby-horsing', 'underwater-hockey', 'pickleball', 'professional-fishing']);
+
+            function closeSportMoreMenu() {
+                if (sportMoreMenu) sportMoreMenu.classList.remove('open');
+                if (sportMoreBtn) {
+                    sportMoreBtn.classList.remove('is-open');
+                    sportMoreBtn.setAttribute('aria-expanded', 'false');
+                }
+            }
+
+            function setActiveSportChip(chip) {
+                if (!chip) return;
+                document.querySelectorAll('.sport-chip').forEach((btn) => btn.classList.remove('active'));
+                chip.classList.add('active');
+                closeSportMoreMenu();
+                if (sportMoreBtn) {
+                    const sport = chip.dataset.sport;
+                    sportMoreBtn.classList.toggle('has-selection', Boolean(sport && sport !== 'all' && overflowSports.has(sport)));
+                }
+            }
+
+            if (sportCategories) {
+                sportCategories.addEventListener('click', (evt) => {
+                    const chip = evt.target.closest('.sport-chip');
+                    if (chip) setActiveSportChip(chip);
+                });
+                sportCategories.addEventListener('wheel', (evt) => {
+                    evt.preventDefault();
+                    sportCategories.scrollLeft += evt.deltaY;
+                });
+            }
+
+            if (sportMoreMenu) {
+                sportMoreMenu.addEventListener('click', (evt) => {
+                    const chip = evt.target.closest('.sport-chip');
+                    if (chip) setActiveSportChip(chip);
+                });
+            }
+
+            if (sportMoreBtn && sportMoreMenu) {
+                sportMoreBtn.addEventListener('click', (evt) => {
+                    evt.stopPropagation();
+                    const isOpen = sportMoreMenu.classList.toggle('open');
+                    sportMoreBtn.classList.toggle('is-open', isOpen);
+                    sportMoreBtn.setAttribute('aria-expanded', String(isOpen));
+                });
+                document.addEventListener('click', (evt) => {
+                    if (sportMoreWrap && !sportMoreWrap.contains(evt.target)) {
+                        closeSportMoreMenu();
+                    }
+                });
+            }
+
+            document.addEventListener('keydown', (evt) => {
+                if (evt.key === 'Escape') {
+                    closeSportMoreMenu();
+                }
+                if (evt.key === 'Escape' && playerSection?.classList.contains('insights-open')) {
+                    setInsightsOpen(false);
+                }
+            });
+
+            // Simple hover scale effect for cards
+            const cards = document.querySelectorAll('.group');
+            cards.forEach(card => {
+                card.addEventListener('mouseenter', () => {
+                    const img = card.querySelector('img');
+                    if (img) img.style.transform = 'scale(1.05)';
+                });
+                card.addEventListener('mouseleave', () => {
+                    const img = card.querySelector('img');
+                    if (img) img.style.transform = 'scale(1)';
+                });
+            });
+
+        });
+    </script>
+</body></html>

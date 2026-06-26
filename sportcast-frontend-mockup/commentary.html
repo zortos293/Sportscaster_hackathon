@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Sportcast - AI Commentary</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Inter:wght@400;600;700&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Montserrat:wght@100..900&display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-tint": "#b52420",
+                        "inverse-surface": "#2f3132",
+                        "on-secondary-fixed": "#1b1b1b",
+                        "on-secondary-fixed-variant": "#474747",
+                        "surface-dim": "#d9dadc",
+                        "primary-fixed-dim": "#ffb4ab",
+                        "on-secondary": "#ffffff",
+                        "tertiary-fixed": "#e2e2e2",
+                        "inverse-on-surface": "#f0f0f2",
+                        "tertiary": "#5d5f5f",
+                        "surface-container-highest": "#e2e2e4",
+                        "surface": "#f9f9fb",
+                        "on-primary-fixed": "#410002",
+                        "surface-variant": "#e2e2e4",
+                        "secondary-fixed-dim": "#c6c6c6",
+                        "secondary": "#5e5e5e",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "on-primary-container": "#600004",
+                        "secondary-container": "#e2e2e2",
+                        "on-tertiary-fixed-variant": "#454747",
+                        "on-surface-variant": "#5a403d",
+                        "error-container": "#ffdad6",
+                        "outline": "#8e706c",
+                        "outline-variant": "#e3beba",
+                        "tertiary-container": "#929393",
+                        "tertiary-fixed-dim": "#c6c6c7",
+                        "on-background": "#1a1c1d",
+                        "on-primary-fixed-variant": "#92030b",
+                        "secondary-fixed": "#e2e2e2",
+                        "surface-container": "#eeeef0",
+                        "inverse-primary": "#ffb4ab",
+                        "on-surface": "#1a1c1d",
+                        "surface-container-low": "#f3f3f5",
+                        "on-error": "#ffffff",
+                        "primary-fixed": "#ffdad6",
+                        "surface-bright": "#f9f9fb",
+                        "primary": "#b52420",
+                        "error": "#ba1a1a",
+                        "surface-container-high": "#e8e8ea",
+                        "background": "#f9f9fb",
+                        "primary-container": "#ff5a4e",
+                        "on-secondary-container": "#646464",
+                        "on-error-container": "#93000a",
+                        "on-tertiary-container": "#2a2c2c",
+                        "on-tertiary-fixed": "#1a1c1c"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "unit": "8px",
+                        "gutter": "24px",
+                        "margin-desktop": "48px",
+                        "margin-mobile": "16px",
+                        "container-max": "1280px"
+                    },
+                    "fontFamily": {
+                        "display-lg": ["Montserrat"],
+                        "headline-lg": ["Montserrat"],
+                        "body-lg": ["Inter"],
+                        "headline-md": ["Montserrat"],
+                        "body-md": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "label-md": ["Inter"],
+                        "display-lg-mobile": ["Montserrat"],
+                        "headline-lg-mobile": ["Montserrat"]
+                    },
+                    "fontSize": {
+                        "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "800"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "700"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                        "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600"}],
+                        "display-lg-mobile": ["32px", {"lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "800"}],
+                        "headline-lg-mobile": ["24px", {"lineHeight": "30px", "fontWeight": "700"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .hero-gradient {
+            background: linear-gradient(0deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0) 100%);
+        }
+
+        .pulse-animation {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+        }
+
+        .live-action-bar {
+            background: #ffffff;
+            border: 1px solid #e8e8ea;
+            border-top: none;
+        }
+
+        .live-action-btn {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.875rem 1.25rem;
+            border-radius: 9999px;
+            background: #ffffff;
+            border: 1px solid #e8e8ea;
+            color: #18181b;
+            transition: background 0.2s, transform 0.2s;
+        }
+
+        .live-action-btn:hover {
+            background: #f4f4f5;
+        }
+
+        .live-action-btn:active {
+            transform: scale(0.98);
+        }
+
+        .live-action-btn .icon-wrap {
+            width: 2.75rem;
+            height: 2.75rem;
+            border-radius: 9999px;
+            background: #f4f4f5;
+            color: #3f3f46;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        #live-player-section.is-live #play-overlay {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #live-player-section.is-live #hero-info {
+            opacity: 0.85;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #e2e2e4;
+            border-radius: 10px;
+        }
+
+        #insights-backdrop {
+            display: none;
+        }
+
+        #live-player-section {
+            --insights-panel-width: 380px;
+        }
+
+        .live-stage {
+            background: #ffffff;
+            border: 1px solid #e8e8ea;
+            overflow: hidden;
+        }
+
+        #insights-panel {
+            width: 0;
+            max-width: 0;
+            height: 0;
+            max-height: 0;
+            overflow: hidden;
+            flex-shrink: 0;
+            opacity: 0;
+            border-left: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            pointer-events: none;
+            transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1), max-width 0.35s cubic-bezier(0.4, 0, 0.2, 1), max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease;
+        }
+
+        #insights-panel-scroll {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-y: auto;
+        }
+
+        #live-player-section.insights-open #insights-panel {
+            width: 100%;
+            max-width: 100%;
+            height: auto;
+            opacity: 1;
+            max-height: 24rem;
+            border-top: 1px solid #e8e8ea;
+            pointer-events: auto;
+        }
+
+        @media (min-width: 1024px) {
+            #live-player-section.insights-open .live-stage {
+                position: relative;
+                width: 100%;
+            }
+
+            #live-player-section.insights-open .live-player-main {
+                flex: 0 0 calc(100% - var(--insights-panel-width));
+                width: calc(100% - var(--insights-panel-width));
+                max-width: calc(100% - var(--insights-panel-width));
+            }
+
+            #live-player-section.insights-open #insights-panel {
+                position: absolute;
+                top: 0;
+                right: 0;
+                bottom: 0;
+                width: var(--insights-panel-width);
+                max-width: var(--insights-panel-width);
+                flex: none;
+                height: auto;
+                max-height: none;
+                align-self: auto;
+                border-top: none;
+                border-left: 1px solid #e8e8ea;
+                pointer-events: auto;
+            }
+
+            #live-player-section.insights-open #live-screen {
+                border-top-right-radius: 0;
+            }
+
+            #live-player-section.insights-open .live-action-bar {
+                border-bottom-right-radius: 0;
+            }
+
+            #live-player-section.insights-open #insights-panel {
+                border-top-right-radius: 0.75rem;
+                border-bottom-right-radius: 0.75rem;
+            }
+        }
+
+        .live-action-btn.is-active {
+            background: #fef2f2;
+            border-color: #b52420;
+            box-shadow: 0 0 0 1px rgba(181, 36, 32, 0.12);
+        }
+
+    
+        .commentary-progress {
+            background: rgba(255, 255, 255, 0.2);
+            height: 4px;
+            border-radius: 2px;
+            position: relative;
+            cursor: pointer;
+        }
+        .commentary-progress-fill {
+            background: #ff5a4e;
+            height: 100%;
+            width: 35%;
+            border-radius: 2px;
+            position: relative;
+        }
+        .commentary-progress-thumb {
+            width: 12px;
+            height: 12px;
+            background: #ffffff;
+            border-radius: 50%;
+            position: absolute;
+            right: -6px;
+            top: 50%;
+            transform: translateY(-50%);
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+        .commentary-blur-overlay {
+            backdrop-filter: blur(60px) brightness(0.4);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md overflow-x-hidden">
+<header class="bg-surface shadow-sm sticky top-0 z-50 h-20 flex items-center">
+<nav class="flex justify-between items-center px-margin-mobile md:px-margin-desktop w-full max-w-container-max mx-auto">
+<!-- Brand -->
+<a aria-label="Sportcast home" class="flex items-center gap-3 cursor-pointer active:scale-95 transition-transform" href="live.html">
+<img alt="" aria-hidden="true" class="h-12 w-12 md:h-14 md:w-14 shrink-0 object-contain" src="assets/logo.png"/>
+<span class="font-display-lg text-headline-md md:text-display-lg font-extrabold text-primary">Sportcast</span>
+</a>
+<!-- Desktop Links -->
+<div class="hidden md:flex items-center gap-8">
+<a class="text-primary font-bold border-b-2 border-primary py-1 px-1 transition-colors" href="live.html">Live</a>
+<a class="text-secondary font-label-md hover:text-primary transition-colors" href="highlight.html">Highlight</a>
+</div>
+<!-- Actions -->
+<div class="flex items-center gap-4 md:gap-6">
+<div class="relative hidden sm:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-secondary pointer-events-none">search</span>
+<input aria-label="Search matches" class="bg-surface-container-low border-none rounded-full pl-10 pr-4 py-2 w-48 md:w-64 font-body-md text-on-surface focus:ring-2 focus:ring-primary outline-none transition-all" placeholder="Search matches..." type="search"/>
+</div>
+<button class="p-2 rounded-full hover:bg-surface-container transition-colors cursor-pointer active:scale-95" type="button">
+<span class="material-symbols-outlined text-secondary">notifications</span>
+</button>
+<div class="h-10 w-10 rounded-full border-2 border-primary-container overflow-hidden cursor-pointer active:scale-95 transition-transform">
+<img class="w-full h-full object-cover" data-alt="A professional close-up studio portrait of a sports enthusiast with a friendly expression, set against a clean, minimalist light gray background. The lighting is soft and cinematic, following the modern Sportcast aesthetic of premium streaming platforms. High contrast and sharp focus on facial features." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBwQ1b33Tg2FBsjSFsMtZFNeCLeGnOt-cb5jgK4gvgOAD_dfx2ItzrjbUjqCFsZaYXot8bET-czNBzPFcn4oYq1Uzyi9FKrNrUQvwwODZ-W38f6Ucgw63AfjVzoJtwPdKieoaXUixsV-a1hWeNy_v61oLsKlPd4kzvRnLH-yxs3LcDAvlQgvZx7V6XlLrXMeVtABuMv3tDtlorH5pNsfHkMe2Ux_8K5vyq5vFJTd8zbpcw9lHNEEy_xKvL7I4lKCbN_m4lqVJFTwcHo"/>
+</div>
+</div>
+</nav>
+</header>
+<main class="relative min-h-[calc(100vh-5rem)] flex items-center justify-center overflow-hidden">
+<div class="absolute inset-0 z-0 scale-110">
+<div class="w-full h-full bg-cover bg-center" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBLACAi8OlYbrirZTynIUXfP13Sl_rJSb0mJrZVV8i9Fqm2Sf4rhHgpmXcctukrLTwkWuWlbJbK5Hw87d5jd2EFEp_5G-eqz4aStMU4ZKjgNBf5fTbLEjQzxuJNWvC7mTLfCXfz2WXBh_l_rK-xUO65rIQVQuUGbUU-UD1efR7MNYTzGMjfMGjriAU9AQYboig-ju1uh9jZnwOjd-vhsgY7oe2JLrj_D4TmUe5S5bpPYqMw_3aCNh_wJaCstLT_AG-tf7GGMADGoq95')"></div>
+<div class="absolute inset-0 commentary-blur-overlay"></div>
+</div>
+<div class="relative z-10 w-full max-w-4xl px-margin-mobile md:px-margin-desktop flex flex-col items-center py-8">
+<a aria-label="Back to match" class="absolute top-0 right-4 md:right-0 text-white/70 hover:text-white transition-colors flex items-center gap-2 group" href="live.html" id="commentary-close-btn">
+<span class="material-symbols-outlined text-2xl group-active:scale-90 transition-transform">close</span>
+<span class="font-label-md hidden md:inline">Back to Match</span>
+</a>
+<div class="w-full max-w-sm aspect-video md:aspect-square mb-8 md:mb-12 shadow-2xl rounded-xl overflow-hidden">
+<img alt="Amsterdam Padel League Finals" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDtEC8XwMPy0rKMRX0DYqKIHBckD8nl98E8uP1kpT3NlKWPYA6iq-YQZO1ERpr_NcDcBQAWayWa9ny15YB3ll6s6OR39rGgnfow3XCsCvzTa_jZ2YEHBlFNrHgZBvmHnwo7FhBRmnodJqa9m5h301CwAh5gdtKqemj7bTvdpXi1c5jHALgHLWnu2mR4XCPHUW1rRhRe10HV9ArwAl5_4LmbhvduraiSZH11b0OrKlO4G9ETGJjOGaweh8Kk08XpjnIeXX-wbUelrU4G"/>
+</div>
+<div class="text-center mb-8 md:mb-10 px-2">
+<h1 class="text-white font-headline-lg md:text-display-lg-mobile mb-2">Amsterdam Padel League Finals</h1>
+<div class="flex flex-wrap items-center justify-center gap-2">
+<span class="bg-primary px-2 py-0.5 rounded-sm text-[10px] font-bold text-white tracking-widest flex items-center gap-1">
+<span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span>
+LIVE
+</span>
+<p class="text-white/60 font-body-md">AI Live Commentary • Sportcast Premium</p>
+</div>
+</div>
+<div class="w-full mb-8">
+<div class="commentary-progress" id="commentary-progress">
+<div class="commentary-progress-fill" id="commentary-progress-fill">
+<div class="commentary-progress-thumb"></div>
+</div>
+</div>
+<div class="flex justify-between mt-3 px-1 text-white/50 font-label-sm">
+<span>14:32</span>
+<span>42:15</span>
+</div>
+</div>
+<div class="flex items-center justify-between w-full max-w-md mb-10 md:mb-12">
+<button class="text-white/70 hover:text-white w-12 h-12 flex items-center justify-center transition-all active:scale-95" type="button">
+<span class="font-bold text-sm border border-white/30 rounded px-1">1.5x</span>
+</button>
+<button class="text-white hover:text-primary-container transition-all active:scale-90 flex flex-col items-center" type="button">
+<span class="material-symbols-outlined text-4xl">replay_10</span>
+</button>
+<button class="bg-white text-on-background w-20 h-20 rounded-full flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all" id="commentary-play-btn" type="button">
+<span class="material-symbols-outlined text-5xl" id="commentary-play-icon" style="font-variation-settings: 'FILL' 1">pause</span>
+</button>
+<button class="text-white hover:text-primary-container transition-all active:scale-90 flex flex-col items-center" type="button">
+<span class="material-symbols-outlined text-4xl">forward_10</span>
+</button>
+<button class="text-white/70 hover:text-white w-12 h-12 flex items-center justify-center transition-all active:scale-95" type="button">
+<span class="material-symbols-outlined">timer</span>
+</button>
+</div>
+<div class="flex flex-wrap justify-center gap-4">
+<button class="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-full font-label-md transition-all active:scale-95 backdrop-blur-md border border-white/10" type="button">
+<span class="material-symbols-outlined text-lg">insights</span>
+View Insights
+</button>
+<button class="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-full font-label-md transition-all active:scale-95 backdrop-blur-md border border-white/10" type="button">
+<span class="material-symbols-outlined text-lg">share</span>
+Share Commentary
+</button>
+</div>
+</div>
+</main>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const playBtn = document.getElementById('commentary-play-btn');
+    const playIcon = document.getElementById('commentary-play-icon');
+    if (playBtn && playIcon) {
+        playBtn.addEventListener('click', () => {
+            playIcon.textContent = playIcon.textContent === 'pause' ? 'play_arrow' : 'pause';
+        });
+    }
+    const progressBar = document.getElementById('commentary-progress');
+    const progressFill = document.getElementById('commentary-progress-fill');
+    if (progressBar && progressFill) {
+        progressBar.addEventListener('click', (e) => {
+            const rect = progressBar.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const percentage = Math.min(Math.max(0, x / rect.width), 1) * 100;
+            progressFill.style.width = percentage + '%';
+        });
+    }
+});
+</script>
+</body></html>
