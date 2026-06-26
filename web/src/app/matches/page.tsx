@@ -20,7 +20,7 @@ export default function MatchesPage() {
 
   return (
     <>
-      <SportcastHeader activeNav="live" />
+      <SportcastHeader activeNav="live" dark />
       <main className="mx-auto max-w-(--spacing-container-max) px-margin-mobile py-8 md:px-margin-desktop">
         <section className="mb-8">
           <div className="mb-2 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">

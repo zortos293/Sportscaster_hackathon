@@ -1,12 +1,11 @@
 import Link from "next/link";
-import { ImportedHighlightsRow } from "@/components/sportcast/ImportedHighlightsRow";
 import { LivePlayerSection } from "@/components/sportcast/LivePlayerSection";
 import { MatchCard } from "@/components/sportcast/MatchCard";
 import { MaterialIcon } from "@/components/sportcast/MaterialIcon";
 import { SportCategoryChips } from "@/components/sportcast/SportCategoryChips";
 import { SportcastFooter } from "@/components/sportcast/SportcastFooter";
 import { SportcastHeader } from "@/components/sportcast/SportcastHeader";
-import { getFeaturedDemoMatch, LIVE_DEMO_MATCHES } from "@/lib/sportcast/live-matches";
+import { getFeaturedDemoMatch } from "@/lib/sportcast/live-matches";
 import { MATCHES } from "@/lib/sportcast/matches";
 
 const TRENDING = [
@@ -35,44 +34,16 @@ const TRENDING = [
 
 export default function LivePage() {
   const featured = getFeaturedDemoMatch();
-  const nicheMatches = MATCHES.slice(0, 3);
+  const continueWatching = MATCHES.slice(0, 3);
 
   return (
     <>
-      <SportcastHeader activeNav="live" />
-      <main className="mx-auto max-w-(--spacing-container-max) px-margin-mobile py-8 md:px-margin-desktop">
-        <SportCategoryChips />
-        <LivePlayerSection featured={featured} />
+      <SportcastHeader activeNav="live" showCategories />
+      <SportCategoryChips />
+      <LivePlayerSection featured={featured} />
 
+      <main className="mx-auto max-w-(--spacing-container-max) px-margin-mobile pb-8 pt-8 md:px-margin-desktop">
         <div className="space-y-16">
-          <section>
-            <div className="mb-6 flex items-end justify-between">
-              <h2 className="font-display text-headline-lg text-on-surface">
-                Demo Highlights
-              </h2>
-              <Link href="/matches" className="font-label-md text-primary hover:underline">
-                Browse niche sports
-              </Link>
-            </div>
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {LIVE_DEMO_MATCHES.map((match) => (
-                <MatchCard key={match.id} match={match} variant="compact" />
-              ))}
-            </div>
-          </section>
-
-          <section>
-            <div className="mb-6 flex items-end justify-between">
-              <h2 className="font-display text-headline-lg text-on-surface">
-                Imported Highlights
-              </h2>
-              <Link href="/admin" className="font-label-md text-primary hover:underline">
-                Import in admin
-              </Link>
-            </div>
-            <ImportedHighlightsRow />
-          </section>
-
           <section>
             <div className="mb-6 flex items-end justify-between">
               <h2 className="font-display text-headline-lg text-on-surface">
@@ -83,7 +54,7 @@ export default function LivePage() {
               </Link>
             </div>
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {nicheMatches.map((match) => (
+              {continueWatching.map((match) => (
                 <MatchCard key={match.id} match={match} variant="compact" />
               ))}
             </div>

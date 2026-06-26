@@ -52,7 +52,7 @@ export default function LiveStreamPage() {
 
   return (
     <>
-      <SportcastHeader activeNav="live" />
+      <SportcastHeader activeNav="live" dark />
       <main className="mx-auto max-w-(--spacing-container-max) px-margin-mobile py-8 md:px-margin-desktop">
         <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
