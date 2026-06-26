@@ -13,7 +13,7 @@ Add your ElevenLabs API key to `.env`:
 
 ```bash
 ELEVENLABS_API_KEY=your_key_here
-ELEVENLABS_VOICE_ID=JBFqnCBsd6RMkjVDRZzb   # optional
+ELEVENLABS_VOICE_ID=qclmZQrV32ZyXA9Vydps   # optional
 ELEVENLABS_MODEL=eleven_flash_v2_5          # optional, fastest model
 ```
 

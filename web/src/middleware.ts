@@ -9,10 +9,14 @@ import type { NextRequest } from "next/server";
 const isAuthPage = createRouteMatcher(["/sign-in", "/sign-up"]);
 const isProtectedRoute = createRouteMatcher(["/dashboard(.*)"]);
 
-const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL?.trim();
-const convexEnabled = Boolean(convexUrl && /^https?:\/\//.test(convexUrl));
+const convexAuthEnabled =
+  process.env.NEXT_PUBLIC_DISABLE_CONVEX_AUTH !== "true" &&
+  Boolean(
+    process.env.NEXT_PUBLIC_CONVEX_URL?.trim() &&
+      /^https?:\/\//.test(process.env.NEXT_PUBLIC_CONVEX_URL.trim()),
+  );
 
-export default convexEnabled
+export default convexAuthEnabled
   ? convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
       if (isAuthPage(request) && (await convexAuth.isAuthenticated())) {
         return nextjsMiddlewareRedirect(request, "/dashboard");

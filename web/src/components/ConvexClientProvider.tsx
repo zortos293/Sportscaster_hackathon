@@ -1,9 +1,9 @@
 "use client";
 
 import { ConvexAuthNextjsProvider } from "@convex-dev/auth/nextjs";
-import { ConvexReactClient } from "convex/react";
+import { ConvexProvider, ConvexReactClient } from "convex/react";
 import { ReactNode, useMemo } from "react";
-import { getConvexUrl, isConvexEnabled } from "@/lib/env";
+import { getConvexUrl, isConvexAuthEnabled, isConvexEnabled } from "@/lib/env";
 
 export function ConvexClientProvider({ children }: { children: ReactNode }) {
   const convex = useMemo(
@@ -15,7 +15,11 @@ export function ConvexClientProvider({ children }: { children: ReactNode }) {
     return <>{children}</>;
   }
 
-  return (
-    <ConvexAuthNextjsProvider client={convex}>{children}</ConvexAuthNextjsProvider>
-  );
+  if (isConvexAuthEnabled()) {
+    return (
+      <ConvexAuthNextjsProvider client={convex}>{children}</ConvexAuthNextjsProvider>
+    );
+  }
+
+  return <ConvexProvider client={convex}>{children}</ConvexProvider>;
 }

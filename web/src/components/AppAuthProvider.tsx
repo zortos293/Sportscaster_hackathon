@@ -2,7 +2,7 @@
 
 import { useAuthActions, useConvexAuth } from "@convex-dev/auth/react";
 import { createContext, ReactNode, useContext } from "react";
-import { isConvexEnabled } from "@/lib/env";
+import { isConvexAuthEnabled } from "@/lib/env";
 
 type AppAuthState = {
   isAuthenticated: boolean;
@@ -30,7 +30,7 @@ function ConvexAuthBridge({ children }: { children: ReactNode }) {
 }
 
 export function AppAuthProvider({ children }: { children: ReactNode }) {
-  if (!isConvexEnabled()) {
+  if (!isConvexAuthEnabled()) {
     return (
       <AuthContext.Provider value={demoAuth}>{children}</AuthContext.Provider>
     );
