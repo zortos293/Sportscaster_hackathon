@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BroadcastDebugPane } from "@/components/BroadcastDebugPane";
-import { type BroadcastGame, usesNativeVideoAudio, videoUrl } from "@/lib/broadcast-game";
+import { type BroadcastGame, usesNativeVideoAudio, usesBundledCommentary, videoUrl } from "@/lib/broadcast-game";
+import { getBundledCommentaryLine, getBundledCommentaryLines } from "@/lib/demo-static-timelines";
 import { templateCommentary } from "@/lib/commentary-prompts";
 import type { CommentaryDebugEntry, TimelineDebugInfo } from "@/lib/debug-types";
 import type { GameBroadcastContext } from "@/lib/game-context";
@@ -33,7 +34,7 @@ function isAiSource(source: CommentaryLine["source"]): boolean {
 import { eventCacheKey } from "@/lib/match-cache";
 type CachedCommentary = {
   text: string;
-  source: CommentaryDebugEntry["source"] | "cursor";
+  source: CommentaryDebugEntry["source"] | "cursor" | "bundled";
   userPrompt?: string;
   model?: string;
   generatedAt: string;
@@ -292,6 +293,7 @@ function buildTimelineMarkers(events: TimelineEvent[]): TimelineMarker[] {
 
 export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
   const nativeVideoAudio = usesNativeVideoAudio(game);
+  const bundledCommentary = usesBundledCommentary(game);
   const videoRef = useRef<HTMLVideoElement>(null);
   const timelineRef = useRef<TimelineEvent[]>([]);
   const firedRef = useRef<Set<string>>(new Set());
@@ -342,12 +344,23 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
   const resolveCommentaryLocally = useCallback(
     (event: TimelineEvent): CachedCommentary => {
       const generatedAt = new Date().toISOString();
+      const bundled = getBundledCommentaryLine(game.id, event);
+      if (bundled) {
+        const result: CachedCommentary = {
+          text: bundled.text,
+          source: "bundled",
+          generatedAt,
+        };
+        commentaryCacheRef.current.set(eventCacheKey(event), result);
+        return result;
+      }
+
       const text = templateCommentary(event, game.title, gameContextRef.current ?? undefined);
       const result: CachedCommentary = { text, source: "template", generatedAt };
       commentaryCacheRef.current.set(eventCacheKey(event), result);
       return result;
     },
-    [game.title],
+    [game.id, game.title],
   );
 
   const runSerializedCommentaryFetch = useCallback(<T,>(fn: () => Promise<T>): Promise<T> => {
@@ -412,6 +425,17 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
       const cached = commentaryCacheRef.current.get(cacheKey);
       if (cached) return cached;
 
+      const bundled = getBundledCommentaryLine(game.id, event);
+      if (bundled) {
+        const result: CachedCommentary = {
+          text: bundled.text,
+          source: "bundled",
+          generatedAt: new Date().toISOString(),
+        };
+        commentaryCacheRef.current.set(cacheKey, result);
+        return result;
+      }
+
       if (!llmAvailableRef.current) {
         return resolveCommentaryLocally(event);
       }
@@ -449,7 +473,7 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
           });
           const data = (await response.json()) as {
             text?: string;
-            source?: "llm" | "template" | "cursor";
+            source?: "llm" | "template" | "cursor" | "bundled";
             error?: string;
             cursorAgentId?: string;
             debug?: {
@@ -501,7 +525,7 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
       inFlightCommentaryRef.current.set(cacheKey, request);
       return request;
     },
-    [bootstrapStreamSession, game.persona, game.title, resolveCommentaryLocally, runSerializedCommentaryFetch],
+    [bootstrapStreamSession, game.id, game.persona, game.title, resolveCommentaryLocally, runSerializedCommentaryFetch],
   );
 
   const speakCommentary = useCallback((text: string) => {
@@ -741,7 +765,10 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
           gameContext?: GameBroadcastContext;
           debug?: TimelineDebugInfo;
         };
-        const events = filterMajorTimelineEvents(data.events);
+        const events =
+          game.timelineSource === "static"
+            ? data.events
+            : filterMajorTimelineEvents(data.events);
         timelineRef.current = events;
         setTimelineEvents(events);
         gameContextRef.current = data.gameContext ?? data.debug?.gameContext ?? null;
@@ -749,6 +776,13 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
         firedRef.current.clear();
         playbackQueueRef.current = [];
         commentaryCacheRef.current.clear();
+        for (const line of getBundledCommentaryLines(game.id)) {
+          commentaryCacheRef.current.set(line.eventKey, {
+            text: line.text,
+            source: "bundled",
+            generatedAt: new Date().toISOString(),
+          });
+        }
         for (const url of retainedTtsUrlsRef.current) {
           URL.revokeObjectURL(url);
         }
@@ -773,7 +807,7 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
         timelineLoadInFlightRef.current = false;
       }
     },
-    [game.id, prefetchCommentary],
+    [game.id, game.timelineSource, prefetchCommentary],
   );
 
   const unlockAudio = useCallback(() => {
@@ -795,9 +829,20 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
     const video = videoRef.current;
     if (!video) return;
 
+    const resolveDuration = (): number | null => {
+      if (video.duration && Number.isFinite(video.duration) && video.duration > 0) {
+        return video.duration;
+      }
+      if (game.durationSeconds && game.durationSeconds > 0) {
+        return game.durationSeconds;
+      }
+      return null;
+    };
+
     const onLoadedMetadata = () => {
-      if (video.duration && Number.isFinite(video.duration)) {
-        void loadTimeline(video.duration);
+      const duration = resolveDuration();
+      if (duration) {
+        void loadTimeline(duration);
       }
     };
 
@@ -851,8 +896,11 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
     video.addEventListener("timeupdate", onTimeUpdate);
     video.addEventListener("seeked", onSeeked);
 
-    if (video.readyState >= 1 && video.duration) {
-      void loadTimeline(video.duration);
+    if (video.readyState >= 1) {
+      const duration = resolveDuration();
+      if (duration) {
+        void loadTimeline(duration);
+      }
     }
 
     return () => {
@@ -875,7 +923,13 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
       }
       retainedTtsUrlsRef.current.clear();
     };
-  }, [loadTimeline, runPrefetchPipeline, schedulePrefetch, syncToVideoTime, unlockAudio]);
+  }, [game.durationSeconds, loadTimeline, runPrefetchPipeline, schedulePrefetch, syncToVideoTime, unlockAudio]);
+
+  useEffect(() => {
+    if (!game.durationSeconds || game.durationSeconds <= 0) return;
+    if (timelineLoadedDurationRef.current) return;
+    void loadTimeline(game.durationSeconds);
+  }, [game.durationSeconds, loadTimeline]);
 
   const timelineMarkers = buildTimelineMarkers(timelineEvents);
   const progressPct =
@@ -1020,14 +1074,18 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
                 {timelineReady
                   ? nativeVideoAudio
                     ? "Press play — original highlight audio plays from the video."
-                    : llmAvailable && ttsAvailable
-                      ? "Press play — AI commentary and ElevenLabs voice are ready."
-                      : llmAvailable
-                        ? "Press play — AI commentary ready (add ELEVENLABS_API_KEY for voice)."
-                        : "Press play — template commentary runs locally (add CURSOR_API_KEY for AI)."
-                  : nativeVideoAudio
+                    : bundledCommentary
+                      ? "Press play — bundled sportscast commentary is ready."
+                      : llmAvailable && ttsAvailable
+                        ? "Press play — AI commentary and ElevenLabs voice are ready."
+                        : llmAvailable
+                          ? "Press play — AI commentary ready (add ELEVENLABS_API_KEY for voice)."
+                          : "Press play — template commentary runs locally (add CURSOR_API_KEY for AI)."
+                  : bundledCommentary
                     ? "Loading demo timeline…"
-                    : "Loading imported highlight timeline…"}
+                    : nativeVideoAudio
+                      ? "Loading demo timeline…"
+                      : "Loading imported highlight timeline…"}
               </li>
             ) : (
               commentary.map((line) => (

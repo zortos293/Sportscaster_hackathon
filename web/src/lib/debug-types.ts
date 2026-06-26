@@ -5,7 +5,7 @@ export type CommentaryDebugEntry = {
   id: string;
   generatedAt: string;
   videoAt: number;
-  source: "llm" | "template" | "fallback" | "cursor";
+  source: "llm" | "template" | "fallback" | "cursor" | "bundled";
   text: string;
   event: TimelineEvent;
   model?: string;

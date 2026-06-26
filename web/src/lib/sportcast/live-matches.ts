@@ -7,11 +7,14 @@ const DEMO_POSTERS: Record<string, string> = {
     "https://images.unsplash.com/photo-1508098682722-e99c43a406fe?w=1200&q=80",
   "chelsea-newcastle":
     "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=1200&q=80",
+  "hobby-horsing-germany":
+    "https://images.unsplash.com/photo-1553284965-83fd3de85da7?w=1200&q=80",
 };
 
 function sportLabel(game: BroadcastGame): string {
   if (game.sport === "football") return "College Football";
   if (game.sport === "soccer") return "Soccer";
+  if (game.sport === "equestrian") return "Hobby Horsing";
   return game.sport;
 }
 

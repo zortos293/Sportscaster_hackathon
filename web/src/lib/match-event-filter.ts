@@ -33,6 +33,7 @@ export function filterMajorTimelineLines(lines: LiveScoreLine[]): LiveScoreLine[
 }
 
 export function isMajorTimelineEvent(event: Pick<TimelineEvent, "kind" | "description" | "context">): boolean {
+  if (event.kind === "opening") return true;
   if (event.kind === "score") return true;
   if (event.kind !== "key_play") return false;
 

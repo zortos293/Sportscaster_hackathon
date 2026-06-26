@@ -1,4 +1,5 @@
 import { getDemoGame } from "@/lib/demo-games";
+import { getStaticDemoPack } from "@/lib/demo-static-timelines";
 import { getFullMatchTimeline } from "@/lib/full-match-server";
 import {
   buildTimeline,
@@ -18,6 +19,27 @@ export async function GET(request: Request) {
 
   const demoGame = getDemoGame(gameId);
   if (demoGame) {
+    if (demoGame.timelineSource === "static") {
+      const pack = getStaticDemoPack(demoGame.id);
+      if (!pack) {
+        return Response.json({ error: "Static demo timeline not found" }, { status: 404 });
+      }
+
+      return Response.json({
+        events: pack.events,
+        gameId: demoGame.id,
+        gameContext: pack.gameContext,
+        videoMode: demoGame.videoMode,
+        debug: {
+          fetchedAt: new Date().toISOString(),
+          summary: { source: "static-demo", eventCount: pack.events.length },
+          events: pack.events,
+          gameContext: pack.gameContext,
+          videoMode: demoGame.videoMode,
+        },
+      });
+    }
+
     try {
       const fetchedAt = new Date().toISOString();
       const espnUrl = espnSummaryUrl(demoGame.sport, demoGame.league, demoGame.eventId);

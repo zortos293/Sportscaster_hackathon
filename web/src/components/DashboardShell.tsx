@@ -6,6 +6,7 @@ import { ReactNode } from "react";
 
 const sidebarLinks = [
   { href: "/live", label: "Overview" },
+  { href: "/live/watch/hobby-horsing-germany", label: "Hobby horsing" },
   { href: "/live/watch/georgia-ole-miss", label: "College football" },
   { href: "/live/watch/chelsea-newcastle", label: "Premier League" },
 ];

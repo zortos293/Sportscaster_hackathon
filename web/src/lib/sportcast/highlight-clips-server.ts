@@ -2,6 +2,7 @@ import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../convex/_generated/api";
 import { usesNativeVideoAudio, videoUrl, type BroadcastGame } from "@/lib/broadcast-game";
 import { DEMO_GAMES } from "@/lib/demo-games";
+import { getStaticDemoPack } from "@/lib/demo-static-timelines";
 import { getFullMatchTimeline } from "@/lib/full-match-server";
 import { filterMajorTimelineEvents } from "@/lib/match-event-filter";
 import { buildTimeline, fetchEspnSummary, type TimelineEvent } from "@/lib/timeline";
@@ -64,9 +65,19 @@ async function clipsFromDemoGame(game: BroadcastGame): Promise<HighlightClip[]> 
   if (!duration || duration <= 0) return [];
 
   try {
+    const nativeAudio = usesNativeVideoAudio(game);
+
+    if (game.timelineSource === "static") {
+      const pack = getStaticDemoPack(game.id);
+      if (!pack) return [];
+
+      return pack.events
+        .sort((a, b) => a.videoAt - b.videoAt)
+        .map((event) => eventToClip(event, game, nativeAudio));
+    }
+
     const payload = await fetchEspnSummary(game.sport, game.league, game.eventId);
     const { events } = buildTimeline(payload, game.sport, duration, game.videoMode);
-    const nativeAudio = usesNativeVideoAudio(game);
 
     return filterMajorTimelineEvents(events)
       .sort((a, b) => a.videoAt - b.videoAt)
