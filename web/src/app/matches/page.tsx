@@ -1,23 +1,11 @@
-"use client";
-
 import Link from "next/link";
-import { useEffect } from "react";
+import { ImportedHighlightsRow } from "@/components/sportcast/ImportedHighlightsRow";
 import { MatchCard } from "@/components/sportcast/MatchCard";
 import { SportcastFooter } from "@/components/sportcast/SportcastFooter";
 import { SportcastHeader } from "@/components/sportcast/SportcastHeader";
-import { MATCHES } from "@/lib/sportcast/matches";
+import { LIVE_DEMO_MATCHES } from "@/lib/sportcast/live-matches";
 
 export default function MatchesPage() {
-  useEffect(() => {
-    if (typeof window === "undefined" || !window.location.hash) return;
-    const target = document.querySelector(window.location.hash);
-    if (target) {
-      requestAnimationFrame(() =>
-        target.scrollIntoView({ behavior: "smooth", block: "start" }),
-      );
-    }
-  }, []);
-
   return (
     <>
       <SportcastHeader activeNav="live" dark />
@@ -29,7 +17,7 @@ export default function MatchesPage() {
                 Continue Watching
               </h1>
               <p className="text-body-md text-secondary">
-                All live events, replays, and upcoming matches.
+                Demo replays and imported full-match highlights.
               </p>
             </div>
             <Link href="/live" className="shrink-0 font-label-md text-primary hover:underline">
@@ -39,10 +27,17 @@ export default function MatchesPage() {
         </section>
 
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {MATCHES.map((match) => (
-            <MatchCard key={match.id} match={match} />
+          {LIVE_DEMO_MATCHES.map((match) => (
+            <MatchCard key={match.id} match={match} variant="compact" />
           ))}
         </div>
+
+        <section className="mt-16">
+          <h2 className="mb-6 font-display text-headline-lg text-on-surface">
+            Imported Highlights
+          </h2>
+          <ImportedHighlightsRow />
+        </section>
       </main>
       <SportcastFooter />
     </>

@@ -48,7 +48,7 @@ export default function LivePage() {
               <h2 className="font-display text-headline-lg text-on-surface">
                 Continue Watching
               </h2>
-              <Link href="/highlight" className="font-label-md text-primary hover:underline">
+              <Link href="/matches" className="font-label-md text-primary hover:underline">
                 View All
               </Link>
             </div>
