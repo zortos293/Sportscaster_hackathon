@@ -23,6 +23,12 @@ export async function POST(request: Request) {
     body: JSON.stringify({
       text: text.slice(0, 2500),
       model_id: modelId,
+      voice_settings: {
+        stability: 0.35,
+        similarity_boost: 0.85,
+        style: 0.45,
+        use_speaker_boost: true,
+      },
     }),
   });
 

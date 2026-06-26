@@ -92,7 +92,7 @@ Open http://localhost:3000/dashboard → pick a match → **press play**.
 
 1. On video load, `/api/timeline` fetches ESPN scoring plays and maps them to video timestamps.
 2. As the video plays, `timeupdate` fires commentary when each score event is reached.
-3. `/api/commentary` writes the broadcaster line (LLM or template).
+3. `/api/commentary` writes the broadcaster line (Cursor agent, OpenAI fallback, or template).
 4. `/api/tts` speaks it via ElevenLabs.
 
 ### Env vars (`web/.env.local`)
@@ -100,8 +100,13 @@ Open http://localhost:3000/dashboard → pick a match → **press play**.
 | Variable | Required | Purpose |
 |----------|----------|---------|
 | `ELEVENLABS_API_KEY` | Yes (for voice) | Text-to-speech |
-| `OPENAI_API_KEY` | No | Better commentary lines |
+| `CURSOR_API_KEY` | Yes (for LLM) | Commentary via Cursor Cloud Agents API |
+| `CURSOR_COMMENTARY_MODEL` | No | Default `composer-2.5` |
+| `CURSOR_AUTOMATION_WEBHOOK_URL` | No | Optional async automation trigger |
+| `OPENAI_API_KEY` | No | Fallback commentary if Cursor fails |
 | `NEXT_PUBLIC_CONVEX_URL` | No | Auth (empty = demo mode) |
+
+See [automations/sportscaster-commentary.md](automations/sportscaster-commentary.md) for Cursor Automation setup.
 
 ## Quick start (legacy Python backend)
 
@@ -135,7 +140,8 @@ Events: `commentary` (text + optional audio base64), `game_state`, `heartbeat`.
 | Variable | Required | Purpose |
 |----------|----------|---------|
 | `APIFY_TOKEN` | Yes | ESPN MCP on Apify |
-| `OPENAI_API_KEY` | For LLM + TTS | Commentary + `tts-1` |
+| `CURSOR_API_KEY` | For LLM | Commentary via Cursor Cloud Agents API |
+| `OPENAI_API_KEY` | Fallback + TTS | Commentary fallback + `tts-1` |
 | `ESPN_MCP_URL` | No | Default: Apify standby MCP endpoint |
 
 ## Cost rough estimate (hackathon)

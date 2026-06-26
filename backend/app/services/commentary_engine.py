@@ -6,6 +6,7 @@ from openai import AsyncOpenAI
 
 from app.config import settings
 from app.models import GameSnapshot
+from app.services.cursor_commentary import cursor_configured, generate_cursor_commentary
 from app.services.state_diff import StateChange
 
 logger = logging.getLogger(__name__)
@@ -51,7 +52,8 @@ _TRIGGER_GUIDANCE: dict[str, str] = {
 
 class CommentaryEngine:
     def __init__(self) -> None:
-        self._client = AsyncOpenAI(api_key=settings.openai_api_key or None)
+        self._openai = AsyncOpenAI(api_key=settings.openai_api_key or None)
+        self._cursor_agent_id: str | None = None
 
     async def generate(
         self,
@@ -61,9 +63,6 @@ class CommentaryEngine:
         snapshot: GameSnapshot,
         recent_lines: list[str],
     ) -> str:
-        if not settings.openai_api_key:
-            return self._fallback_line(change, snapshot)
-
         recent = "\n".join(f"- {line}" for line in recent_lines[-4:]) or "(none yet)"
         trigger_guide = _TRIGGER_GUIDANCE.get(
             change.trigger,
@@ -84,21 +83,37 @@ Recent commentary (do not repeat phrasing or structure):
 
 Deliver the next live on-air line. Keep talking — the booth stays hot."""
 
-        try:
-            response = await self._client.chat.completions.create(
-                model=settings.openai_model,
-                temperature=0.95,
-                max_tokens=150,
-                messages=[
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": user_prompt},
-                ],
-            )
-            text = (response.choices[0].message.content or "").strip()
-            return text or self._fallback_line(change, snapshot)
-        except Exception:
-            logger.exception("Commentary generation failed")
-            return self._fallback_line(change, snapshot)
+        if cursor_configured():
+            try:
+                text, agent_id = await generate_cursor_commentary(
+                    system_prompt=SYSTEM_PROMPT,
+                    user_prompt=user_prompt,
+                    agent_id=self._cursor_agent_id,
+                )
+                self._cursor_agent_id = agent_id
+                if text:
+                    return text
+            except Exception:
+                logger.exception("Cursor commentary failed; falling back")
+
+        if settings.openai_api_key and settings.openai_api_key != "your_openai_key_here":
+            try:
+                response = await self._openai.chat.completions.create(
+                    model=settings.openai_model,
+                    temperature=0.95,
+                    max_tokens=150,
+                    messages=[
+                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {"role": "user", "content": user_prompt},
+                    ],
+                )
+                text = (response.choices[0].message.content or "").strip()
+                if text:
+                    return text
+            except Exception:
+                logger.exception("OpenAI commentary failed")
+
+        return self._fallback_line(change, snapshot)
 
     def _fallback_line(self, change: StateChange, snapshot: GameSnapshot) -> str:
         away = snapshot.score_away if snapshot.score_away is not None else "?"

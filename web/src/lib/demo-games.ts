@@ -1,3 +1,5 @@
+export type VideoSyncMode = "highlights" | "full_match";
+
 export type DemoGame = {
   id: string;
   title: string;
@@ -8,6 +10,8 @@ export type DemoGame = {
   videoFile: string;
   persona: string;
   finalScore: string;
+  /** How to map ESPN events onto the MP4 timeline */
+  videoMode: VideoSyncMode;
 };
 
 export const DEMO_GAMES: DemoGame[] = [
@@ -21,6 +25,7 @@ export const DEMO_GAMES: DemoGame[] = [
     videoFile: "georgia-ole-miss-2024.mp4",
     persona: "energetic college football play-by-play announcer",
     finalScore: "Ole Miss 28, Georgia 10",
+    videoMode: "highlights",
   },
   {
     id: "chelsea-newcastle",
@@ -32,6 +37,7 @@ export const DEMO_GAMES: DemoGame[] = [
     videoFile: "chelsea-newcastle-2024.mp4",
     persona: "British Premier League football commentator with building excitement",
     finalScore: "Chelsea 2, Newcastle 1",
+    videoMode: "highlights",
   },
 ];
 

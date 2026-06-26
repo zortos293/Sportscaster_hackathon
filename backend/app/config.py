@@ -6,6 +6,9 @@ class Settings(BaseSettings):
 
     apify_token: str = ""
     espn_mcp_url: str = "https://mrbridge--espn-mcp-server.apify.actor/mcp"
+    cursor_api_key: str = ""
+    cursor_commentary_model: str = "composer-2.5"
+    cursor_commentary_timeout_ms: int = 45_000
     openai_api_key: str = ""
     openai_model: str = "gpt-4o-mini"
     tts_voice: str = "alloy"

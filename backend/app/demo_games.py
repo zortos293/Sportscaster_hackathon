@@ -13,6 +13,7 @@ DEMO_GAMES: list[dict[str, Any]] = [
         "video_file": "georgia-ole-miss-2024.mp4",
         "persona": "energetic college football play-by-play announcer",
         "final_score": "Ole Miss 28, Georgia 10",
+        "video_mode": "highlights",
     },
     {
         "id": "chelsea-newcastle",
@@ -24,6 +25,7 @@ DEMO_GAMES: list[dict[str, Any]] = [
         "video_file": "chelsea-newcastle-2024.mp4",
         "persona": "British Premier League football commentator with building excitement",
         "final_score": "Chelsea 2, Newcastle 1",
+        "video_mode": "highlights",
     },
 ]
 

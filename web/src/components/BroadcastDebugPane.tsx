@@ -28,7 +28,7 @@ function formatVideoTime(seconds: number): string {
 }
 
 function sourceBadgeClass(source: CommentaryDebugEntry["source"]): string {
-  if (source === "llm") {
+  if (source === "cursor" || source === "llm") {
     return "bg-emerald-50 text-emerald-800 ring-emerald-600/20";
   }
   if (source === "template") {
@@ -171,16 +171,16 @@ export function BroadcastDebugPane({
                       </div>
                     </dl>
 
-                    {entry.userPrompt ? (
-                      <details className="mt-3">
-                        <summary className="cursor-pointer text-xs font-medium text-violet-700">
-                          LLM prompt
-                        </summary>
-                        <pre className="mt-2 max-h-48 overflow-auto rounded-lg bg-neutral-950 p-3 text-[11px]/5 text-emerald-100">
-                          {entry.userPrompt}
-                        </pre>
-                      </details>
-                    ) : null}
+                      {entry.userPrompt ? (
+                        <details className="mt-3">
+                          <summary className="cursor-pointer text-xs font-medium text-violet-700">
+                            LLM prompt
+                          </summary>
+                          <pre className="mt-2 max-h-48 overflow-auto rounded-lg bg-neutral-950 p-3 text-[11px]/5 text-emerald-100">
+                            {entry.userPrompt}
+                          </pre>
+                        </details>
+                      ) : null}
                   </article>
                 ))
               )}
@@ -194,6 +194,12 @@ export function BroadcastDebugPane({
               ) : (
                 <>
                   <dl className="grid gap-3 text-sm/6 sm:grid-cols-2">
+                    <div>
+                      <dt className="text-xs font-medium text-neutral-700">Sync mode</dt>
+                      <dd className="mt-0.5 font-mono text-xs text-neutral-950">
+                        {timelineDebug.videoMode ?? "highlights"}
+                      </dd>
+                    </div>
                     <div>
                       <dt className="text-xs font-medium text-neutral-700">Fetched at</dt>
                       <dd className="mt-0.5 font-mono text-xs tabular-nums text-neutral-950">

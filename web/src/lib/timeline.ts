@@ -1,4 +1,5 @@
 import { extractGameContext, type GameBroadcastContext } from "@/lib/game-context";
+import { applyVideoSync, type VideoSyncMode } from "@/lib/timeline-sync";
 
 export type TimelineEventKind =
   | "opening"
@@ -21,9 +22,6 @@ export type TimelineEvent = {
 };
 
 const FOOTBALL_QUARTER_SECONDS = 15 * 60;
-const SOCCER_MATCH_SECONDS = 90 * 60;
-const MIN_VIDEO_GAP_SECONDS = 14;
-const MAX_FILLERS_PER_GAP = 2;
 
 function parseFootballClock(period: number, clockDisplay: string): number {
   const parts = clockDisplay.trim().split(":");
@@ -32,18 +30,6 @@ function parseFootballClock(period: number, clockDisplay: string): number {
   const remaining = minutes * 60 + seconds;
   const elapsedInQuarter = FOOTBALL_QUARTER_SECONDS - remaining;
   return (period - 1) * FOOTBALL_QUARTER_SECONDS + Math.max(elapsedInQuarter, 0);
-}
-
-function mapGameTimeToVideo(
-  gameElapsed: number,
-  maxGameElapsed: number,
-  videoDuration: number,
-): number {
-  const introSeconds = 8;
-  const outroSeconds = 12;
-  const usable = Math.max(videoDuration - introSeconds - outroSeconds, 1);
-  const ratio = Math.min(Math.max(gameElapsed / Math.max(maxGameElapsed, 1), 0), 1);
-  return introSeconds + ratio * usable;
 }
 
 function parseScoreFromGoalText(text: string): { home: number; away: number } {
@@ -81,134 +67,39 @@ function runningScoreAtElapsed(
   return { scoreHome, scoreAway };
 }
 
-function insertGapFillers(
-  events: TimelineEvent[],
-  videoDuration: number,
-  facts: string[],
-): TimelineEvent[] {
-  const sorted = [...events].sort((a, b) => a.videoAt - b.videoAt);
-  const result: TimelineEvent[] = [];
-  let factIndex = 0;
-
-  for (let i = 0; i < sorted.length; i += 1) {
-    const current = sorted[i];
-    result.push(current);
-
-    const next = sorted[i + 1];
-    const gapStart = current.videoAt;
-    const gapEnd = next?.videoAt ?? Math.max(videoDuration - 8, gapStart + MIN_VIDEO_GAP_SECONDS);
-    const gap = gapEnd - gapStart;
-
-    if (gap < MIN_VIDEO_GAP_SECONDS) continue;
-
-    const fillerCount = Math.min(MAX_FILLERS_PER_GAP, Math.floor(gap / MIN_VIDEO_GAP_SECONDS) - 1);
-    for (let j = 1; j <= fillerCount; j += 1) {
-      const videoAt = gapStart + (gap * j) / (fillerCount + 1);
-      const fact = facts[factIndex % facts.length] ?? "Keep the energy up between plays.";
-      factIndex += 1;
-      const kind: TimelineEventKind = j % 2 === 0 ? "stat_spotlight" : "color";
-
-      result.push({
-        id: `${kind}-${Math.round(videoAt * 10)}-${factIndex}`,
-        videoAt,
-        gameElapsed: current.gameElapsed,
-        scoreHome: current.scoreHome,
-        scoreAway: current.scoreAway,
-        periodLabel: current.periodLabel,
-        kind,
-        description:
-          kind === "stat_spotlight"
-            ? `Stat spotlight — ${fact}`
-            : "Between-the-whistles banter — keep the booth alive.",
-        context: fact,
-      });
-    }
-  }
-
-  return result.sort((a, b) => a.videoAt - b.videoAt);
-}
-
-function injectStatSpotlights(events: TimelineEvent[], facts: string[]): TimelineEvent[] {
-  if (facts.length === 0) return events;
-
-  const scoreEvents = events.filter((e) => e.kind === "score");
-  const result = [...events];
-  let factIndex = 0;
-
-  for (let i = 0; i < scoreEvents.length - 1; i += 1) {
-    const current = scoreEvents[i];
-    const next = scoreEvents[i + 1];
-    const midpoint =
-      current.videoAt + (next.videoAt - current.videoAt) / 2;
-
-    if (next.videoAt - current.videoAt < 20) continue;
-
-    const fact = facts[factIndex % facts.length];
-    factIndex += 1;
-    result.push({
-      id: `stat-mid-${i}`,
-      videoAt: midpoint,
-      gameElapsed: (current.gameElapsed + next.gameElapsed) / 2,
-      scoreHome: current.scoreHome,
-      scoreAway: current.scoreAway,
-      periodLabel: current.periodLabel,
-      kind: "stat_spotlight",
-      description: `Stat spotlight — ${fact}`,
-      context: fact,
-    });
-  }
-
-  return result.sort((a, b) => a.videoAt - b.videoAt);
-}
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function buildTimeline(
   payload: any,
   sport: string,
   videoDuration: number,
-): { events: TimelineEvent[]; gameContext: GameBroadcastContext } {
+  videoMode: VideoSyncMode = "highlights",
+): { events: TimelineEvent[]; gameContext: GameBroadcastContext; videoMode: VideoSyncMode } {
   const gameContext = extractGameContext(payload, sport);
-  const events =
+  const rawEvents =
     sport === "soccer"
-      ? buildSoccerTimeline(payload, videoDuration, gameContext)
-      : buildFootballTimeline(payload, videoDuration, gameContext);
+      ? buildSoccerTimeline(payload, gameContext)
+      : buildFootballTimeline(payload, gameContext);
 
-  const withStats = injectStatSpotlights(events, gameContext.facts);
-  const filled = insertGapFillers(withStats, videoDuration, gameContext.facts);
+  const events = applyVideoSync(
+    rawEvents,
+    videoDuration,
+    sport,
+    videoMode,
+    gameContext.facts,
+  );
 
-  return { events: filled, gameContext };
+  return { events, gameContext, videoMode };
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildFootballTimeline(
-  payload: any,
-  videoDuration: number,
-  gameContext: GameBroadcastContext,
-): TimelineEvent[] {
+function buildFootballTimeline(payload: any, gameContext: GameBroadcastContext): TimelineEvent[] {
   const scoringPlays = payload.scoringPlays ?? [];
   const drives = payload.drives?.previous ?? [];
-  const rawScoreEvents: Array<{ elapsed: number; play: Record<string, unknown> }> = [];
-
-  for (const play of scoringPlays) {
-    const period = play.period?.number ?? 1;
-    const clock = play.clock?.displayValue ?? "15:00";
-    rawScoreEvents.push({ elapsed: parseFootballClock(period, clock), play });
-  }
-
-  const maxElapsed = Math.max(
-    ...rawScoreEvents.map((item) => item.elapsed),
-    ...drives.map((d: { start?: { period?: { number?: number }; clock?: { displayValue?: string } } }) => {
-      const period = d.start?.period?.number ?? 1;
-      const clock = d.start?.clock?.displayValue ?? "15:00";
-      return parseFootballClock(period, clock);
-    }),
-    FOOTBALL_QUARTER_SECONDS * 4,
-  );
 
   const events: TimelineEvent[] = [
     {
       id: "opening",
-      videoAt: 3,
+      videoAt: 0,
       gameElapsed: 0,
       scoreHome: 0,
       scoreAway: 0,
@@ -219,15 +110,16 @@ function buildFootballTimeline(
     },
   ];
 
-  rawScoreEvents.forEach((item, index) => {
-    const period = (item.play.period as { number?: number })?.number ?? 1;
+  scoringPlays.forEach((play: Record<string, unknown>, index: number) => {
+    const period = (play.period as { number?: number })?.number ?? 1;
+    const clock = (play.clock as { displayValue?: string })?.displayValue ?? "15:00";
     events.push({
       id: `score-${index}`,
-      videoAt: mapGameTimeToVideo(item.elapsed, maxElapsed, videoDuration),
-      gameElapsed: item.elapsed,
-      scoreHome: Number(item.play.homeScore ?? 0),
-      scoreAway: Number(item.play.awayScore ?? 0),
-      description: String(item.play.text ?? "Scoring play").trim(),
+      videoAt: 0,
+      gameElapsed: parseFootballClock(period, clock),
+      scoreHome: Number(play.homeScore ?? 0),
+      scoreAway: Number(play.awayScore ?? 0),
+      description: String(play.text ?? "Scoring play").trim(),
       periodLabel: footballPeriodLabel(period),
       kind: "score",
     });
@@ -238,8 +130,7 @@ function buildFootballTimeline(
     const result = String(drive.displayResult ?? drive.result ?? "");
     const yards = Number(drive.yards ?? 0);
     const isTurnover = /interception|fumble/i.test(result);
-    const isLongDrive = yards >= 45;
-    if (!isTurnover && !isLongDrive) continue;
+    if (!isTurnover && yards < 45) continue;
 
     const period = drive.start?.period?.number ?? 1;
     const clock = drive.start?.clock?.displayValue ?? "15:00";
@@ -249,7 +140,7 @@ function buildFootballTimeline(
 
     events.push({
       id: `drive-${index}`,
-      videoAt: mapGameTimeToVideo(elapsed, maxElapsed, videoDuration),
+      videoAt: 0,
       gameElapsed: elapsed,
       scoreHome: scores.scoreHome,
       scoreAway: scores.scoreAway,
@@ -267,7 +158,7 @@ function buildFootballTimeline(
     const scores = runningScoreAtElapsed(events, elapsed);
     events.push({
       id: `period-q${quarter}`,
-      videoAt: mapGameTimeToVideo(elapsed, maxElapsed, videoDuration),
+      videoAt: 0,
       gameElapsed: elapsed,
       scoreHome: scores.scoreHome,
       scoreAway: scores.scoreAway,
@@ -281,25 +172,17 @@ function buildFootballTimeline(
     });
   }
 
-  return events.sort((a, b) => a.videoAt - b.videoAt);
+  return events.sort((a, b) => a.gameElapsed - b.gameElapsed);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildSoccerTimeline(
-  payload: any,
-  videoDuration: number,
-  gameContext: GameBroadcastContext,
-): TimelineEvent[] {
+function buildSoccerTimeline(payload: any, gameContext: GameBroadcastContext): TimelineEvent[] {
   const keyEvents = payload.keyEvents ?? [];
-  const maxElapsed = Math.max(
-    ...keyEvents.map((e: { clock?: { value?: number } }) => Number(e.clock?.value ?? 0)),
-    SOCCER_MATCH_SECONDS,
-  );
 
   const events: TimelineEvent[] = [
     {
       id: "opening",
-      videoAt: 3,
+      videoAt: 0,
       gameElapsed: 0,
       scoreHome: 0,
       scoreAway: 0,
@@ -328,7 +211,7 @@ function buildSoccerTimeline(
       scoreAway = scores.away;
       events.push({
         id: `goal-${index}`,
-        videoAt: mapGameTimeToVideo(elapsed, maxElapsed, videoDuration),
+        videoAt: 0,
         gameElapsed: elapsed,
         scoreHome,
         scoreAway,
@@ -342,7 +225,7 @@ function buildSoccerTimeline(
     if (type === "halftime" || type === "start-2nd-half" || type === "end-regular-time") {
       events.push({
         id: `${type}-${index}`,
-        videoAt: mapGameTimeToVideo(elapsed, maxElapsed, videoDuration),
+        videoAt: 0,
         gameElapsed: elapsed,
         scoreHome,
         scoreAway,
@@ -363,7 +246,7 @@ function buildSoccerTimeline(
       if (!text) continue;
       events.push({
         id: `key-${index}`,
-        videoAt: mapGameTimeToVideo(elapsed, maxElapsed, videoDuration),
+        videoAt: 0,
         gameElapsed: elapsed,
         scoreHome,
         scoreAway,
@@ -374,7 +257,7 @@ function buildSoccerTimeline(
     }
   }
 
-  return events.sort((a, b) => a.videoAt - b.videoAt);
+  return events.sort((a, b) => a.gameElapsed - b.gameElapsed);
 }
 
 export async function fetchEspnSummary(sport: string, league: string, eventId: string) {
@@ -442,3 +325,4 @@ export function extractEspnDebugSummary(payload: any, sport: string) {
 
 export { templateCommentary } from "@/lib/commentary-prompts";
 export type { GameBroadcastContext } from "@/lib/game-context";
+export type { VideoSyncMode } from "@/lib/timeline-sync";

@@ -1,5 +1,4 @@
 import { getDemoGame } from "@/lib/demo-games";
-import { extractGameContext } from "@/lib/game-context";
 import {
   buildTimeline,
   espnSummaryUrl,
@@ -21,13 +20,19 @@ export async function GET(request: Request) {
     const fetchedAt = new Date().toISOString();
     const espnUrl = espnSummaryUrl(game.sport, game.league, game.eventId);
     const payload = await fetchEspnSummary(game.sport, game.league, game.eventId);
-    const { events, gameContext } = buildTimeline(payload, game.sport, duration);
+    const { events, gameContext, videoMode } = buildTimeline(
+      payload,
+      game.sport,
+      duration,
+      game.videoMode,
+    );
     const summary = extractEspnDebugSummary(payload, game.sport);
 
     return Response.json({
       events,
       gameId: game.id,
       gameContext,
+      videoMode,
       debug: {
         espnUrl,
         fetchedAt,
@@ -35,12 +40,10 @@ export async function GET(request: Request) {
         payload,
         events,
         gameContext,
+        videoMode,
       },
     });
   } catch {
     return Response.json({ error: "Failed to build timeline" }, { status: 502 });
   }
 }
-
-// Re-export for tests or server use
-export { extractGameContext };

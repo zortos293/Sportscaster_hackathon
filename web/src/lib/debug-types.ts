@@ -5,7 +5,7 @@ export type CommentaryDebugEntry = {
   id: string;
   generatedAt: string;
   videoAt: number;
-  source: "llm" | "template" | "fallback";
+  source: "llm" | "template" | "fallback" | "cursor";
   text: string;
   event: TimelineEvent;
   model?: string;
@@ -41,4 +41,5 @@ export type TimelineDebugInfo = {
   payload: unknown;
   events: TimelineEvent[];
   gameContext?: GameBroadcastContext;
+  videoMode?: string;
 };
