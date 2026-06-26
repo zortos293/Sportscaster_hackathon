@@ -19,3 +19,8 @@ export function videoUrl(videoFile: string): string {
   }
   return `/samples/${videoFile}`;
 }
+
+/** Demo highlight reels keep the source broadcast audio; imports use muted video + TTS. */
+export function usesNativeVideoAudio(game: BroadcastGame): boolean {
+  return game.videoMode === "highlights";
+}

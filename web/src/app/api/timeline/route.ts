@@ -1,4 +1,11 @@
+import { getDemoGame } from "@/lib/demo-games";
 import { getFullMatchTimeline } from "@/lib/full-match-server";
+import {
+  buildTimeline,
+  espnSummaryUrl,
+  extractEspnDebugSummary,
+  fetchEspnSummary,
+} from "@/lib/timeline";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -7,6 +14,40 @@ export async function GET(request: Request) {
 
   if (!gameId || !duration || duration <= 0) {
     return Response.json({ error: "gameId and duration are required" }, { status: 400 });
+  }
+
+  const demoGame = getDemoGame(gameId);
+  if (demoGame) {
+    try {
+      const fetchedAt = new Date().toISOString();
+      const espnUrl = espnSummaryUrl(demoGame.sport, demoGame.league, demoGame.eventId);
+      const payload = await fetchEspnSummary(demoGame.sport, demoGame.league, demoGame.eventId);
+      const { events, gameContext, videoMode } = buildTimeline(
+        payload,
+        demoGame.sport,
+        duration,
+        demoGame.videoMode,
+      );
+      const summary = extractEspnDebugSummary(payload, demoGame.sport);
+
+      return Response.json({
+        events,
+        gameId: demoGame.id,
+        gameContext,
+        videoMode,
+        debug: {
+          espnUrl,
+          fetchedAt,
+          summary,
+          payload,
+          events,
+          gameContext,
+          videoMode,
+        },
+      });
+    } catch {
+      return Response.json({ error: "Failed to build demo timeline" }, { status: 502 });
+    }
   }
 
   try {

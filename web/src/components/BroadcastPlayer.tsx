@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BroadcastDebugPane } from "@/components/BroadcastDebugPane";
-import { type BroadcastGame, videoUrl } from "@/lib/broadcast-game";
+import { type BroadcastGame, usesNativeVideoAudio, videoUrl } from "@/lib/broadcast-game";
 import { templateCommentary } from "@/lib/commentary-prompts";
 import type { CommentaryDebugEntry, TimelineDebugInfo } from "@/lib/debug-types";
 import type { GameBroadcastContext } from "@/lib/game-context";
@@ -291,6 +291,7 @@ function buildTimelineMarkers(events: TimelineEvent[]): TimelineMarker[] {
 }
 
 export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
+  const nativeVideoAudio = usesNativeVideoAudio(game);
   const videoRef = useRef<HTMLVideoElement>(null);
   const timelineRef = useRef<TimelineEvent[]>([]);
   const firedRef = useRef<Set<string>>(new Set());
@@ -504,13 +505,13 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
   );
 
   const speakCommentary = useCallback((text: string) => {
-    if (!ttsAvailableRef.current || !audioUnlockedRef.current || !text.trim()) {
+    if (nativeVideoAudio || !ttsAvailableRef.current || !audioUnlockedRef.current || !text.trim()) {
       return;
     }
 
     audioQueueRef.current.push({ text });
     drainAudioQueue(audioQueueRef, isPlayingAudioRef, retainedTtsUrlsRef, currentAudioRef);
-  }, []);
+  }, [nativeVideoAudio]);
 
   const deliverCommentary = useCallback(
     (event: TimelineEvent, cached: CachedCommentary) => {
@@ -897,7 +898,7 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
             className="aspect-video w-full bg-neutral-950"
             src={videoUrl(game.videoFile)}
             controls
-            muted
+            muted={!nativeVideoAudio}
             playsInline
             preload="metadata"
           />
@@ -927,6 +928,12 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
             </div>
           </div>
         </div>
+        {nativeVideoAudio ? (
+          <p className="mt-3 text-sm/6 text-neutral-600">
+            Press play for the highlight reel with original broadcast audio. On-screen markers
+            still track ESPN key moments.
+          </p>
+        ) : null}
         <div className="mt-3 rounded-xl bg-neutral-950/[0.03] px-3 py-3 ring-1 ring-black/10">
           <div className="relative h-3 rounded-full bg-neutral-200">
             <div
@@ -1011,12 +1018,16 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
             {commentary.length === 0 ? (
               <li className="text-sm/6 text-neutral-600">
                 {timelineReady
-                  ? llmAvailable && ttsAvailable
-                    ? "Press play — AI commentary and ElevenLabs voice are ready."
-                    : llmAvailable
-                      ? "Press play — AI commentary ready (add ELEVENLABS_API_KEY for voice)."
-                      : "Press play — template commentary runs locally (add CURSOR_API_KEY for AI)."
-                  : "Loading imported highlight timeline…"}
+                  ? nativeVideoAudio
+                    ? "Press play — original highlight audio plays from the video."
+                    : llmAvailable && ttsAvailable
+                      ? "Press play — AI commentary and ElevenLabs voice are ready."
+                      : llmAvailable
+                        ? "Press play — AI commentary ready (add ELEVENLABS_API_KEY for voice)."
+                        : "Press play — template commentary runs locally (add CURSOR_API_KEY for AI)."
+                  : nativeVideoAudio
+                    ? "Loading demo timeline…"
+                    : "Loading imported highlight timeline…"}
               </li>
             ) : (
               commentary.map((line) => (

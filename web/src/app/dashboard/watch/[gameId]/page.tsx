@@ -8,6 +8,7 @@ import { BroadcastPlayer } from "@/components/BroadcastPlayer";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { type BroadcastGame } from "@/lib/broadcast-game";
+import { getDemoGame } from "@/lib/demo-games";
 
 type FullMatchImport = {
   gameId: string;
@@ -21,10 +22,13 @@ type FullMatchImport = {
 export default function WatchPage() {
   const params = useParams();
   const gameId = params.gameId as string;
+  const demoGame = getDemoGame(gameId);
   const [importedGame, setImportedGame] = useState<BroadcastGame | null>(null);
-  const [loadingImport, setLoadingImport] = useState(true);
+  const [loadingImport, setLoadingImport] = useState(!demoGame);
 
   useEffect(() => {
+    if (demoGame) return;
+
     let cancelled = false;
     (async () => {
       setLoadingImport(true);
@@ -54,9 +58,9 @@ export default function WatchPage() {
     return () => {
       cancelled = true;
     };
-  }, [gameId]);
+  }, [gameId, demoGame]);
 
-  const game = importedGame;
+  const game = demoGame ?? importedGame;
 
   return (
     <>
@@ -81,7 +85,7 @@ export default function WatchPage() {
           {!game ? (
             <div className="rounded-xl p-5 ring-1 ring-red-200">
               <p className="text-sm/6 text-red-700">
-                {loadingImport ? "Loading imported highlight…" : `Unknown imported highlight: ${gameId}`}
+                {loadingImport ? "Loading imported highlight…" : `Unknown game: ${gameId}`}
               </p>
             </div>
           ) : (

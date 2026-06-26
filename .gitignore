@@ -7,7 +7,6 @@ web/.env.local
 web/node_modules
 web/.next
 web/.full-matches/
-samples/*.mp4
 demo/node_modules/
 demo/dist/
 demo/output/

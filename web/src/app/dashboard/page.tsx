@@ -1,6 +1,7 @@
 "use client";
 
 import { useAppAuth } from "@/components/AppAuthProvider";
+import { DEMO_GAMES } from "@/lib/demo-games";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -87,7 +88,37 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          <div className="mt-10 grid gap-4 sm:grid-cols-2">
+          <div className="mt-10">
+            <h2 className="text-lg font-semibold text-neutral-950">Demo highlights</h2>
+            <p className="mt-1 text-sm/6 text-neutral-600">
+              Bundled ESPN-synced highlight reels — no import required.
+            </p>
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              {DEMO_GAMES.map((game) => (
+                <Link
+                  key={game.id}
+                  href={`/dashboard/watch/${game.id}`}
+                  className="group rounded-xl p-5 ring-1 ring-black/10 transition hover:ring-emerald-600/30 sm:p-6"
+                >
+                  <p className="font-mono text-sm/6 text-emerald-700">{game.subtitle}</p>
+                  <h3 className="mt-2 text-xl font-semibold text-neutral-950 group-hover:text-emerald-800">
+                    {game.title}
+                  </h3>
+                  <p className="mt-2 text-sm/6 text-neutral-600">{game.finalScore}</p>
+                  <p className="mt-4 text-sm/6 font-medium text-emerald-700">Start broadcast →</p>
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-10">
+            <h2 className="text-lg font-semibold text-neutral-950">Imported highlights</h2>
+            <p className="mt-1 text-sm/6 text-neutral-600">
+              OCR-aligned imports from the admin panel.
+            </p>
+          </div>
+
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
             {loadingGames ? (
               <p className="text-sm/6 text-neutral-600">Loading imported highlights…</p>
             ) : null}
