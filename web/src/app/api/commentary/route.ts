@@ -8,7 +8,6 @@ import {
   cursorCommentaryConfigured,
   generateCursorCommentary,
   getCursorAutomationWebhookConfig,
-  resolveCursorCommentaryModel,
   triggerAutomationWebhookIfAllowed,
 } from "@/lib/cursor-commentary";
 import { getCachedCommentaryLine, persistCommentaryLine } from "@/lib/match-cache-server";
@@ -101,8 +100,6 @@ export async function POST(request: Request) {
     recentLines,
   });
   const fallback = templateCommentary(event, gameTitle, gameContext);
-  const cursorModel = resolveCursorCommentaryModel();
-
   const debug: Record<string, unknown> = {
     generatedAt,
     event,
@@ -157,6 +154,7 @@ export async function POST(request: Request) {
       return Response.json({
         text: cached.text,
         source: cached.source,
+        audioUrl: cached.audioUrl,
         debug: {
           ...debug,
           cacheHit: true,

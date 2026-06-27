@@ -1,42 +1,73 @@
+import {
+  findCachedTtsAudio,
+  getTtsProviderConfig,
+  synthesizeElevenLabsSpeech,
+  TTS_AUDIO_MIME,
+  writeCachedTtsAudio,
+} from "@/lib/tts-cache-server";
+
+export const runtime = "nodejs";
+
+type TtsRequest = {
+  text?: string;
+  gameId?: string;
+  eventKey?: string;
+  force?: boolean;
+};
+
 export async function POST(request: Request) {
-  const { text } = (await request.json()) as { text?: string };
+  const { text, gameId, eventKey, force = false } = (await request.json()) as TtsRequest;
 
   if (!text?.trim()) {
     return Response.json({ error: "text is required" }, { status: 400 });
   }
 
-  const apiKey = process.env.ELEVENLABS_API_KEY;
-  const voiceId = process.env.ELEVENLABS_VOICE_ID ?? "JBFqnCBsd6RMkjVDRZzb";
-  const modelId = process.env.ELEVENLABS_MODEL ?? "eleven_flash_v2_5";
+  const cacheRequest =
+    gameId && eventKey
+      ? {
+          gameId,
+          eventKey,
+          text,
+        }
+      : null;
 
-  if (!apiKey) {
+  if (cacheRequest && !force) {
+    const cached = await findCachedTtsAudio(cacheRequest);
+    if (cached) {
+      return Response.json({
+        audioUrl: cached.publicUrl,
+        mime: TTS_AUDIO_MIME,
+        cacheHit: true,
+      });
+    }
+  }
+
+  const config = getTtsProviderConfig();
+  if (!config.apiKey) {
     return Response.json({ error: "ElevenLabs is not configured" }, { status: 503 });
   }
 
-  const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
-    method: "POST",
-    headers: {
-      "xi-api-key": apiKey,
-      "Content-Type": "application/json",
-      Accept: "audio/mpeg",
-    },
-    body: JSON.stringify({
-      text: text.slice(0, 2500),
-      model_id: modelId,
-      voice_settings: {
-        stability: 0.35,
-        similarity_boost: 0.85,
-        style: 0.45,
-        use_speaker_boost: true,
-      },
-    }),
-  });
+  try {
+    const audio = await synthesizeElevenLabsSpeech(text, config);
+    let cached: Awaited<ReturnType<typeof writeCachedTtsAudio>> | null = null;
+    if (cacheRequest) {
+      try {
+        cached = await writeCachedTtsAudio(cacheRequest, audio);
+      } catch (error) {
+        console.warn("[tts] failed to write cached audio:", error);
+      }
+    }
 
-  if (!response.ok) {
-    return Response.json({ error: "TTS request failed" }, { status: 502 });
+    return Response.json({
+      audioUrl: cached?.publicUrl,
+      audioBase64: cached ? undefined : audio.toString("base64"),
+      mime: TTS_AUDIO_MIME,
+      cacheHit: false,
+    });
+  } catch (error) {
+    return Response.json(
+      { error: error instanceof Error ? error.message : "TTS request failed" },
+      { status: 502 },
+    );
   }
-
-  const buffer = await response.arrayBuffer();
-  const base64 = Buffer.from(buffer).toString("base64");
-  return Response.json({ audioBase64: base64, mime: "audio/mpeg" });
 }

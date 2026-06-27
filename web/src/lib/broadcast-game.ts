@@ -11,6 +11,8 @@ export type BroadcastGame = {
   persona: string;
   finalScore: string;
   videoMode: VideoSyncMode;
+  /** Use AI voiceover instead of the video file's native audio. */
+  audioMode?: "native" | "ai";
   /** Known duration for timeline sync when ffprobe is unavailable. */
   durationSeconds?: number;
   /** Use bundled markers instead of ESPN for timeline + commentary. */
@@ -29,6 +31,7 @@ export function videoUrl(videoFile: string): string {
 
 /** Demo highlight reels keep the source broadcast audio; static demos use AI commentary. */
 export function usesNativeVideoAudio(game: BroadcastGame): boolean {
+  if (game.audioMode === "ai") return false;
   return game.videoMode === "highlights" && game.timelineSource !== "static";
 }
 
