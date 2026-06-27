@@ -1,3 +1,11 @@
+/** Admin UI and write APIs — off in production unless ADMIN_ENABLED=true. */
+export function isAdminEnabled(): boolean {
+  const flag = process.env.ADMIN_ENABLED?.trim().toLowerCase();
+  if (flag === "true" || flag === "1") return true;
+  if (flag === "false" || flag === "0") return false;
+  return process.env.NODE_ENV !== "production";
+}
+
 export function isConvexEnabled(): boolean {
   const url = process.env.NEXT_PUBLIC_CONVEX_URL?.trim();
   return Boolean(url && /^https?:\/\//.test(url));

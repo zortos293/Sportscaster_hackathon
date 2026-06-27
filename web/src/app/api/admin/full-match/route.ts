@@ -6,6 +6,7 @@ import {
   realignFullMatchImport,
   type FullMatchImportRequest,
 } from "@/lib/full-match-server";
+import { assertAdminEnabled } from "@/lib/admin-access";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -22,6 +23,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const denied = assertAdminEnabled();
+  if (denied) return denied;
+
   let body: Partial<FullMatchImportRequest> & {
     action?: string;
     firstHalfVideoAt?: number;
@@ -108,6 +112,9 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  const denied = assertAdminEnabled();
+  if (denied) return denied;
+
   const { searchParams } = new URL(request.url);
   const gameId = searchParams.get("gameId");
   if (!gameId?.trim()) {

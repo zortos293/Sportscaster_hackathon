@@ -3,6 +3,7 @@ import {
   cacheGame,
   listCachedMatchStatuses,
 } from "@/lib/cache-matches-server";
+import { assertAdminEnabled } from "@/lib/admin-access";
 
 export const maxDuration = 300;
 
@@ -17,6 +18,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const denied = assertAdminEnabled();
+  if (denied) return denied;
+
   let body: { gameId?: string; matchId?: string; all?: boolean } = {};
   try {
     body = await request.json();
