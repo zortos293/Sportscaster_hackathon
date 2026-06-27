@@ -102,6 +102,7 @@ Open http://localhost:3000/live → pick a match → **press play**.
 | `ELEVENLABS_API_KEY` | Yes (for voice) | Text-to-speech |
 | `CURSOR_API_KEY` | Yes (for LLM) | Commentary via Cursor Cloud Agents API |
 | `CURSOR_COMMENTARY_MODEL` | No | Default `composer-2.5` (fast). Use a real API model ID from `GET /v1/models` — not UI slugs like `composer-2.5-fast`. |
+| `ADMIN_ENABLED` | No | `true` to expose `/admin` in production (Railway). Off by default in production; on in local dev. |
 
 ### Valid Cloud Agents API models (your account)
 
