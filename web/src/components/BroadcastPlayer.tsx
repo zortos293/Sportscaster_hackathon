@@ -27,14 +27,11 @@ type TimelineMarker = {
   className: string;
 };
 
-function isAiSource(source: CommentaryLine["source"]): boolean {
-  return source === "cursor" || source === "llm";
-}
-
 import { eventCacheKey } from "@/lib/match-cache";
 type CachedCommentary = {
   text: string;
   source: CommentaryDebugEntry["source"] | "cursor" | "bundled";
+  audioUrl?: string;
   userPrompt?: string;
   model?: string;
   generatedAt: string;
@@ -46,15 +43,11 @@ type BroadcastPlayerProps = {
 };
 
 const SYNC_LOOKAHEAD_SECONDS = 3;
-const AI_SYNC_LOOKAHEAD_SECONDS = 12;
 const PLAYBACK_FIRE_AHEAD_SECONDS = SYNC_LOOKAHEAD_SECONDS;
-const PREFETCH_CONCURRENCY = 1;
 const INITIAL_PREFETCH_LIMIT = 8;
 const ROLLING_PREFETCH_SECONDS = 45;
-const ROLLING_PREFETCH_INTERVAL_MS = 8000;
 const COMMENTARY_LEAD_SECONDS = ROLLING_PREFETCH_SECONDS;
 const PREFETCH_PIPELINE_BATCH = INITIAL_PREFETCH_LIMIT;
-const MAJOR_EVENT_KINDS = new Set(["opening", "score", "key_play", "period"]);
 
 function isEventDue(currentTime: number, event: TimelineEvent): boolean {
   return currentTime >= event.videoAt - PLAYBACK_FIRE_AHEAD_SECONDS;
@@ -65,72 +58,42 @@ type CommentaryPurpose = "prefetch" | "playback";
 type AudioQueueItem = {
   url?: string;
   text?: string;
-  streaming?: boolean;
+  gameId?: string;
+  eventKey?: string;
+  revokeUrl?: boolean;
 };
 
-function drainAudioQueue(
-  queue: { current: AudioQueueItem[] },
-  isPlaying: { current: boolean },
-  retainUrls: { current: Set<string> },
-  currentAudio: { current: HTMLAudioElement | null },
-) {
-  if (isPlaying.current || queue.current.length === 0) return;
+type ResolvedAudio = {
+  url: string;
+  revokeUrl: boolean;
+};
 
-  const next = queue.current.shift();
-  if (!next) return;
-
-  if (next.text?.trim()) {
-    isPlaying.current = true;
-    void streamTtsAndPlay(next.text, () => {
-      if (currentAudio.current) {
-        currentAudio.current = null;
-      }
-      isPlaying.current = false;
-      drainAudioQueue(queue, isPlaying, retainUrls, currentAudio);
-    });
-    return;
-  }
-
-  if (!next.url) {
-    isPlaying.current = false;
-    drainAudioQueue(queue, isPlaying, retainUrls, currentAudio);
-    return;
-  }
-
-  isPlaying.current = true;
-  const audio = new Audio(next.url);
-  currentAudio.current = audio;
-  const onDone = () => {
-    if (next.url && !retainUrls.current.has(next.url)) {
-      URL.revokeObjectURL(next.url);
-    }
-    if (currentAudio.current === audio) {
-      currentAudio.current = null;
-    }
-    isPlaying.current = false;
-    drainAudioQueue(queue, isPlaying, retainUrls, currentAudio);
-  };
-  audio.onended = onDone;
-  audio.onerror = onDone;
-  audio.play().catch(onDone);
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    window.setTimeout(resolve, ms);
-  });
-}
-
-async function fetchTtsBlobUrl(text: string): Promise<string | null> {
+async function fetchTtsAudioUrl(
+  text: string,
+  options: { gameId?: string; eventKey?: string } = {},
+): Promise<ResolvedAudio | null> {
   const response = await fetch("/api/tts", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text }),
+    body: JSON.stringify({
+      text,
+      gameId: options.gameId,
+      eventKey: options.eventKey,
+    }),
   });
 
   if (!response.ok) return null;
 
-  const data = (await response.json()) as { audioBase64?: string; mime?: string };
+  const data = (await response.json()) as {
+    audioUrl?: string;
+    audioBase64?: string;
+    mime?: string;
+  };
+
+  if (data.audioUrl) {
+    return { url: data.audioUrl, revokeUrl: false };
+  }
+
   if (!data.audioBase64) return null;
 
   const binary = atob(data.audioBase64);
@@ -139,87 +102,73 @@ async function fetchTtsBlobUrl(text: string): Promise<string | null> {
     bytes[i] = binary.charCodeAt(i);
   }
   const blob = new Blob([bytes], { type: data.mime ?? "audio/mpeg" });
-  return URL.createObjectURL(blob);
+  return { url: URL.createObjectURL(blob), revokeUrl: true };
 }
 
-async function streamTtsAndPlay(text: string, onDone: () => void): Promise<void> {
-  try {
-    const response = await fetch("/api/tts/stream", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }),
-    });
+function playAudioUrl(
+  audioUrl: string,
+  revokeUrl: boolean,
+  currentAudio: { current: HTMLAudioElement | null },
+  onDone: () => void,
+) {
+  const audio = new Audio(audioUrl);
+  currentAudio.current = audio;
 
-    if (!response.ok || !response.body) {
-      onDone();
-      return;
+  const cleanup = () => {
+    if (revokeUrl) {
+      URL.revokeObjectURL(audioUrl);
     }
-
-    const chunks: Uint8Array[] = [];
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() ?? "";
-
-      for (const line of lines) {
-        if (line.startsWith("data: ")) {
-          const data = line.slice(6);
-          if (!data || data === "{}") continue;
-
-          try {
-            const parsed = JSON.parse(data) as { audio?: string; error?: string };
-            if (parsed.audio) {
-              const binary = atob(parsed.audio);
-              const bytes = new Uint8Array(binary.length);
-              for (let i = 0; i < binary.length; i++) {
-                bytes[i] = binary.codePointAt(i) ?? 0;
-              }
-              chunks.push(bytes);
-            }
-          } catch {
-            // Skip malformed chunks
-          }
-        }
-      }
+    if (currentAudio.current === audio) {
+      currentAudio.current = null;
     }
-
-    if (chunks.length === 0) {
-      onDone();
-      return;
-    }
-
-    const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
-    const fullAudio = new Uint8Array(totalLength);
-    let offset = 0;
-    for (const chunk of chunks) {
-      fullAudio.set(chunk, offset);
-      offset += chunk.length;
-    }
-
-    const blob = new Blob([fullAudio], { type: "audio/mpeg" });
-    const url = URL.createObjectURL(blob);
-    const audio = new Audio(url);
-
-    const cleanup = () => {
-      URL.revokeObjectURL(url);
-      onDone();
-    };
-
-    audio.onended = cleanup;
-    audio.onerror = cleanup;
-    audio.play().catch(cleanup);
-  } catch {
     onDone();
-  }
+  };
+
+  audio.onended = cleanup;
+  audio.onerror = cleanup;
+  audio.play().catch(cleanup);
 }
 
+function drainAudioQueue(
+  queue: { current: AudioQueueItem[] },
+  isPlaying: { current: boolean },
+  currentAudio: { current: HTMLAudioElement | null },
+) {
+  if (isPlaying.current || queue.current.length === 0) return;
+
+  const next = queue.current.shift();
+  if (!next) return;
+
+  const finish = () => {
+    isPlaying.current = false;
+    drainAudioQueue(queue, isPlaying, currentAudio);
+  };
+
+  isPlaying.current = true;
+
+  if (next.url) {
+    playAudioUrl(next.url, Boolean(next.revokeUrl), currentAudio, finish);
+    return;
+  }
+
+  if (!next.text?.trim()) {
+    finish();
+    return;
+  }
+
+  void fetchTtsAudioUrl(next.text, {
+    gameId: next.gameId,
+    eventKey: next.eventKey,
+  })
+    .then((audio) => {
+      if (!audio) {
+        finish();
+        return;
+      }
+      playAudioUrl(audio.url, audio.revokeUrl, currentAudio, finish);
+    })
+    .catch(finish);
+}
 
 function formatScore(away: number | null, home: number | null) {
   if (away === null || home === null) return "0 – 0";
@@ -307,7 +256,6 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
   const prefetchStartedRef = useRef(false);
   const prefetchGenerationRef = useRef(0);
   const commentaryRef = useRef<CommentaryLine[]>([]);
-  const retainedTtsUrlsRef = useRef<Set<string>>(new Set());
   const schedulePrefetchRef = useRef<() => void>(() => {});
 
   const [status, setStatus] = useState<"loading" | "ready" | "live" | "buffering" | "error">("loading");
@@ -336,6 +284,7 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
   const timelineLoadInFlightRef = useRef(false);
   const commentaryFetchChainRef = useRef<Promise<unknown>>(Promise.resolve());
   const inFlightCommentaryRef = useRef<Map<string, Promise<CachedCommentary>>>(new Map());
+  const inFlightTtsRef = useRef<Map<string, Promise<string | null>>>(new Map());
   const cursorPausedUntilRef = useRef(0);
   const playbackQueueRef = useRef<TimelineEvent[]>([]);
   const playbackPumpRunningRef = useRef(false);
@@ -474,6 +423,7 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
           const data = (await response.json()) as {
             text?: string;
             source?: "llm" | "template" | "cursor" | "bundled";
+            audioUrl?: string;
             error?: string;
             cursorAgentId?: string;
             debug?: {
@@ -506,6 +456,7 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
           const result: CachedCommentary = {
             text: data.text,
             source: data.source ?? "template",
+            audioUrl: data.audioUrl,
             userPrompt: data.debug?.userPrompt,
             model: data.debug?.model,
             generatedAt: data.debug?.generatedAt ?? generatedAt,
@@ -528,14 +479,60 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
     [bootstrapStreamSession, game.id, game.persona, game.title, resolveCommentaryLocally, runSerializedCommentaryFetch],
   );
 
-  const speakCommentary = useCallback((text: string) => {
-    if (nativeVideoAudio || !ttsAvailableRef.current || !audioUnlockedRef.current || !text.trim()) {
+  const speakCommentary = useCallback((event: TimelineEvent, cached: CachedCommentary) => {
+    if (nativeVideoAudio || !audioUnlockedRef.current || !cached.text.trim()) {
       return;
     }
 
-    audioQueueRef.current.push({ text });
-    drainAudioQueue(audioQueueRef, isPlayingAudioRef, retainedTtsUrlsRef, currentAudioRef);
-  }, [nativeVideoAudio]);
+    const eventKey = eventCacheKey(event);
+    if (cached.audioUrl) {
+      audioQueueRef.current.push({ url: cached.audioUrl });
+    } else {
+      audioQueueRef.current.push({
+        text: cached.text,
+        gameId: game.id,
+        eventKey,
+      });
+    }
+    drainAudioQueue(audioQueueRef, isPlayingAudioRef, currentAudioRef);
+  }, [game.id, nativeVideoAudio]);
+
+  const ensureTtsAudio = useCallback(
+    (event: TimelineEvent, cached: CachedCommentary): Promise<string | null> => {
+      if (nativeVideoAudio || cached.audioUrl || !cached.text.trim() || !ttsAvailableRef.current) {
+        return Promise.resolve(cached.audioUrl ?? null);
+      }
+
+      const eventKey = eventCacheKey(event);
+      const inFlight = inFlightTtsRef.current.get(eventKey);
+      if (inFlight) return inFlight;
+
+      const task = fetchTtsAudioUrl(cached.text, {
+        gameId: game.id,
+        eventKey,
+      })
+        .then((audio) => {
+          if (!audio) return null;
+
+          if (audio.revokeUrl) {
+            URL.revokeObjectURL(audio.url);
+            return null;
+          }
+
+          const next = { ...cached, audioUrl: audio.url };
+          commentaryCacheRef.current.set(eventKey, next);
+          return audio.url;
+        })
+        .catch(() => null)
+        .finally(() => {
+          inFlightTtsRef.current.delete(eventKey);
+        });
+
+      inFlightTtsRef.current.set(eventKey, task);
+      return task;
+    },
+    [game.id, nativeVideoAudio],
+  );
 
   const deliverCommentary = useCallback(
     (event: TimelineEvent, cached: CachedCommentary) => {
@@ -589,7 +586,7 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
         return next;
       });
 
-      speakCommentary(cached.text);
+      speakCommentary(event, cached);
     },
     [speakCommentary],
   );
@@ -687,6 +684,8 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
             if (recentLines.length > 4) recentLines.shift();
           }
 
+          void ensureTtsAudio(event, result);
+
           if (isEventDue(videoRef.current?.currentTime ?? 0, event)) {
             enqueuePlaybackRef.current(event);
           }
@@ -695,7 +694,7 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
         prefetchPipelineRunningRef.current = false;
       }
     },
-    [fetchCommentary, resolveCommentaryLocally],
+    [ensureTtsAudio, fetchCommentary, resolveCommentaryLocally],
   );
 
   const runPrefetchPipeline = useCallback(() => {
@@ -791,6 +790,7 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
                 eventKey: string;
                 text: string;
                 source: string;
+                audioUrl?: string;
                 cachedAt?: number;
               }>;
             };
@@ -799,6 +799,7 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
               commentaryCacheRef.current.set(line.eventKey, {
                 text: line.text.trim(),
                 source: (line.source as CommentaryDebugEntry["source"]) ?? "cursor",
+                audioUrl: line.audioUrl,
                 generatedAt: new Date(line.cachedAt ?? Date.now()).toISOString(),
               });
             }
@@ -806,10 +807,6 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
         } catch {
           // Convex cache is optional during local dev.
         }
-        for (const url of retainedTtsUrlsRef.current) {
-          URL.revokeObjectURL(url);
-        }
-        retainedTtsUrlsRef.current.clear();
         cursorAgentIdRef.current = undefined;
         streamAgentBootstrapRef.current = null;
         commentaryRef.current = [];
@@ -837,7 +834,7 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
     audioUnlockedRef.current = true;
     playbackActiveRef.current = true;
     setStatus("live");
-    drainAudioQueue(audioQueueRef, isPlayingAudioRef, retainedTtsUrlsRef, currentAudioRef);
+    drainAudioQueue(audioQueueRef, isPlayingAudioRef, currentAudioRef);
 
     if (!prefetchStartedRef.current) {
       prefetchStartedRef.current = true;
@@ -846,7 +843,7 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
 
     void runPrefetchPipeline();
     syncToVideoTime(videoRef.current?.currentTime ?? 0);
-  }, [runPrefetchPipeline, syncToVideoTime]);
+  }, [prefetchCommentary, runPrefetchPipeline, syncToVideoTime]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -932,7 +929,7 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
       video.removeEventListener("timeupdate", onTimeUpdate);
       video.removeEventListener("seeked", onSeeked);
       for (const item of audioQueueRef.current) {
-        if (item.url && !retainedTtsUrlsRef.current.has(item.url)) {
+        if (item.url && item.revokeUrl) {
           URL.revokeObjectURL(item.url);
         }
       }
@@ -941,10 +938,6 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
         currentAudioRef.current.pause();
         currentAudioRef.current = null;
       }
-      for (const url of retainedTtsUrlsRef.current) {
-        URL.revokeObjectURL(url);
-      }
-      retainedTtsUrlsRef.current.clear();
     };
   }, [game.durationSeconds, loadTimeline, runPrefetchPipeline, schedulePrefetch, syncToVideoTime, unlockAudio]);
 

@@ -33,7 +33,9 @@ export const DEMO_GAMES: BroadcastGame[] = [
       "British Premier League football commentator with building excitement",
     finalScore: "Chelsea 2, Newcastle 1",
     videoMode: "highlights",
+    audioMode: "ai",
     durationSeconds: 696,
+    timelineSource: "static",
   },
   {
     id: "hobby-horsing-germany",

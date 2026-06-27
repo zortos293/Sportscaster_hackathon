@@ -94,6 +94,189 @@ const HOBBY_HORSING_LINES: Record<string, string> = {
     "AND THERE IT IS! Germany has its first hobby horsing champion! The arena absolutely erupts — you couldn't write a better finish to this inaugural championship!",
 };
 
+const CHELSEA_NEWCASTLE_EVENTS: TimelineEvent[] = [
+  {
+    id: "opening",
+    videoAt: 5,
+    gameElapsed: 0,
+    scoreHome: 0,
+    scoreAway: 0,
+    periodLabel: "1st Half",
+    kind: "opening",
+    description: "Kickoff - Newcastle United at Chelsea.",
+    context:
+      "Venue: Stamford Bridge in London. Chelsea Total Shots leader: Pedro Neto (5). Chelsea Saves leader: Wesley Fofana (2).",
+  },
+  {
+    id: "key-1",
+    videoAt: 33.45833333333333,
+    gameElapsed: 644,
+    scoreHome: 0,
+    scoreAway: 0,
+    periodLabel: "1st Half",
+    kind: "key_play",
+    description: "Wesley Fofana Yellow Card",
+  },
+  {
+    id: "goal-2",
+    videoAt: 61.916666666666664,
+    gameElapsed: 1070,
+    scoreHome: 0,
+    scoreAway: 1,
+    periodLabel: "1st Half",
+    kind: "score",
+    description: "Nicolas Jackson Goal",
+  },
+  {
+    id: "key-3",
+    videoAt: 90.375,
+    gameElapsed: 1297,
+    scoreHome: 0,
+    scoreAway: 1,
+    periodLabel: "1st Half",
+    kind: "key_play",
+    description: "Fabian Schar Yellow Card",
+  },
+  {
+    id: "goal-4",
+    videoAt: 118.83333333333333,
+    gameElapsed: 1872,
+    scoreHome: 1,
+    scoreAway: 1,
+    periodLabel: "1st Half",
+    kind: "score",
+    description: "Alexander Isak Goal - Volley",
+  },
+  {
+    id: "goal-7",
+    videoAt: 204.20833333333334,
+    gameElapsed: 2775,
+    scoreHome: 1,
+    scoreAway: 2,
+    periodLabel: "2nd Half",
+    kind: "score",
+    description: "Cole Palmer Goal",
+  },
+  {
+    id: "key-8",
+    videoAt: 232.66666666666666,
+    gameElapsed: 3219,
+    scoreHome: 1,
+    scoreAway: 2,
+    periodLabel: "2nd Half",
+    kind: "key_play",
+    description: "Romeo Lavia Yellow Card",
+  },
+  {
+    id: "key-9",
+    videoAt: 261.125,
+    gameElapsed: 3798,
+    scoreHome: 1,
+    scoreAway: 2,
+    periodLabel: "2nd Half",
+    kind: "key_play",
+    description: "Sandro Tonali Yellow Card",
+  },
+  {
+    id: "key-10",
+    videoAt: 289.58333333333337,
+    gameElapsed: 3897,
+    scoreHome: 1,
+    scoreAway: 2,
+    periodLabel: "2nd Half",
+    kind: "key_play",
+    description: "Noni Madueke Yellow Card",
+  },
+  {
+    id: "key-18",
+    videoAt: 517.25,
+    gameElapsed: 5003,
+    scoreHome: 1,
+    scoreAway: 2,
+    periodLabel: "2nd Half",
+    kind: "key_play",
+    description: "Robert Sanchez Yellow Card",
+  },
+  {
+    id: "key-19",
+    videoAt: 545.7083333333333,
+    gameElapsed: 5238,
+    scoreHome: 1,
+    scoreAway: 2,
+    periodLabel: "2nd Half",
+    kind: "key_play",
+    description: "Pedro Neto Yellow Card",
+  },
+  {
+    id: "key-22",
+    videoAt: 631.0833333333333,
+    gameElapsed: 5355,
+    scoreHome: 1,
+    scoreAway: 2,
+    periodLabel: "2nd Half",
+    kind: "key_play",
+    description: "Sean Longstaff Yellow Card",
+  },
+  {
+    id: "key-23",
+    videoAt: 688,
+    gameElapsed: 5400,
+    scoreHome: 1,
+    scoreAway: 2,
+    periodLabel: "2nd Half",
+    kind: "key_play",
+    description: "Christopher Nkunku Yellow Card",
+  },
+];
+
+const CHELSEA_NEWCASTLE_CONTEXT: GameBroadcastContext = {
+  matchup: "Newcastle United at Chelsea",
+  awayTeam: "Newcastle United",
+  homeTeam: "Chelsea",
+  venue: "Stamford Bridge in London",
+  facts: [
+    "Venue: Stamford Bridge in London.",
+    "Chelsea Total Shots leader: Pedro Neto (5).",
+    "Chelsea Saves leader: Wesley Fofana (2).",
+    "Newcastle United Total Shots leader: Alexander Isak (3).",
+    "Newcastle United Saves leader: Nick Pope (5).",
+    "Chelsea held 50.4 possession to Newcastle United's 49.6.",
+    "Shots on target: Chelsea 7, Newcastle United 3.",
+    "These sides met recently - Chelsea won 3-2 in 2023-24 English Premier League.",
+  ],
+  narrative:
+    "Stamford Bridge gets a Premier League highlight reel with Chelsea and Newcastle trading goals, cards, and momentum.",
+};
+
+const CHELSEA_NEWCASTLE_LINES: Record<string, string> = {
+  opening:
+    "Good evening from Stamford Bridge, where Chelsea and Newcastle are ready to tear into a Premier League showcase. Settle in, because this one has pace, bite, and plenty of edge.",
+  "key-1":
+    "Wesley Fofana goes into the book early, and that is a little warning flare for Chelsea's back line. Newcastle will know there is pressure to test him now.",
+  "goal-2":
+    "Nicolas Jackson breaks it open for Chelsea! The Blues strike first at the Bridge, and that finish gives this crowd exactly the jolt it came for.",
+  "key-3":
+    "Fabian Schar sees yellow, and the temperature is climbing now. Newcastle cannot let the emotion of this first half start making decisions for them.",
+  "goal-4":
+    "Alexander Isak answers with a volley! What a hit from Newcastle's number nine, and just like that this match is level again at one apiece.",
+  "goal-7":
+    "Cole Palmer restores Chelsea's lead! Cool as you like in the second half, and Stamford Bridge erupts as the Blues move back in front.",
+  "key-8":
+    "Romeo Lavia is booked, and Chelsea have to manage this spell carefully. Newcastle are chasing the game, and every loose challenge gives them another invitation.",
+  "key-9":
+    "Sandro Tonali picks up yellow for Newcastle, and that is another flashpoint in a match full of them. The midfield battle is starting to leave marks.",
+  "key-10":
+    "Noni Madueke is shown yellow, and Chelsea are walking a thin line now. They have the lead, but they cannot let this become a card-counting contest.",
+  "key-18":
+    "Robert Sanchez goes into the referee's notebook late on, and that tells you how tense this finish has become. Chelsea are trying to protect every second.",
+  "key-19":
+    "Pedro Neto is booked as well, and the closing stages are getting scrappy. Newcastle still believe there is one more chance hiding in this match.",
+  "key-22":
+    "Sean Longstaff sees yellow for Newcastle, and frustration is starting to spill over. Time is running away, and Chelsea can feel the finish line.",
+  "key-23":
+    "Christopher Nkunku gets a late yellow, one more spark in a fiery finish. Chelsea are almost there, but Newcastle are making them earn every whistle.",
+};
+
 function buildCommentary(events: TimelineEvent[], lines: Record<string, string>): CachedCommentaryLine[] {
   return events.map((event) => ({
     eventKey: eventCacheKey(event),
@@ -107,6 +290,11 @@ function buildCommentary(events: TimelineEvent[], lines: Record<string, string>)
 }
 
 const STATIC_PACKS: Record<string, StaticDemoPack> = {
+  "chelsea-newcastle": {
+    events: CHELSEA_NEWCASTLE_EVENTS,
+    gameContext: CHELSEA_NEWCASTLE_CONTEXT,
+    commentary: buildCommentary(CHELSEA_NEWCASTLE_EVENTS, CHELSEA_NEWCASTLE_LINES),
+  },
   "hobby-horsing-germany": {
     events: HOBBY_HORSING_EVENTS,
     gameContext: HOBBY_HORSING_CONTEXT,
