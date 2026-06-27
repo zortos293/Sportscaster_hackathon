@@ -81,7 +81,7 @@ function drainAudioQueue(
 
   if (next.text?.trim()) {
     isPlaying.current = true;
-    void streamTtsAndPlay(next.text, () => {
+    void playTtsText(next.text, () => {
       if (currentAudio.current) {
         currentAudio.current = null;
       }
@@ -119,6 +119,23 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => {
     window.setTimeout(resolve, ms);
   });
+}
+
+async function playTtsText(text: string, onDone: () => void): Promise<void> {
+  const blobUrl = await fetchTtsBlobUrl(text);
+  if (blobUrl) {
+    const audio = new Audio(blobUrl);
+    const cleanup = () => {
+      URL.revokeObjectURL(blobUrl);
+      onDone();
+    };
+    audio.onended = cleanup;
+    audio.onerror = cleanup;
+    audio.play().catch(cleanup);
+    return;
+  }
+
+  await streamTtsAndPlay(text, onDone);
 }
 
 async function fetchTtsBlobUrl(text: string): Promise<string | null> {
@@ -179,7 +196,7 @@ async function streamTtsAndPlay(text: string, onDone: () => void): Promise<void>
               const binary = atob(parsed.audio);
               const bytes = new Uint8Array(binary.length);
               for (let i = 0; i < binary.length; i++) {
-                bytes[i] = binary.codePointAt(i) ?? 0;
+                bytes[i] = binary.charCodeAt(i);
               }
               chunks.push(bytes);
             }

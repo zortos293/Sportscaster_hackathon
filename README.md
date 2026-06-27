@@ -100,6 +100,8 @@ Open http://localhost:3000/live → pick a match → **press play**.
 | Variable | Required | Purpose |
 |----------|----------|---------|
 | `ELEVENLABS_API_KEY` | Yes (for voice) | Text-to-speech |
+| `ELEVENLABS_VOICE_ID` | No | ElevenLabs voice (default George) |
+| `ELEVENLABS_MODEL` | No | Default `eleven_flash_v2_5` |
 | `CURSOR_API_KEY` | Yes (for LLM) | Commentary via Cursor Cloud Agents API |
 | `CURSOR_COMMENTARY_MODEL` | No | Default `composer-2.5` (fast). Use a real API model ID from `GET /v1/models` — not UI slugs like `composer-2.5-fast`. |
 
@@ -124,6 +126,8 @@ Query live list: `curl -u "$CURSOR_API_KEY:" https://api.cursor.com/v1/models`
 | `NEXT_PUBLIC_CONVEX_URL` | No | Auth (empty = demo mode) |
 
 See [automations/sportscaster-commentary.md](automations/sportscaster-commentary.md) for Cursor Automation setup.
+
+**TTS cache:** Generated ElevenLabs audio is stored in `web/.tts-cache/` (keyed by voice + model + text). Repeat playbacks and replays reuse cached MP3s instead of calling ElevenLabs again.
 
 ## Quick start (legacy Python backend)
 

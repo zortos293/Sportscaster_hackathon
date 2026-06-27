@@ -1,8 +1,8 @@
 import { type BroadcastGame } from "@/lib/broadcast-game";
 
 const DEMO_VIDEO = {
-  georgiaOleMiss: "https://files.zortos.me/georgia-ole-miss-2024.mp4",
-  chelseaNewcastle: "https://files.zortos.me/chelsea-newcastle-2024.mp4",
+  georgiaOleMiss: "georgia-ole-miss-2024.mp4",
+  chelseaNewcastle: "chelsea-newcastle-2024.mp4",
   hobbyHorsing: "https://files.zortos.me/hobby-horsing-germany-O8nZkXfng4A.mp4",
 } as const;
 

@@ -15,6 +15,8 @@ export type BroadcastGame = {
   durationSeconds?: number;
   /** Use bundled markers instead of ESPN for timeline + commentary. */
   timelineSource?: "espn" | "static";
+  /** "native" keeps source video audio; default "ai" mutes video and uses ElevenLabs. */
+  audioSource?: "native" | "ai";
 };
 
 export function videoUrl(videoFile: string): string {
@@ -27,9 +29,9 @@ export function videoUrl(videoFile: string): string {
   return `/samples/${videoFile}`;
 }
 
-/** Demo highlight reels keep the source broadcast audio; static demos use AI commentary. */
+/** Mute video and overlay AI voice unless the game explicitly keeps native audio. */
 export function usesNativeVideoAudio(game: BroadcastGame): boolean {
-  return game.videoMode === "highlights" && game.timelineSource !== "static";
+  return game.audioSource === "native";
 }
 
 /** Pre-bundled commentary lines (no Convex / Cursor required). */

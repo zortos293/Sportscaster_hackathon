@@ -1,3 +1,5 @@
+import { synthesizeTts } from "@/lib/tts-server";
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -8,82 +10,33 @@ export async function POST(request: Request) {
     return Response.json({ error: "text is required" }, { status: 400 });
   }
 
-  const apiKey = process.env.ELEVENLABS_API_KEY;
-  const voiceId = process.env.ELEVENLABS_VOICE_ID ?? "JBFqnCBsd6RMkjVDRZzb";
-  const modelId = process.env.ELEVENLABS_MODEL ?? "eleven_flash_v2_5";
+  try {
+    const result = await synthesizeTts(text, { stream: true });
+    const encoder = new TextEncoder();
+    const base64Chunk = result.audio.toString("base64");
 
-  if (!apiKey) {
-    return Response.json({ error: "ElevenLabs is not configured" }, { status: 503 });
-  }
-
-  const response = await fetch(
-    `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream`,
-    {
-      method: "POST",
-      headers: {
-        "xi-api-key": apiKey,
-        "Content-Type": "application/json",
-        Accept: "audio/mpeg",
-      },
-      body: JSON.stringify({
-        text: text.slice(0, 2500),
-        model_id: modelId,
-        output_format: "mp3_44100_128",
-        optimize_streaming_latency: 3,
-        voice_settings: {
-          stability: 0.35,
-          similarity_boost: 0.85,
-          style: 0.45,
-          use_speaker_boost: true,
-        },
-      }),
-    },
-  );
-
-  if (!response.ok || !response.body) {
-    const errorText = await response.text().catch(() => "Unknown error");
-    return Response.json(
-      { error: `TTS stream failed: ${errorText.slice(0, 200)}` },
-      { status: 502 },
-    );
-  }
-
-  const encoder = new TextEncoder();
-  const readable = new ReadableStream({
-    async start(controller) {
-      const reader = response.body!.getReader();
-      let chunkIndex = 0;
-
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          const base64Chunk = Buffer.from(value).toString("base64");
-          const event = `event: chunk\ndata: ${JSON.stringify({ index: chunkIndex, audio: base64Chunk })}\n\n`;
-          controller.enqueue(encoder.encode(event));
-          chunkIndex++;
-        }
-
+    const body = new ReadableStream({
+      start(controller) {
+        controller.enqueue(
+          encoder.encode(
+            `event: chunk\ndata: ${JSON.stringify({ index: 0, audio: base64Chunk, cacheHit: result.cacheHit })}\n\n`,
+          ),
+        );
         controller.enqueue(encoder.encode("event: done\ndata: {}\n\n"));
         controller.close();
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "Stream error";
-        controller.enqueue(
-          encoder.encode(`event: error\ndata: ${JSON.stringify({ error: message })}\n\n`),
-        );
-        controller.close();
-      } finally {
-        reader.releaseLock();
-      }
-    },
-  });
+      },
+    });
 
-  return new Response(readable, {
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache, no-transform",
-      Connection: "keep-alive",
-    },
-  });
+    return new Response(body, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache, no-transform",
+        Connection: "keep-alive",
+      },
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "TTS stream failed";
+    const status = message.includes("not configured") ? 503 : 502;
+    return Response.json({ error: message }, { status });
+  }
 }
