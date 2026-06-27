@@ -1,36 +1,67 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Sportscaster Web App
 
-## Getting Started
+Next.js frontend and API for AI sports commentary synced to highlight video.
 
-First, run the development server:
+## Getting started
 
 ```bash
+npm install
+cp .env.local.example .env.local
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Routes
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Path | Description |
+|------|-------------|
+| `/live` | Featured demo + Continue Watching |
+| `/live/watch/[gameId]` | Broadcast player with timeline markers |
+| `/matches` | Demo replays + imported highlights catalog |
+| `/highlight` | Short-form vertical highlight feed |
+| `/admin` | Import full matches, cache commentary (dev by default; set `ADMIN_ENABLED=true` in production) |
 
-## Learn More
+Demo game IDs: `georgia-ole-miss`, `chelsea-newcastle`, `hobby-horsing-germany`.
 
-To learn more about Next.js, take a look at the following resources:
+## API routes
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Route | Purpose |
+|-------|---------|
+| `GET /api/timeline?gameId=&duration=` | Build event markers from ESPN, static demo, or imported alignment |
+| `POST /api/commentary` | Generate a broadcaster line (Cursor → OpenAI → template) |
+| `POST /api/tts` | ElevenLabs speech synthesis |
+| `GET /api/commentary/status` | Which providers are configured |
+| `GET /api/admin/*` | Full-match import, cache management (admin only) |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Environment
 
-## Deploy on Vercel
+Copy `.env.local.example` to `.env.local`. See the root [README](../README.md) for the full variable list.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Minimum for a working demo: **none** — Georgia and Chelsea play with native highlight audio and ESPN markers. Add `ELEVENLABS_API_KEY` for AI voice on hobby horsing or imported matches; add `CURSOR_API_KEY` for richer AI lines.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Optional: Convex
+
+For auth and persistent commentary cache:
+
+```bash
+npx convex dev
+```
+
+Paste `NEXT_PUBLIC_CONVEX_URL` and `CONVEX_SITE_URL` into `.env.local`.
+
+## Scripts
+
+```bash
+npm run dev      # development server
+npm run build    # production build
+npm run start    # production server
+npm run test     # vitest
+npm run lint     # eslint
+```
+
+## Related docs
+
+- [Root README](../README.md) — architecture and env vars
+- [samples/DEMO.md](../samples/DEMO.md) — demo match details
+- [automations/sportscaster-commentary.md](../automations/sportscaster-commentary.md) — Cursor Automation setup
