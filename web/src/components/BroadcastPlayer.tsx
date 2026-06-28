@@ -156,7 +156,8 @@ function drainAudioQueue(
     return;
   }
 
-  void fetchTtsAudioUrl(next.text, {
+  const text = next.text.trim();
+  void fetchTtsAudioUrl(text, {
     gameId: next.gameId,
     eventKey: next.eventKey,
   })

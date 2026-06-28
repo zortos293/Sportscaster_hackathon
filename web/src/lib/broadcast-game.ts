@@ -29,8 +29,9 @@ export function videoUrl(videoFile: string): string {
   return `/samples/${videoFile}`;
 }
 
-/** Demo highlight reels keep the source broadcast audio; static demos use AI commentary. */
+/** Demo highlight reels keep the source broadcast audio unless a game opts into AI voiceover. */
 export function usesNativeVideoAudio(game: BroadcastGame): boolean {
+  if (game.audioMode === "native") return true;
   if (game.audioMode === "ai") return false;
   return game.videoMode === "highlights" && game.timelineSource !== "static";
 }
