@@ -129,10 +129,61 @@ function playAudioUrl(
   audio.play().catch(cleanup);
 }
 
+function speakWithBrowserVoice(
+  text: string,
+  currentSpeech: { current: SpeechSynthesisUtterance | null },
+  onDone: () => void,
+): boolean {
+  if (
+    typeof window === "undefined" ||
+    !("speechSynthesis" in window) ||
+    typeof SpeechSynthesisUtterance === "undefined"
+  ) {
+    return false;
+  }
+
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.rate = 1.05;
+  utterance.pitch = 1;
+  currentSpeech.current = utterance;
+
+  const cleanup = () => {
+    if (currentSpeech.current === utterance) {
+      currentSpeech.current = null;
+    }
+    onDone();
+  };
+
+  utterance.onend = cleanup;
+  utterance.onerror = cleanup;
+
+  try {
+    window.speechSynthesis.speak(utterance);
+    return true;
+  } catch {
+    cleanup();
+    return true;
+  }
+}
+
+function cancelBrowserVoice(currentSpeech: { current: SpeechSynthesisUtterance | null }) {
+  const utterance = currentSpeech.current;
+  if (!utterance) return;
+
+  utterance.onend = null;
+  utterance.onerror = null;
+  currentSpeech.current = null;
+
+  if (typeof window !== "undefined" && "speechSynthesis" in window) {
+    window.speechSynthesis.cancel();
+  }
+}
+
 function drainAudioQueue(
   queue: { current: AudioQueueItem[] },
   isPlaying: { current: boolean },
   currentAudio: { current: HTMLAudioElement | null },
+  currentSpeech: { current: SpeechSynthesisUtterance | null },
 ) {
   if (isPlaying.current || queue.current.length === 0) return;
 
@@ -141,7 +192,7 @@ function drainAudioQueue(
 
   const finish = () => {
     isPlaying.current = false;
-    drainAudioQueue(queue, isPlaying, currentAudio);
+    drainAudioQueue(queue, isPlaying, currentAudio, currentSpeech);
   };
 
   isPlaying.current = true;
@@ -156,18 +207,25 @@ function drainAudioQueue(
     return;
   }
 
-  void fetchTtsAudioUrl(next.text, {
+  const text = next.text.trim();
+  void fetchTtsAudioUrl(text, {
     gameId: next.gameId,
     eventKey: next.eventKey,
   })
     .then((audio) => {
       if (!audio) {
-        finish();
+        if (!speakWithBrowserVoice(text, currentSpeech, finish)) {
+          finish();
+        }
         return;
       }
       playAudioUrl(audio.url, audio.revokeUrl, currentAudio, finish);
     })
-    .catch(finish);
+    .catch(() => {
+      if (!speakWithBrowserVoice(text, currentSpeech, finish)) {
+        finish();
+      }
+    });
 }
 
 function formatScore(away: number | null, home: number | null) {
@@ -249,6 +307,7 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
   const audioQueueRef = useRef<AudioQueueItem[]>([]);
   const isPlayingAudioRef = useRef(false);
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
+  const currentSpeechRef = useRef<SpeechSynthesisUtterance | null>(null);
   const audioUnlockedRef = useRef(false);
   const playbackActiveRef = useRef(false);
   const lastSyncRef = useRef(0);
@@ -494,7 +553,7 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
         eventKey,
       });
     }
-    drainAudioQueue(audioQueueRef, isPlayingAudioRef, currentAudioRef);
+    drainAudioQueue(audioQueueRef, isPlayingAudioRef, currentAudioRef, currentSpeechRef);
   }, [game.id, nativeVideoAudio]);
 
   const ensureTtsAudio = useCallback(
@@ -834,7 +893,7 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
     audioUnlockedRef.current = true;
     playbackActiveRef.current = true;
     setStatus("live");
-    drainAudioQueue(audioQueueRef, isPlayingAudioRef, currentAudioRef);
+    drainAudioQueue(audioQueueRef, isPlayingAudioRef, currentAudioRef, currentSpeechRef);
 
     if (!prefetchStartedRef.current) {
       prefetchStartedRef.current = true;
@@ -905,6 +964,7 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
         currentAudioRef.current.currentTime = 0;
         currentAudioRef.current = null;
       }
+      cancelBrowserVoice(currentSpeechRef);
       isPlayingAudioRef.current = false;
 
       syncToVideoTime(t);
@@ -938,6 +998,7 @@ export function BroadcastPlayer({ game }: BroadcastPlayerProps) {
         currentAudioRef.current.pause();
         currentAudioRef.current = null;
       }
+      cancelBrowserVoice(currentSpeechRef);
     };
   }, [game.durationSeconds, loadTimeline, runPrefetchPipeline, schedulePrefetch, syncToVideoTime, unlockAudio]);
 

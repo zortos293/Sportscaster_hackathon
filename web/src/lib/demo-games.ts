@@ -50,7 +50,7 @@ export const DEMO_GAMES: BroadcastGame[] = [
       "Enthusiastic European sports commentator who treats hobby horsing with the drama of Olympic equestrian",
     finalScore: "Germany crowned first national champion",
     videoMode: "highlights",
-    audioMode: "native",
+    audioMode: "ai",
     durationSeconds: 54,
     timelineSource: "static",
   },

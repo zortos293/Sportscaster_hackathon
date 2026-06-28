@@ -35,7 +35,7 @@ describe("usesNativeVideoAudio", () => {
   });
 
   it("keeps the affected demos on their intended audio modes", () => {
-    expect(usesNativeVideoAudio(getDemoGame("hobby-horsing-germany")!)).toBe(true);
+    expect(usesNativeVideoAudio(getDemoGame("hobby-horsing-germany")!)).toBe(false);
     expect(usesNativeVideoAudio(getDemoGame("georgia-ole-miss")!)).toBe(false);
   });
 });
