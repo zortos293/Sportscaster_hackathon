@@ -19,6 +19,7 @@ export const DEMO_GAMES: BroadcastGame[] = [
       "Energetic American college football commentator with Southern flair",
     finalScore: "Ole Miss 28, Georgia 10",
     videoMode: "highlights",
+    audioMode: "ai",
     durationSeconds: 979,
   },
   {
@@ -49,6 +50,7 @@ export const DEMO_GAMES: BroadcastGame[] = [
       "Enthusiastic European sports commentator who treats hobby horsing with the drama of Olympic equestrian",
     finalScore: "Germany crowned first national champion",
     videoMode: "highlights",
+    audioMode: "native",
     durationSeconds: 54,
     timelineSource: "static",
   },
