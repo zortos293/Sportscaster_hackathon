@@ -1,3 +1,5 @@
+import { BoundedCache } from "@/lib/bounded-cache";
+
 const CURSOR_API_BASE = "https://api.cursor.com/v1";
 
 const WEBHOOK_MOMENT_TYPES = new Set(["opening", "score", "key_play", "period"]);
@@ -143,8 +145,8 @@ type CursorAgentResponse = {
   run: CursorRun;
 };
 
-/** Per-process cache — client also holds agentId for the active stream. */
-const streamAgentByGameId = new Map<string, string>();
+/** Per-process cache — bounded so one-off games cannot grow memory indefinitely. */
+const streamAgentByGameId = new BoundedCache<string, string>(100);
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => {
