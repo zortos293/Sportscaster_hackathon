@@ -32,7 +32,7 @@ function adminAccessGuard(request: NextRequest): NextResponse | null {
   return null;
 }
 
-export default convexAuthEnabled
+const proxy = convexAuthEnabled
   ? convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
       const adminBlocked = adminAccessGuard(request);
       if (adminBlocked) return adminBlocked;
@@ -46,6 +46,8 @@ export default convexAuthEnabled
       }
     })
   : (request: NextRequest) => adminAccessGuard(request) ?? NextResponse.next();
+
+export default proxy;
 
 export const config = {
   matcher: ["/((?!.*\\..*|_next).*)", "/", "/(api|trpc)(.*)"],
